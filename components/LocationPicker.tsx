@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import maplibregl from "maplibre-gl";
+import { Map, Marker, NavigationControl } from "maplibre-gl";
 import { AUSTIN_CENTER, DARK_MAP_STYLE } from "@/lib/map-style";
 
 export default function LocationPicker({
@@ -14,20 +14,20 @@ export default function LocationPicker({
   onChange: (coords: { lat: number; lng: number }) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const markerRef = useRef<maplibregl.Marker | null>(null);
+  const mapRef = useRef<Map | null>(null);
+  const markerRef = useRef<Marker | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-    const map = new maplibregl.Map({
+    const map = new Map({
       container: containerRef.current,
       style: DARK_MAP_STYLE,
       center: [AUSTIN_CENTER.lng, AUSTIN_CENTER.lat],
       zoom: 12.2,
     });
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     map.on("click", (event) => {
       onChangeRef.current({ lat: event.lngLat.lat, lng: event.lngLat.lng });
     });
@@ -43,7 +43,7 @@ export default function LocationPicker({
     const map = mapRef.current;
     if (!map || lat == null || lng == null) return;
     if (!markerRef.current) {
-      markerRef.current = new maplibregl.Marker({ color: "#F97316" }).addTo(map);
+      markerRef.current = new Marker({ color: "#F97316" }).addTo(map);
     }
     markerRef.current.setLngLat([lng, lat]);
   }, [lat, lng]);

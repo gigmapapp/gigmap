@@ -1,4 +1,4 @@
-import type { StyleSpecification } from "maplibre-gl";
+import type { StyleSpecification } from "@maplibre/maplibre-gl-style-spec";
 
 export const AUSTIN_CENTER = {
   lng: -97.7431,

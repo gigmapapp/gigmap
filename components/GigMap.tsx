@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import maplibregl from "maplibre-gl";
+import { Map, Marker, NavigationControl, Popup } from "maplibre-gl";
 import { AUSTIN_CENTER, CATEGORY_MARKER, DARK_MAP_STYLE } from "@/lib/map-style";
 import { formatGigWhen } from "@/lib/format";
 import type { Category, Gig, Performer } from "@/lib/types";
@@ -18,21 +18,20 @@ export default function GigMap({
   onSelect: (id: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const mapRef = useRef<Map | null>(null);
+  const markersRef = useRef<Marker[]>([]);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-    const map = new maplibregl.Map({
+    const map = new Map({
       container: containerRef.current,
       style: DARK_MAP_STYLE,
       center: [AUSTIN_CENTER.lng, AUSTIN_CENTER.lat],
       zoom: AUSTIN_CENTER.zoom,
-      attributionControl: true,
     });
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     mapRef.current = map;
     return () => {
       map.remove();
@@ -56,7 +55,7 @@ export default function GigMap({
       el.setAttribute("aria-label", gig.title);
       el.addEventListener("click", () => onSelectRef.current(gig.id));
 
-      const popup = new maplibregl.Popup({ offset: 16, closeButton: false }).setHTML(
+      const popup = new Popup({ offset: 16, closeButton: false }).setHTML(
         `<div style="min-width:170px">
           <div style="font-size:11px;color:#fb923c;text-transform:uppercase;letter-spacing:.06em">${gig.category}</div>
           <div style="font-weight:650;margin-top:2px">${escapeHtml(gig.title)}</div>
@@ -66,7 +65,7 @@ export default function GigMap({
         </div>`,
       );
 
-      const marker = new maplibregl.Marker({ element: el })
+      const marker = new Marker({ element: el })
         .setLngLat([gig.location.lng, gig.location.lat])
         .setPopup(popup)
         .addTo(map);
