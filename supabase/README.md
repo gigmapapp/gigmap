@@ -4,7 +4,7 @@ The app talks to Supabase from the browser via `lib/supabaseClient.ts`.
 
 ## Environment
 
-Set these in `.env.local` (never commit secrets):
+Set these in `.env.local` and on Vercel (Preview + Production). Never commit secrets. `next build` succeeds without them; login and hire need real values at runtime.
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
