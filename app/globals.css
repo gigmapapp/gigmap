@@ -62,6 +62,10 @@ select {
   border-bottom-color: #18181b;
 }
 
+.maplibregl-canvas {
+  filter: invert(0.9) hue-rotate(180deg) saturate(0.45) brightness(0.92);
+}
+
 .maplibregl-ctrl-attrib {
   background: rgba(9, 9, 11, 0.72) !important;
   color: #a1a1aa !important;

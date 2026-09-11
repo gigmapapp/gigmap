@@ -57,8 +57,8 @@ export default function Discovery({
   }, [mapped, date, category]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <section className="relative h-[52vh] min-h-[320px] lg:h-auto lg:min-h-0 lg:flex-1">
+    <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+      <section className="relative h-[52vh] min-h-[320px] md:h-auto md:min-h-0 md:flex-1">
         <GigMap gigs={visible} selectedId={selectedId} onSelect={setSelectedId} />
         <div className="pointer-events-none absolute inset-x-0 top-0 p-3 sm:p-4">
           <div className="pointer-events-auto mx-auto max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950/85 p-3 shadow-xl backdrop-blur">
@@ -66,7 +66,7 @@ export default function Discovery({
               Find live music near you.
             </p>
             <p className="mb-3 text-xs text-zinc-400">
-              Austin · dates in Central Time · free OpenStreetMap tiles
+              Austin · dates in Central Time · OpenStreetMap tiles
             </p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <label className="flex-1 text-xs text-zinc-400">
@@ -122,7 +122,7 @@ export default function Discovery({
         </div>
       </section>
 
-      <aside className="flex max-h-[48vh] w-full flex-col border-t border-zinc-800 bg-zinc-950 lg:max-h-none lg:w-[390px] lg:border-l lg:border-t-0">
+      <aside className="flex max-h-[48vh] w-full flex-col border-t border-zinc-800 bg-zinc-950 md:max-h-none md:w-[390px] md:border-l md:border-t-0">
         <div className="flex items-center justify-between px-4 py-3">
           <h2 className="font-display text-lg text-white">
             {date ? `Gigs on ${date}` : "Upcoming gigs"}

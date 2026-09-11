@@ -4,12 +4,10 @@ export const AUSTIN_CENTER = {
   zoom: 12.35,
 };
 
-/** OpenFreeMap dark vector style — no API key. */
-export const DARK_MAP_STYLE = "https://tiles.openfreemap.org/styles/dark";
-
-export const OSM_RASTER_FALLBACK = {
+/** Keyless OSM raster tiles. Dark look is applied in CSS. */
+export const DARK_MAP_STYLE = {
   version: 8 as const,
-  name: "OSM raster",
+  name: "OpenStreetMap",
   sources: {
     osm: {
       type: "raster" as const,
