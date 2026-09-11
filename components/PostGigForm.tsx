@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { unstable_rethrow } from "next/navigation";
 import { useState } from "react";
 import { createGigAction } from "@/app/actions/gigs";
+import { AUSTIN_CENTER } from "@/lib/map-style";
 import type { Performer } from "@/lib/types";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
@@ -11,8 +12,8 @@ const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
 });
 
 export default function PostGigForm({ performer }: { performer: Performer }) {
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
+  const [lat, setLat] = useState<number | null>(AUSTIN_CENTER.lat);
+  const [lng, setLng] = useState<number | null>(AUSTIN_CENTER.lng);
   const [error, setError] = useState<string | null>(null);
 
   return (
@@ -72,8 +73,38 @@ export default function PostGigForm({ performer }: { performer: Performer }) {
           setLng(coords.lng);
         }}
       />
-      <input type="hidden" name="lat" value={lat ?? ""} />
-      <input type="hidden" name="lng" value={lng ?? ""} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm text-zinc-300">
+          Latitude
+          <input
+            name="lat"
+            type="number"
+            step="any"
+            required
+            value={lat ?? ""}
+            onChange={(event) =>
+              setLat(event.target.value === "" ? null : Number(event.target.value))
+            }
+            placeholder="30.2672"
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+          />
+        </label>
+        <label className="block text-sm text-zinc-300">
+          Longitude
+          <input
+            name="lng"
+            type="number"
+            step="any"
+            required
+            value={lng ?? ""}
+            onChange={(event) =>
+              setLng(event.target.value === "" ? null : Number(event.target.value))
+            }
+            placeholder="-97.7431"
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+          />
+        </label>
+      </div>
       <Field
         label="Venue / location label"
         name="label"

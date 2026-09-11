@@ -43,7 +43,10 @@ export default function LocationPicker({
     const map = mapRef.current;
     if (!map || lat == null || lng == null) return;
     if (!markerRef.current) {
-      markerRef.current = new Marker({ color: "#F97316" }).addTo(map);
+      markerRef.current = new Marker({ color: "#F97316" })
+        .setLngLat([lng, lat])
+        .addTo(map);
+      return;
     }
     markerRef.current.setLngLat([lng, lat]);
   }, [lat, lng]);
