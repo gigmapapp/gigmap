@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import CategoryBadge from "@/components/CategoryBadge";
-import { formatGigWhen, localDateKey, startOfLocalDay } from "@/lib/format";
+import { formatGigWhen, localDateKey } from "@/lib/format";
 import type { Category, Gig, Performer } from "@/lib/types";
 
 const GigMap = dynamic(() => import("@/components/GigMap"), { ssr: false });
@@ -38,12 +38,19 @@ export default function Discovery({
   const [category, setCategory] = useState<"all" | Category>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const dateChips = useMemo(() => {
+    const keys = new Set<string>();
+    for (const gig of mapped) {
+      keys.add(localDateKey(gig.datetime));
+    }
+    return [...keys].sort().slice(0, 6);
+  }, [mapped]);
+
   const visible = useMemo(() => {
-    const start = startOfLocalDay();
+    const today = localDateKey(new Date().toISOString());
     return mapped.filter((gig) => {
-      const when = new Date(gig.datetime);
-      const upcoming = when >= start;
-      const dateOk = date ? localDateKey(gig.datetime) === date : upcoming;
+      const gigDay = localDateKey(gig.datetime);
+      const dateOk = date ? gigDay === date : gigDay >= today;
       const categoryOk = category === "all" || gig.category === category;
       return dateOk && categoryOk;
     });
@@ -58,7 +65,9 @@ export default function Discovery({
             <p className="font-display text-lg tracking-tight text-white">
               Find live music near you.
             </p>
-            <p className="mb-3 text-xs text-zinc-400">Austin · upcoming gigs on a free OSM map</p>
+            <p className="mb-3 text-xs text-zinc-400">
+              Austin · dates in Central Time · free OpenStreetMap tiles
+            </p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <label className="flex-1 text-xs text-zinc-400">
                 Date
@@ -76,6 +85,22 @@ export default function Discovery({
               >
                 Upcoming
               </button>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {dateChips.map((chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => setDate(chip)}
+                  className={`rounded-full px-2.5 py-1 text-xs ${
+                    date === chip
+                      ? "bg-white text-zinc-950"
+                      : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                  }`}
+                >
+                  {chip}
+                </button>
+              ))}
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {FILTERS.map((filter) => (

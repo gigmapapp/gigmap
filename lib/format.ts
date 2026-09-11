@@ -1,7 +1,10 @@
 import type { Category } from "@/lib/types";
 
+export const AUSTIN_TZ = "America/Chicago";
+
 export function formatGigWhen(iso: string) {
   return new Intl.DateTimeFormat("en-US", {
+    timeZone: AUSTIN_TZ,
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -12,6 +15,7 @@ export function formatGigWhen(iso: string) {
 
 export function formatGigDay(iso: string) {
   return new Intl.DateTimeFormat("en-US", {
+    timeZone: AUSTIN_TZ,
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -19,15 +23,17 @@ export function formatGigDay(iso: string) {
 }
 
 export function localDateKey(iso: string) {
-  const date = new Date(iso);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: AUSTIN_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
 }
 
 export function startOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const key = localDateKey(date.toISOString());
+  return new Date(`${key}T00:00:00-05:00`);
 }
 
 export function categoryLabel(category: Category) {

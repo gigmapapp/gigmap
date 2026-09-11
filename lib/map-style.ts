@@ -1,33 +1,28 @@
-import type { StyleSpecification } from "@maplibre/maplibre-gl-style-spec";
-
 export const AUSTIN_CENTER = {
   lng: -97.7431,
   lat: 30.2672,
   zoom: 12.35,
 };
 
-export const DARK_MAP_STYLE: StyleSpecification = {
-  version: 8,
-  name: "Carto Dark Matter",
+/** OpenFreeMap dark vector style — no API key. */
+export const DARK_MAP_STYLE = "https://tiles.openfreemap.org/styles/dark";
+
+export const OSM_RASTER_FALLBACK = {
+  version: 8 as const,
+  name: "OSM raster",
   sources: {
-    carto: {
-      type: "raster",
+    osm: {
+      type: "raster" as const,
       tiles: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
       ],
       tileSize: 256,
-      attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      attribution: "&copy; OpenStreetMap contributors",
     },
   },
-  layers: [
-    {
-      id: "carto-dark",
-      type: "raster",
-      source: "carto",
-    },
-  ],
+  layers: [{ id: "osm", type: "raster" as const, source: "osm" }],
 };
 
 export const CATEGORY_MARKER: Record<string, string> = {
