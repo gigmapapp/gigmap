@@ -59,7 +59,13 @@ function ensureInitialized() {
 
 export async function readDb(): Promise<Database> {
   await ensureInitialized();
-  return parseDb(await readFile(DB_PATH, "utf8"));
+  try {
+    return parseDb(await readFile(DB_PATH, "utf8"));
+  } catch {
+    initialized = null;
+    await ensureInitialized();
+    return parseDb(await readFile(DB_PATH, "utf8"));
+  }
 }
 
 async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
