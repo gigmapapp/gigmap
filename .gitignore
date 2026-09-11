@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local persistence (JSON store + uploads)
+.data/*
+!.data/.gitkeep

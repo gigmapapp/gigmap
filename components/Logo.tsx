@@ -1,7 +1,17 @@
-export default function Logo({ size = 28, textSize = 'text-xl' }: { size?: number; textSize?: string }) {
+import Link from "next/link";
+
+export default function Logo({
+  size = 28,
+  textSize = "text-xl",
+}: {
+  size?: number;
+  textSize?: string;
+}) {
   return (
-    <div className="flex items-center">
-      <span className={`${textSize} font-bold`}>Gig</span>
+    <Link href="/" className="flex items-center text-white">
+      <span className={`${textSize} font-display font-semibold tracking-tight`}>
+        Gig
+      </span>
       <svg
         width={size}
         height={size}
@@ -9,6 +19,7 @@ export default function Logo({ size = 28, textSize = 'text-xl' }: { size?: numbe
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="mx-0.5"
+        aria-hidden
       >
         <path
           d="M20 2C12.268 2 6 8.268 6 16c0 9 14 22 14 22s14-13 14-22c0-7.732-6.268-14-14-14z"
@@ -20,7 +31,9 @@ export default function Logo({ size = 28, textSize = 'text-xl' }: { size?: numbe
         <rect x="22.5" y="12" width="2" height="12" rx="1" fill="white" />
         <rect x="26" y="15" width="2" height="6" rx="1" fill="white" />
       </svg>
-      <span className={`${textSize} font-bold`}>Map</span>
-    </div>
-  )
+      <span className={`${textSize} font-display font-semibold tracking-tight`}>
+        Map
+      </span>
+    </Link>
+  );
 }
