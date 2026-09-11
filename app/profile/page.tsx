@@ -23,19 +23,23 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-      setUser(user)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/login')
+          return
+        }
+        setUser(user)
 
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (data) {
-        setDisplayName(data.display_name || '')
-        setBio(data.bio || '')
-        setGenres(data.genres || '')
-        setArtistCategory(isArtistCategory(data.artist_category) ? data.artist_category : '')
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        if (data) {
+          setDisplayName(data.display_name || '')
+          setBio(data.bio || '')
+          setGenres(data.genres || '')
+          setArtistCategory(isArtistCategory(data.artist_category) ? data.artist_category : '')
+        }
+      } catch {
+        // Stay on the form if the profile row does not exist yet.
       }
       setLoading(false)
     }

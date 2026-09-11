@@ -18,42 +18,43 @@ export default function BookingsPage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-      setUserId(user.id)
-
-      const { data, error: queryError } = await supabase
-        .from('bookings')
-        .select('*')
-        .or(`requester_id.eq.${user.id},musician_id.eq.${user.id}`)
-        .order('created_at', { ascending: false })
-
-      if (queryError) {
-        setError(queryError.message)
-        setBookings([])
-        setLoading(false)
-        return
-      }
-
-      const rows = (data || []) as Booking[]
-      setBookings(rows)
-
-      const ids = [...new Set(rows.flatMap((row) => [row.requester_id, row.musician_id]))]
-      if (ids.length > 0) {
-        const { data: profileRows } = await supabase
-          .from('profiles')
-          .select('id, display_name, bio, genres, is_musician, artist_category')
-          .in('id', ids)
-        const map: Record<string, Profile> = {}
-        for (const profile of profileRows || []) {
-          map[profile.id] = profile
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/login')
+          return
         }
-        setProfiles(map)
-      }
+        setUserId(user.id)
 
+        const { data, error: queryError } = await supabase
+          .from('bookings')
+          .select('*')
+          .or(`requester_id.eq.${user.id},musician_id.eq.${user.id}`)
+          .order('created_at', { ascending: false })
+
+        if (queryError) {
+          setError(queryError.message)
+          setBookings([])
+        } else {
+          const rows = (data || []) as Booking[]
+          setBookings(rows)
+
+          const ids = [...new Set(rows.flatMap((row) => [row.requester_id, row.musician_id]))]
+          if (ids.length > 0) {
+            const { data: profileRows } = await supabase
+              .from('profiles')
+              .select('id, display_name, bio, genres, is_musician, artist_category')
+              .in('id', ids)
+            const map: Record<string, Profile> = {}
+            for (const profile of profileRows || []) {
+              map[profile.id] = profile
+            }
+            setProfiles(map)
+          }
+        }
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'Could not load bookings')
+      }
       setLoading(false)
     }
     load()

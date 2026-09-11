@@ -21,25 +21,29 @@ export default function HirePage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-      setUserId(user.id)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/login')
+          return
+        }
+        setUserId(user.id)
 
-      const { data, error: queryError } = await supabase
-        .from('profiles')
-        .select('id, display_name, bio, genres, is_musician, artist_category')
-        .not('artist_category', 'is', null)
-        .order('display_name', { ascending: true })
+        const { data, error: queryError } = await supabase
+          .from('profiles')
+          .select('id, display_name, bio, genres, is_musician, artist_category')
+          .not('artist_category', 'is', null)
+          .order('display_name', { ascending: true })
 
-      if (queryError) {
-        setError(queryError.message)
-        setArtists([])
-      } else {
-        const hireable = (data || []).filter((row) => isArtistCategory(row.artist_category))
-        setArtists(hireable)
+        if (queryError) {
+          setError(queryError.message)
+          setArtists([])
+        } else {
+          const hireable = (data || []).filter((row) => isArtistCategory(row.artist_category))
+          setArtists(hireable)
+        }
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'Could not load artists')
       }
       setLoading(false)
     }

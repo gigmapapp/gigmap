@@ -28,23 +28,27 @@ export default function BookPage({ params }: PageProps<'/book/[id]'>) {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-      setUserId(user.id)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/login')
+          return
+        }
+        setUserId(user.id)
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, display_name, bio, genres, is_musician, artist_category')
-        .eq('id', musicianId)
-        .maybeSingle()
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, display_name, bio, genres, is_musician, artist_category')
+          .eq('id', musicianId)
+          .maybeSingle()
 
-      if (error) {
-        setStatus(error.message)
-      } else {
-        setArtist(data)
+        if (error) {
+          setStatus(error.message)
+        } else {
+          setArtist(data)
+        }
+      } catch (loadError) {
+        setStatus(loadError instanceof Error ? loadError.message : 'Could not load artist')
       }
       setLoading(false)
     }
