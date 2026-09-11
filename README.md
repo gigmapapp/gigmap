@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+GigMap helps people find live music and hire Solo artists, Bands, and DJs.
+
+Requires `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Apply `supabase/migrations/20260311_hire_artists.sql` (see `supabase/README.md`) so profiles have `artist_category` and bookings support pending / accepted / declined.
 
 ## Getting Started
 

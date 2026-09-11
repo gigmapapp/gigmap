@@ -44,6 +44,7 @@ export default function HomePage() {
         <Logo />
         <div className="flex items-center gap-3 text-sm">
           <Link href="/map" className="px-3 py-2 rounded-lg hover:bg-zinc-800">Map</Link>
+          <Link href="/hire" className="px-3 py-2 rounded-lg hover:bg-zinc-800">Hire</Link>
           {user && <Link href="/profile" className="px-3 py-2 rounded-lg hover:bg-zinc-800">Profile</Link>}
           {user && <Link href="/bookings" className="px-3 py-2 rounded-lg hover:bg-zinc-800">Bookings</Link>}
           {user ? (
@@ -68,13 +69,15 @@ export default function HomePage() {
           <Link href="/map" className="px-8 py-3 rounded-lg bg-orange-500 hover:bg-orange-600 font-medium">
             See gigs on the map
           </Link>
-          {user ? (
+          <Link
+            href={user ? '/hire' : '/login'}
+            className="px-8 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 font-medium"
+          >
+            Hire a musician
+          </Link>
+          {user && (
             <Link href="/gigs/new" className="px-8 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 font-medium">
               Add a gig
-            </Link>
-          ) : (
-            <Link href="/login" className="px-8 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 font-medium">
-              Get started
             </Link>
           )}
         </div>
