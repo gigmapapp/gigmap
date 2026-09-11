@@ -153,27 +153,29 @@ export default function BookPage({ params }: PageProps<'/book/[id]'>) {
                   </select>
                 </label>
 
-                <label className="block space-y-1">
-                  <span className="text-sm text-zinc-400">Event date</span>
-                  <input
-                    type="date"
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
-                    className={inputClass}
-                    required
-                  />
-                </label>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <label className="block space-y-1">
+                    <span className="text-sm text-zinc-400">Event date</span>
+                    <input
+                      type="date"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      className={inputClass}
+                      required
+                    />
+                  </label>
 
-                <label className="block space-y-1">
-                  <span className="text-sm text-zinc-400">Location</span>
-                  <input
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="City, venue, or address"
-                    className={inputClass}
-                    required
-                  />
-                </label>
+                  <label className="block space-y-1">
+                    <span className="text-sm text-zinc-400">Location</span>
+                    <input
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="City, venue, or address"
+                      className={inputClass}
+                      required
+                    />
+                  </label>
+                </div>
 
                 <label className="block space-y-1">
                   <span className="text-sm text-zinc-400">Message</span>
