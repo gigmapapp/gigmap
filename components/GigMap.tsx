@@ -54,15 +54,13 @@ export default function GigMap({
       mapRef.current = null;
       markers.clear();
     };
-    // Gigs/selection are applied from refs when the style finishes loading.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- map instance is created once
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     syncMarkers(map, gigs, selectedId, onSelectRef, markersRef);
-  }, [gigs]);
+  }, [gigs, selectedId]);
 
   useEffect(() => {
     const map = mapRef.current;
