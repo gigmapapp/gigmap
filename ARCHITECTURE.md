@@ -61,4 +61,4 @@ No passwords, email confirmation, or RLS exist in v1.
 5. **RLS** — public read for performers, videos, and upcoming gigs. Authenticated insert for gigs/videos owned by the session user. Anyone can insert a booking request; only the performer (and later an admin) can read their inbox.
 6. **Seed** — load `lib/seed/austin.ts` once via a SQL seed or a one-off script instead of first-read JSON bootstrap.
 
-Until that swap, keep paid SaaS out of the critical path: MapLibre + Carto/OSM tiles, local JSON, stub session.
+Until that swap, keep paid SaaS out of the critical path: MapLibre + OSM raster tiles, local JSON, stub session.
