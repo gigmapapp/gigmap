@@ -23,6 +23,7 @@ export default function LoginPage() {
         id: data.user.id,
         display_name: email.split('@')[0],
         is_musician: false,
+        artist_category: null,
       })
       setMessage('Check your email for the confirmation link!')
     }
