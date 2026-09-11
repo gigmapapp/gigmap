@@ -21,28 +21,45 @@ const DATA_DIR = path.join(process.cwd(), ".data");
 const DB_PATH = path.join(DATA_DIR, "db.json");
 
 let writeChain: Promise<unknown> = Promise.resolve();
+let initialized: Promise<void> | null = null;
 
 async function persist(db: Database) {
   await mkdir(DATA_DIR, { recursive: true });
-  const tmp = `${DB_PATH}.tmp`;
+  const tmp = `${DB_PATH}.${process.pid}.${crypto.randomUUID()}.tmp`;
   await writeFile(tmp, `${JSON.stringify(db, null, 2)}\n`, "utf8");
   await rename(tmp, DB_PATH);
 }
 
-export async function readDb(): Promise<Database> {
+function parseDb(raw: string): Database {
+  const parsed = JSON.parse(raw) as Database;
+  if (!parsed.performers || !parsed.gigs || !parsed.bookings) {
+    throw new Error("Incomplete store");
+  }
+  return parsed;
+}
+
+async function initialize() {
   await mkdir(DATA_DIR, { recursive: true });
   try {
-    const raw = await readFile(DB_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Database;
-    if (!parsed.performers || !parsed.gigs || !parsed.bookings) {
-      throw new Error("Incomplete store");
-    }
-    return parsed;
+    parseDb(await readFile(DB_PATH, "utf8"));
   } catch {
-    const seeded = seedDatabase();
-    await persist(seeded);
-    return seeded;
+    await persist(seedDatabase());
   }
+}
+
+function ensureInitialized() {
+  if (!initialized) {
+    initialized = initialize().catch((error) => {
+      initialized = null;
+      throw error;
+    });
+  }
+  return initialized;
+}
+
+export async function readDb(): Promise<Database> {
+  await ensureInitialized();
+  return parseDb(await readFile(DB_PATH, "utf8"));
 }
 
 async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
