@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { pickPerformerAction } from "@/app/actions/session";
 import CategoryBadge from "@/components/CategoryBadge";
 import { performers } from "@/lib/repo";
@@ -46,9 +47,9 @@ export default async function SessionPage({
       </div>
       <p className="mt-8 text-sm text-zinc-400">
         Need a new profile?{" "}
-        <a href="/performers/new" className="text-orange-300 underline-offset-2 hover:underline">
+        <Link href="/performers/new" className="text-orange-300 underline-offset-2 hover:underline">
           Create a performer
-        </a>
+        </Link>
       </p>
     </main>
   );

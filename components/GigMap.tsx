@@ -25,11 +25,14 @@ export default function GigMap({
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Map<string, Marker>>(new Map());
   const gigsRef = useRef(gigs);
-  gigsRef.current = gigs;
   const selectedRef = useRef(selectedId);
-  selectedRef.current = selectedId;
   const onSelectRef = useRef(onSelect);
-  onSelectRef.current = onSelect;
+
+  useEffect(() => {
+    gigsRef.current = gigs;
+    selectedRef.current = selectedId;
+    onSelectRef.current = onSelect;
+  }, [gigs, selectedId, onSelect]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -41,6 +44,7 @@ export default function GigMap({
     });
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     mapRef.current = map;
+    const markers = markersRef.current;
     const sync = () => {
       syncMarkers(map, gigsRef.current, selectedRef.current, onSelectRef, markersRef);
     };
@@ -48,7 +52,7 @@ export default function GigMap({
     return () => {
       map.remove();
       mapRef.current = null;
-      markersRef.current.clear();
+      markers.clear();
     };
   }, []);
 
