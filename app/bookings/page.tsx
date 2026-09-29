@@ -11,7 +11,7 @@ export default async function BookingsPage({
   const created = typeof query.created === "string" ? query.created : null;
   const session = await getSessionPerformer();
   const [rows, performerRows] = await Promise.all([
-    bookings.list(),
+    session ? bookings.list({ performerId: session.id }) : Promise.resolve([]),
     performers.list(),
   ]);
   const names = new Map(performerRows.map((row) => [row.id, row.name]));
@@ -20,16 +20,24 @@ export default async function BookingsPage({
     <main className="mx-auto w-full max-w-2xl px-4 py-10">
       <h1 className="font-display text-3xl text-white">Booking requests</h1>
       <p className="mt-2 text-sm text-zinc-400">
-        Stored locally. No payments, inbox thread, or accept/decline workflow in v1.
+        Only the performer a request was sent to can read it, and only while acting as that
+        performer. Names and emails are not public. No payments or accept/decline workflow in v1.
       </p>
       {created ? (
         <p className="mt-4 rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-sm text-orange-100">
-          Request saved. The performer can see it here.
+          Request saved. Only that performer can see your name and email.
         </p>
       ) : null}
       <div className="mt-8 space-y-3">
-        {rows.length === 0 ? (
-          <p className="text-sm text-zinc-500">No requests yet.</p>
+        {!session ? (
+          <p className="text-sm text-zinc-500">
+            <Link href="/session?next=/bookings" className="text-orange-300 hover:text-orange-200">
+              Act as a performer
+            </Link>{" "}
+            to see requests sent to them.
+          </p>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-zinc-500">No requests for you yet.</p>
         ) : (
           rows.map((booking) => (
             <article
@@ -40,9 +48,7 @@ export default async function BookingsPage({
                 <span className="uppercase tracking-wide text-orange-300">
                   {booking.status}
                 </span>
-                {session?.id === booking.performerId ? (
-                  <span className="text-zinc-500">For you</span>
-                ) : null}
+                <span className="text-zinc-500">For you</span>
               </div>
               <h2 className="mt-2 font-medium text-white">
                 <Link

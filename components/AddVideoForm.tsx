@@ -2,9 +2,17 @@
 
 import { unstable_rethrow } from "next/navigation";
 import { useState } from "react";
-import { addVideoAction } from "@/app/actions/videos";
+import { addVideoAction, createClipUploadAction } from "@/app/actions/videos";
+import { clipExtension, MAX_CLIP_BYTES } from "@/lib/clips";
+import { uploadClipToSignedUrl } from "@/lib/upload-clip";
 
-export default function AddVideoForm({ performerId }: { performerId: string }) {
+export default function AddVideoForm({
+  performerId,
+  uploadMode,
+}: {
+  performerId: string;
+  uploadMode: "local" | "signed";
+}) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -15,6 +23,24 @@ export default function AddVideoForm({ performerId }: { performerId: string }) {
         setError(null);
         setPending(true);
         try {
+          const file = formData.get("file");
+          if (uploadMode === "signed" && file instanceof File && file.size > 0) {
+            if (!clipExtension(file.type)) {
+              throw new Error("Upload an MP4, WebM, or MOV clip.");
+            }
+            if (file.size > MAX_CLIP_BYTES) {
+              throw new Error("Clips must be 10 MB or smaller in v1.");
+            }
+            const target = await createClipUploadAction({
+              performerId,
+              contentType: file.type,
+              size: file.size,
+            });
+            await uploadClipToSignedUrl(file, target);
+            formData.delete("file");
+            formData.set("url", target.publicUrl);
+            formData.set("uploaded", "1");
+          }
           await addVideoAction(formData);
         } catch (err) {
           unstable_rethrow(err);
@@ -25,7 +51,11 @@ export default function AddVideoForm({ performerId }: { performerId: string }) {
       }}
     >
       <h2 className="font-display text-lg text-white">Add a short clip</h2>
-      <p className="text-xs text-zinc-500">Paste a YouTube/Vimeo/MP4 URL or upload up to 10 MB.</p>
+      <p className="text-xs text-zinc-500">
+        {uploadMode === "signed"
+          ? "Paste a YouTube/Vimeo/MP4 URL, or upload up to 10 MB straight to storage."
+          : "Paste a YouTube/Vimeo/MP4 URL or upload up to 10 MB."}
+      </p>
       <input type="hidden" name="performerId" value={performerId} />
       <input
         name="title"

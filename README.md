@@ -35,23 +35,32 @@ npm run build
 npm start
 ```
 
-No paid map keys and no `.env` file are required.
+No paid map keys are required. Without Supabase env vars the app keeps using the local JSON store under `.data/`. Set the variables in `.env.example` to use Supabase instead (required on Vercel, where the filesystem is read-only).
 
 ## Seed data
 
-First read of the store creates `.data/db.json` from `lib/seed/austin.ts`:
+The Austin roster lives in `lib/seed/austin.ts`:
 
-- 10 Austin performers (solo, band, and DJ)
-- 12 upcoming gigs at real venues (Antone’s, Stubb’s, Mohawk, Continental Club, and more)
+- 10 performers (solo, band, and DJ)
+- 12 gigs at real venues (Antone’s, Stubb’s, Mohawk, Continental Club, and more)
 - Clips mix YouTube URLs and direct MP4s
+- Gig dates are computed when the seed runs: tomorrow through about six weeks, America/Chicago
 
-To reseed, delete the local store and restart:
+**Local JSON.** The first read creates `.data/db.json`. To reseed, delete the store and restart:
 
 ```bash
 rm -rf .data/db.json .data/uploads
 ```
 
-The next page load writes a fresh seed. `.data/` is gitignored except for `.gitkeep`.
+**Supabase.** The hosted project already had empty legacy tables (`profiles`, `gigs`, `bookings`) with a different shape. Apply the migrations in filename order:
+
+1. `supabase/migrations/20260929140000_drop_legacy_empty_tables.sql` drops those three only when every matching table is empty. If any has a row, it aborts and drops nothing. On a fresh database it does nothing. Already applied on the hosted project.
+2. `supabase/migrations/20260929150000_create_gigmap_tables.sql` creates the v1 tables. It does not touch Storage.
+3. `supabase/migrations/20260929155000_create_clips_bucket.sql` inserts the public `clips` bucket and a public read policy. It does not `ALTER` `storage.objects`. If this file fails, the tables from step 2 stay; use the dashboard fallback in `ARCHITECTURE.md`.
+4. `supabase/migrations/20260929160000_revoke_anon_table_writes.sql` removes anon, authenticated, and public insert/update/delete access. Public read of performers, videos, and gigs stays.
+5. `supabase/migrations/20260929170000_revoke_rls_auto_enable.sql` revokes `EXECUTE` on `public.rls_auto_enable()` when that function is already there. It does nothing on a fresh database.
+
+Then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the server env vars set. See `ARCHITECTURE.md` for the full steps, including hosted migration-history versions. Neither path writes booking requests. `supabase db reset` runs the migrations in that order; the drop and the function revoke are no-ops locally, then the seed loads v1 gigs.
 
 ## Stub auth
 
@@ -74,4 +83,8 @@ This is temporary scaffolding. See `ARCHITECTURE.md` for how it maps onto Supaba
 
 ## Persistence
 
-Typed JSON under `.data/` behind repository interfaces in `lib/repo/`. Swap the JSON adapters for Supabase without rewriting pages — details in `ARCHITECTURE.md`.
+Pages talk to `lib/repo`. That module uses Supabase when `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set, and the JSON files otherwise.
+
+Clip files in Supabase mode upload from the browser to the public `clips` bucket (10 MB cap) using a short-lived signed URL. They do not pass through the Next.js server. Local JSON mode still writes `.data/uploads/` and serves them from `/api/uploads/[filename]`.
+
+Booking requests are visible only to the stub-session performer they were sent to. The anon key cannot read or write that table, or write the other tables. Table writes use the server service role.

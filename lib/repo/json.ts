@@ -11,11 +11,13 @@ import type {
   Gig,
   Performer,
 } from "@/lib/types";
+import { requireBookingPerformerId } from "@/lib/repo/booking-scope";
 import type {
   BookingRepository,
   GigRepository,
   PerformerRepository,
 } from "@/lib/repo/interface";
+import { slugify } from "@/lib/slug";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DB_PATH = path.join(DATA_DIR, "db.json");
@@ -77,14 +79,6 @@ async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
   });
   writeChain = run.catch(() => undefined);
   return run;
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 40);
 }
 
 export const jsonPerformers: PerformerRepository = {
@@ -171,10 +165,9 @@ export const jsonGigs: GigRepository = {
 
 export const jsonBookings: BookingRepository = {
   async list(filter) {
+    const performerId = requireBookingPerformerId(filter.performerId);
     const db = await readDb();
-    const rows = filter?.performerId
-      ? db.bookings.filter((booking) => booking.performerId === filter.performerId)
-      : db.bookings;
+    const rows = db.bookings.filter((booking) => booking.performerId === performerId);
     return [...rows].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
