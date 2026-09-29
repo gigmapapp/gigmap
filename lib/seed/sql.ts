@@ -1,3 +1,4 @@
+import { VENUE_TIME_ZONE } from "@/lib/venue-time";
 import { SEED_GIGS, SEED_PERFORMERS } from "./austin";
 
 function sqlString(value: string): string {
@@ -12,7 +13,7 @@ function sqlTextArray(values: string[]): string {
 function sqlGigTime(dayOffset: number, hour: number, minute: number): string {
   const hh = String(hour).padStart(2, "0");
   const mm = String(minute).padStart(2, "0");
-  return `((timezone('America/Chicago', now()))::date + ${dayOffset} + time '${hh}:${mm}') at time zone 'America/Chicago'`;
+  return `((timezone('${VENUE_TIME_ZONE}', now()))::date + ${dayOffset} + time '${hh}:${mm}') at time zone '${VENUE_TIME_ZONE}'`;
 }
 
 /**
