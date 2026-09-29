@@ -43,6 +43,14 @@ export default function GigMap({
       zoom: AUSTIN_CENTER.zoom,
     });
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
+    map.on("moveend", () => revealPopup(map));
+    map.on("resize", () => {
+      const maxWidth = popupMaxWidth(map);
+      for (const marker of markersRef.current.values()) {
+        marker.getPopup()?.setMaxWidth(maxWidth);
+      }
+      revealPopup(map);
+    });
     mapRef.current = map;
     const markers = markersRef.current;
     const sync = () => {
@@ -90,7 +98,73 @@ export default function GigMap({
     }
   }, [gigs, selectedId]);
 
-  return <div ref={containerRef} className="h-full min-h-[320px] w-full" />;
+  return <div ref={containerRef} className="h-full w-full md:min-h-[320px]" />;
+}
+
+/** Cap the card so it can sit fully inside a narrow map. */
+function popupMaxWidth(map: MapLibreMap) {
+  const available = map.getContainer().clientWidth - 16;
+  return `${Math.max(160, Math.min(260, available))}px`;
+}
+
+/** True while a corrective pan is in flight, so moveend does not pan again. */
+let fittingPopup = false;
+
+/**
+ * On a phone-width map, pan just enough that an open popup is inside the
+ * canvas. Dynamic anchors cover a pin near the edge; this covers a pin that
+ * has been panned past the edge, where anchoring alone still clips the card.
+ * Wider maps keep the existing camera behavior.
+ */
+function revealPopup(map: MapLibreMap) {
+  if (fittingPopup || map.getContainer().clientWidth >= 768) return;
+  const shift = popupShift(map);
+  if (!shift) return;
+  fittingPopup = true;
+  const release = () => {
+    fittingPopup = false;
+  };
+  map.once("moveend", () => {
+    const again = popupShift(map);
+    if (!again) {
+      release();
+      return;
+    }
+    map.once("moveend", release);
+    map.panBy(again, { duration: 0 });
+    if (!map.isMoving()) release();
+  });
+  map.panBy(shift, { duration: 220 });
+  if (!map.isMoving()) release();
+}
+
+function popupShift(map: MapLibreMap): [number, number] | null {
+  const popup = map.getContainer().querySelector(".maplibregl-popup");
+  if (!(popup instanceof HTMLElement)) return null;
+  const mapRect = map.getContainer().getBoundingClientRect();
+  const pop = popup.getBoundingClientRect();
+  if (pop.width < 1 || pop.height < 1) return null;
+  const marker = map.getContainer().querySelector('.gig-marker[data-selected="true"]');
+  const pin = marker?.getBoundingClientRect();
+  const left = pin ? Math.min(pop.left, pin.left) : pop.left;
+  const right = pin ? Math.max(pop.right, pin.right) : pop.right;
+  const top = pin ? Math.min(pop.top, pin.top) : pop.top;
+  const bottom = pin ? Math.max(pop.bottom, pin.bottom) : pop.bottom;
+  const margin = 8;
+  const overflowLeft = mapRect.left + margin - left;
+  const overflowRight = right - (mapRect.right - margin);
+  const overflowTop = mapRect.top + margin - top;
+  const overflowBottom = bottom - (mapRect.bottom - margin);
+  const tooWide = right - left > mapRect.width - margin * 2;
+  const tooTall = bottom - top > mapRect.height - margin * 2;
+  let x = 0;
+  let y = 0;
+  if (overflowLeft > 1) x = -overflowLeft;
+  else if (!tooWide && overflowRight > 1) x = overflowRight;
+  if (overflowTop > 1) y = -overflowTop;
+  else if (!tooTall && overflowBottom > 1) y = overflowBottom;
+  if (Math.abs(x) < 1 && Math.abs(y) < 1) return null;
+  return [x, y];
 }
 
 function syncMarkers(
@@ -124,7 +198,9 @@ function syncMarkers(
       closeOnClick: false,
       // Focusing the link on open scrolls the page on touch devices and hides the popup.
       focusAfterOpen: false,
-      maxWidth: "260px",
+      maxWidth: popupMaxWidth(map),
+      // Inset used only when choosing an anchor, so a pin near the edge opens inward.
+      padding: { top: 12, right: 12, bottom: 12, left: 12 },
     }).setDOMContent(popupContent(gig));
 
     // MapLibre only opens a marker popup from the map click, inside togglePopup,
