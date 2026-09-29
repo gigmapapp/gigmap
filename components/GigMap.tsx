@@ -113,7 +113,7 @@ function syncMarkers(
     const el = document.createElement("button");
     el.type = "button";
     el.className = "gig-marker";
-    el.style.setProperty("--gig-marker", CATEGORY_MARKER[gig.category] ?? "#F97316");
+    el.style.setProperty("--gig-marker", CATEGORY_MARKER[gig.category] ?? "var(--accent)");
     el.dataset.gigId = gig.id;
     el.setAttribute("aria-label", `${gig.title}, ${gig.performer?.name ?? "Unknown"}`);
     el.setAttribute("aria-expanded", "false");

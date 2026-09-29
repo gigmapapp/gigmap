@@ -178,7 +178,7 @@ export default function BookingForm({ performer }: { performer: Performer }) {
           ref={formErrorRef}
           tabIndex={-1}
           role="alert"
-          className="rounded-lg border border-orange-500/50 bg-orange-500/10 px-3 py-2 text-sm text-orange-500 outline-none"
+          className="booking-form-error rounded-lg border px-3 py-2 text-sm outline-none"
         >
           {formError}
         </p>
@@ -203,10 +203,8 @@ function setFieldRef(
   else refs.delete(field);
 }
 
-function controlClass(invalid: boolean) {
-  return `mt-1 w-full rounded-lg border bg-zinc-900 px-3 py-2 text-white outline-none focus:border-orange-500 ${
-    invalid ? "border-orange-500" : "border-zinc-700"
-  }`;
+function controlClass() {
+  return "booking-field mt-1 w-full rounded-lg border bg-zinc-900 px-3 py-2 text-white outline-none";
 }
 
 function Field({
@@ -247,7 +245,7 @@ function Field({
     placeholder,
     "aria-invalid": invalid || undefined,
     "aria-describedby": describedBy,
-    className: controlClass(invalid),
+    className: controlClass(),
     onChange,
   };
 
@@ -262,7 +260,7 @@ function Field({
         )}
       </label>
       {invalid ? (
-        <p id={errorId} className="mt-1 text-sm text-orange-500">
+        <p id={errorId} className="mt-1 text-sm text-accent">
           {error}
         </p>
       ) : null}

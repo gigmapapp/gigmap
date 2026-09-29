@@ -10,7 +10,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-accent: #f97316;
+  --color-accent: var(--accent);
   --color-canvas: #09090b;
   --font-sans: var(--font-manrope);
   --font-display: var(--font-syne);
@@ -77,13 +77,13 @@ select {
 
 .maplibregl-popup-close-button:hover {
   background: transparent;
-  color: #f97316;
+  color: var(--accent);
 }
 
 .gig-popup-kicker {
   margin: 0;
   font-size: 11px;
-  color: #fb923c;
+  color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -112,13 +112,13 @@ select {
 .gig-popup-link {
   display: inline-block;
   margin-top: 8px;
-  color: #f97316;
+  color: var(--accent);
   font-size: 12px;
   font-weight: 650;
 }
 
 .gig-popup-link:hover {
-  color: #fdba74;
+  color: color-mix(in srgb, var(--accent) 72%, white);
 }
 
 .maplibregl-canvas {
@@ -135,7 +135,7 @@ select {
 }
 
 .gig-marker {
-  --gig-marker: #f97316;
+  --gig-marker: var(--accent);
   display: grid;
   place-items: center;
   width: 44px;
@@ -156,11 +156,27 @@ select {
   border-radius: 999px;
   border: 2px solid #09090b;
   background: var(--gig-marker);
-  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.18);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
   pointer-events: none;
 }
 
 .gig-marker[data-selected="true"]::before {
   transform: scale(1.25);
-  box-shadow: 0 0 0 6px rgba(249, 115, 22, 0.32);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+/* Unlayered so these beat the global `* { border-color }` rule. */
+.booking-field {
+  border-color: #3f3f46;
+}
+
+.booking-field:focus,
+.booking-field[aria-invalid="true"] {
+  border-color: var(--accent);
+}
+
+.booking-form-error {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
 }
