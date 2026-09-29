@@ -72,7 +72,10 @@ export default function GigMap({
       element.setAttribute("aria-expanded", selected ? "true" : "false");
       const popup = marker.getPopup();
       if (selected) {
-        if (popup && !popup.isOpen()) popup.addTo(map);
+        if (popup && !popup.isOpen()) {
+          popup.setLngLat(marker.getLngLat());
+          popup.addTo(map);
+        }
       } else if (popup?.isOpen()) {
         popup.remove();
       }
@@ -124,13 +127,14 @@ function syncMarkers(
       maxWidth: "260px",
     }).setDOMContent(popupContent(gig));
 
-    // MapLibre opens a marker popup from the map's click event. Two things stop
-    // that on a phone: TouchPanHandler.preventDefault() on touchmove swallows
-    // the synthetic click, and stopping the click here used to keep it from
-    // reaching the map. Keep the gesture on the pin, then open the popup ourselves.
+    // MapLibre only opens a marker popup from the map click, inside togglePopup,
+    // which is also what assigns the popup's coordinates. TouchPanHandler
+    // preventDefault() on a moving touch cancels that click, so a tap never
+    // arrived. Keep the gesture on the pin and open the popup from here.
     const activate = (event: Event) => {
       event.stopPropagation();
       onSelectRef.current(gig.id);
+      popup.setLngLat([gig.location.lng, gig.location.lat]);
       if (!popup.isOpen()) popup.addTo(map);
     };
     const keepGesture = (event: Event) => {
@@ -146,9 +150,12 @@ function syncMarkers(
     });
     el.addEventListener("click", activate);
 
+    // setPopup before setLngLat. Marker.setLngLat only copies coordinates onto
+    // a popup that is already attached. The other order leaves the popup with
+    // no position, so addTo creates no DOM while isOpen() stays true.
     const marker = new Marker({ element: el, anchor: "center" })
-      .setLngLat([gig.location.lng, gig.location.lat])
       .setPopup(popup)
+      .setLngLat([gig.location.lng, gig.location.lat])
       .addTo(map);
 
     if (gig.id === selectedId) {
