@@ -71,7 +71,11 @@ export default function BookingForm({ performer }: { performer: Performer }) {
     <form
       className="space-y-4"
       noValidate
-      action={async (formData) => {
+      onSubmit={async (event) => {
+        event.preventDefault();
+        // A form action resets uncontrolled fields when it finishes, including
+        // when validation fails. Submit here so a field error leaves the rest intact.
+        const formData = new FormData(event.currentTarget);
         const clientErrors = validateBookingFields(bookingFieldsFromForm(formData));
         if (hasBookingErrors(clientErrors)) {
           applyResult(clientErrors, null);
