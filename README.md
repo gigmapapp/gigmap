@@ -35,23 +35,24 @@ npm run build
 npm start
 ```
 
-No paid map keys and no `.env` file are required.
+No paid map keys are required. Without Supabase env vars the app keeps using the local JSON store under `.data/`. Set the variables in `.env.example` to use Supabase instead (required on Vercel, where the filesystem is read-only).
 
 ## Seed data
 
-First read of the store creates `.data/db.json` from `lib/seed/austin.ts`:
+The Austin roster lives in `lib/seed/austin.ts`:
 
-- 10 Austin performers (solo, band, and DJ)
-- 12 upcoming gigs at real venues (Antone’s, Stubb’s, Mohawk, Continental Club, and more)
+- 10 performers (solo, band, and DJ)
+- 12 gigs at real venues (Antone’s, Stubb’s, Mohawk, Continental Club, and more)
 - Clips mix YouTube URLs and direct MP4s
+- Gig dates are computed when the seed runs: tomorrow through about six weeks, America/Chicago
 
-To reseed, delete the local store and restart:
+**Local JSON.** The first read creates `.data/db.json`. To reseed, delete the store and restart:
 
 ```bash
 rm -rf .data/db.json .data/uploads
 ```
 
-The next page load writes a fresh seed. `.data/` is gitignored except for `.gitkeep`.
+**Supabase.** Apply `supabase/migrations/20260929150000_create_gigmap_tables.sql`, then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the server env vars set. See the pull request notes or `ARCHITECTURE.md` for the full steps. Neither path writes booking requests.
 
 ## Stub auth
 
@@ -74,4 +75,8 @@ This is temporary scaffolding. See `ARCHITECTURE.md` for how it maps onto Supaba
 
 ## Persistence
 
-Typed JSON under `.data/` behind repository interfaces in `lib/repo/`. Swap the JSON adapters for Supabase without rewriting pages — details in `ARCHITECTURE.md`.
+Pages talk to `lib/repo`. That module uses Supabase when `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set, and the JSON files otherwise.
+
+Clip files in Supabase mode upload from the browser to the public `clips` bucket (10 MB cap) using a short-lived signed URL. They do not pass through the Next.js server. Local JSON mode still writes `.data/uploads/` and serves them from `/api/uploads/[filename]`.
+
+Booking requests are visible only to the stub-session performer they were sent to. The anon key cannot read that table.

@@ -1,0 +1,8 @@
+# Local CLI only. This repo is not linked to a hosted project.
+# `supabase start` then `supabase db reset` applies migrations and supabase/seed.sql.
+
+project_id = "gigmap"
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]

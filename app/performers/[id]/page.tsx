@@ -5,7 +5,7 @@ import CategoryBadge from "@/components/CategoryBadge";
 import VideoEmbed from "@/components/VideoEmbed";
 import { getSessionPerformer } from "@/lib/auth";
 import { formatGigWhen } from "@/lib/format";
-import { gigs, performers } from "@/lib/repo";
+import { clipUploadMode, gigs, performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +55,11 @@ export default async function PerformerPage({
             ))}
           </div>
         )}
-        {own ? <div className="mt-6"><AddVideoForm performerId={performer.id} /></div> : null}
+        {own ? (
+          <div className="mt-6">
+            <AddVideoForm performerId={performer.id} uploadMode={clipUploadMode()} />
+          </div>
+        ) : null}
       </section>
 
       <section className="mt-10">

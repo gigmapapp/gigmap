@@ -22,7 +22,11 @@ export interface GigRepository {
 }
 
 export interface BookingRepository {
-  list(filter?: { performerId?: string }): Promise<BookingRequest[]>;
+  /**
+   * Requests sent to one performer. `performerId` is required so an inbox
+   * cannot be listed globally. Contact name and email stay on these rows.
+   */
+  list(filter: { performerId: string }): Promise<BookingRequest[]>;
   create(input: CreateBookingInput): Promise<BookingRequest>;
 }
 

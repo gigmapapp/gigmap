@@ -16,7 +16,11 @@ lib/auth.ts     Temporary cookie session
 
 Pages and actions talk only to `lib/repo` (`performers`, `gigs`, `bookings`). They never import filesystem paths or SQL.
 
-## Local store
+## Store
+
+`lib/repo/index.ts` is the only binding site. It uses the Supabase adapter when `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are both set, and the JSON adapter otherwise.
+
+### JSON adapter
 
 `lib/repo/json.ts` serializes a single `Database` document:
 
@@ -48,17 +52,19 @@ See `lib/repo/interface.ts`:
 
 No passwords, email confirmation, or RLS exist in v1.
 
-## Migrating to Supabase
+## Supabase
 
-1. **Schema** — three tables matching the TypeScript types:
-   - `performers` (`id`, `name`, `category`, `bio`, `city`, `genres[]`, `created_at`)
-   - `videos` (`id`, `performer_id`, `title`, `source_type`, `url`)
-   - `gigs` (`id`, `performer_id`, `title`, `description`, `category`, `datetime`, `lat`, `lng`, `label`, `created_at`)
-   - `booking_requests` (`id`, `performer_id`, `contact_name`, `contact_email`, `event_details`, `preferred_date`, `preferred_location`, `message`, `status`, `created_at`)
-2. **Auth** — replace the cookie picker with Supabase Auth. Add `user_id` on `performers` (one profile per user, or a join table if a user can manage a band).
-3. **Adapter** — implement the same repository interfaces with `@supabase/supabase-js` (server client + service role or user-scoped client). Keep `lib/repo/index.ts` as the only import site.
-4. **Storage** — move clip uploads from `.data/uploads` to a Supabase Storage bucket; store the public or signed URL on `videos`.
-5. **RLS** — public read for performers, videos, and upcoming gigs. Authenticated insert for gigs/videos owned by the session user. Anyone can insert a booking request; only the performer (and later an admin) can read their inbox.
-6. **Seed** — load `lib/seed/austin.ts` once via a SQL seed or a one-off script instead of first-read JSON bootstrap.
+`lib/repo/supabase.ts` implements the same interfaces with `@supabase/supabase-js` and the service-role client in `lib/supabase/server.ts`. That client is server-only. The browser never sees the service role key.
 
-Until that swap, keep paid SaaS out of the critical path: MapLibre + OSM raster tiles, local JSON, stub session.
+Schema, RLS, and the `clips` bucket live in `supabase/migrations/20260929150000_create_gigmap_tables.sql`.
+
+- Public read of `performers`, `videos`, and `gigs` for `anon` and `authenticated`.
+- Inserts for those tables, plus `booking_requests`, are allowed for `anon` and `authenticated` because stub auth has no `auth.uid()`.
+- `booking_requests` has no select policy and no select grant for those roles. Inbox reads go through the service role, and `BookingRepository.list` requires a performer id. `/bookings` passes only the stub-session performer.
+- Clip uploads: the server mints a signed upload URL after the stub-session check. The browser PUTs the file to Storage (10 MB bucket limit). The public object URL is stored on `videos`. There is no anon insert policy on `storage.objects`.
+
+Seed data is `lib/seed/austin.ts`. `supabase/seed.sql` is rendered from it with gig times relative to `now()` in America/Chicago. `npm run seed:supabase` upserts the same rows with the service role and does not touch booking requests.
+
+## Still temporary
+
+Replace the cookie picker with Supabase Auth before treating inserts as user-owned. Add `user_id` on `performers` (one profile per user, or a join table if a user can manage a band) and tighten RLS so a session can insert gigs and videos only for their performer. Map tiles stay MapLibre + OSM. No payments, reviews, inbox threads, or admin tools.

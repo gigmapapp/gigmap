@@ -1,12 +1,45 @@
-import type { Repositories } from "@/lib/repo/interface";
+import "server-only";
+import type {
+  CreateGigInput,
+  CreatePerformerInput,
+  CreateVideoInput,
+} from "@/lib/types";
+import type { BookingRepository, GigRepository, PerformerRepository, Repositories } from "@/lib/repo/interface";
 import { jsonBookings, jsonGigs, jsonPerformers } from "@/lib/repo/json";
+import { supabaseBookings, supabaseGigs, supabasePerformers } from "@/lib/repo/supabase";
+import { clipUploadMode, isSupabaseConfigured } from "@/lib/supabase/env";
 
-export const repo: Repositories = {
-  performers: jsonPerformers,
-  gigs: jsonGigs,
-  bookings: jsonBookings,
+function repositories(): Repositories {
+  if (isSupabaseConfigured()) {
+    return {
+      performers: supabasePerformers,
+      gigs: supabaseGigs,
+      bookings: supabaseBookings,
+    };
+  }
+  return {
+    performers: jsonPerformers,
+    gigs: jsonGigs,
+    bookings: jsonBookings,
+  };
+}
+
+export const performers: PerformerRepository = {
+  list: () => repositories().performers.list(),
+  get: (id) => repositories().performers.get(id),
+  create: (input: CreatePerformerInput) => repositories().performers.create(input),
+  addVideo: (performerId, input: CreateVideoInput) => repositories().performers.addVideo(performerId, input),
 };
 
-export const performers = jsonPerformers;
-export const gigs = jsonGigs;
-export const bookings = jsonBookings;
+export const gigs: GigRepository = {
+  list: () => repositories().gigs.list(),
+  get: (id) => repositories().gigs.get(id),
+  create: (input: CreateGigInput) => repositories().gigs.create(input),
+};
+
+export const bookings: BookingRepository = {
+  list: (filter) => repositories().bookings.list(filter),
+  create: (input) => repositories().bookings.create(input),
+};
+
+export { clipUploadMode, isSupabaseConfigured };

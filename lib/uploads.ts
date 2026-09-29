@@ -1,20 +1,15 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { clipExtension, MAX_CLIP_BYTES } from "@/lib/clips";
 
 const UPLOAD_DIR = path.join(process.cwd(), ".data", "uploads");
 
-const ALLOWED = new Map([
-  ["video/mp4", "mp4"],
-  ["video/webm", "webm"],
-  ["video/quicktime", "mov"],
-]);
-
 export async function saveVideoUpload(file: File): Promise<string> {
-  const ext = ALLOWED.get(file.type);
+  const ext = clipExtension(file.type);
   if (!ext) {
     throw new Error("Upload an MP4, WebM, or MOV clip.");
   }
-  if (file.size > 10 * 1024 * 1024) {
+  if (file.size > MAX_CLIP_BYTES) {
     throw new Error("Clips must be 10 MB or smaller in v1.");
   }
   await mkdir(UPLOAD_DIR, { recursive: true });
