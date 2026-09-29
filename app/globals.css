@@ -61,12 +61,24 @@ select {
   font-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
 }
 
-.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
   border-top-color: #18181b;
 }
 
-.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
   border-bottom-color: #18181b;
+}
+
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: #18181b;
+}
+
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: #18181b;
 }
 
 .maplibregl-popup {
@@ -85,6 +97,19 @@ select {
 .maplibregl-popup-close-button:hover {
   background: transparent;
   color: var(--accent);
+}
+
+.gig-popup,
+.gig-popup-title,
+.gig-popup-performer,
+.gig-popup-when {
+  overflow-wrap: anywhere;
+}
+
+.maplibregl-popup-content {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .gig-popup-kicker {
@@ -186,4 +211,17 @@ select {
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   background-color: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--accent);
+}
+
+@media (max-width: 767px) {
+  body {
+    overflow-wrap: break-word;
+  }
+
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+    min-width: 0;
+  }
 }

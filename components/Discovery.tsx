@@ -55,72 +55,81 @@ export default function Discovery({
   }, [mapped, date, category]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-      <section className="relative h-[52vh] min-h-[320px] md:h-auto md:min-h-0 md:flex-1">
-        <GigMap gigs={visible} selectedId={selectedId} onSelect={setSelectedId} />
-        <div className="pointer-events-none absolute inset-x-0 top-0 p-3 sm:p-4">
-          <div className="pointer-events-none mx-auto max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950/85 p-3 shadow-xl backdrop-blur">
-            <p className="font-display text-lg tracking-tight text-white">
-              Find live music near you.
-            </p>
-            <p className="mb-3 text-xs text-zinc-400">
-              Austin · dates in Central Time · OpenStreetMap tiles
-            </p>
-            <div className="pointer-events-auto flex flex-col gap-2 sm:flex-row">
-              <label className="flex-1 text-xs text-zinc-400">
-                Date
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(event) => setDate(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => setDate("")}
-                className="rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 sm:self-end"
-              >
-                Upcoming
-              </button>
-            </div>
-            <div className="pointer-events-auto mt-2 flex flex-wrap gap-1.5">
-              {dateChips.map((chip) => (
+    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col md:flex-row">
+      <section className="relative flex h-auto min-h-0 w-full min-w-0 flex-col md:block md:h-auto md:min-h-0 md:flex-1">
+        <MobileFilterBar
+          date={date}
+          dateChips={dateChips}
+          category={category}
+          onDate={setDate}
+          onCategory={setCategory}
+        />
+        <div className="relative h-[40vh] min-h-[220px] w-full min-w-0 md:contents">
+          <GigMap gigs={visible} selectedId={selectedId} onSelect={setSelectedId} />
+          <div className="pointer-events-none absolute inset-x-0 top-0 hidden p-3 sm:p-4 md:block">
+            <div className="pointer-events-none mx-auto max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950/85 p-3 shadow-xl backdrop-blur">
+              <p className="font-display text-lg tracking-tight text-white">
+                Find live music near you.
+              </p>
+              <p className="mb-3 text-xs text-zinc-400">
+                Austin · dates in Central Time · OpenStreetMap tiles
+              </p>
+              <div className="pointer-events-auto flex flex-col gap-2 sm:flex-row">
+                <label className="flex-1 text-xs text-zinc-400">
+                  Date
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(event) => setDate(event.target.value)}
+                    className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+                  />
+                </label>
                 <button
-                  key={chip}
                   type="button"
-                  onClick={() => setDate(chip)}
-                  className={`rounded-full px-2.5 py-1 text-xs ${
-                    date === chip
-                      ? "bg-white text-zinc-950"
-                      : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                  }`}
+                  onClick={() => setDate("")}
+                  className="rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 sm:self-end"
                 >
-                  {chip}
+                  Upcoming
                 </button>
-              ))}
-            </div>
-            <div className="pointer-events-auto mt-2 flex flex-wrap gap-1.5">
-              {FILTERS.map((filter) => (
-                <button
-                  key={filter.id}
-                  type="button"
-                  onClick={() => setCategory(filter.id)}
-                  className={`rounded-full px-3 py-1 text-xs ${
-                    category === filter.id
-                      ? "bg-accent text-zinc-950"
-                      : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
+              </div>
+              <div className="pointer-events-auto mt-2 flex flex-wrap gap-1.5">
+                {dateChips.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => setDate(chip)}
+                    className={`rounded-full px-2.5 py-1 text-xs ${
+                      date === chip
+                        ? "bg-white text-zinc-950"
+                        : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                    }`}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+              <div className="pointer-events-auto mt-2 flex flex-wrap gap-1.5">
+                {FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => setCategory(filter.id)}
+                    className={`rounded-full px-3 py-1 text-xs ${
+                      category === filter.id
+                        ? "bg-accent text-zinc-950"
+                        : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <aside className="flex max-h-[48vh] w-full flex-col border-t border-zinc-800 bg-zinc-950 md:max-h-none md:w-[390px] md:border-l md:border-t-0">
+      <aside className="flex max-h-[48vh] w-full min-w-0 flex-col border-t border-zinc-800 bg-zinc-950 md:max-h-none md:w-[390px] md:border-l md:border-t-0">
         <div className="flex items-center justify-between px-4 py-3">
           <h2 className="font-display text-lg text-white">
             {date ? `Gigs on ${date}` : "Upcoming gigs"}
@@ -168,6 +177,78 @@ export default function Discovery({
           )}
         </div>
       </aside>
+    </div>
+  );
+}
+
+function MobileFilterBar({
+  date,
+  dateChips,
+  category,
+  onDate,
+  onCategory,
+}: {
+  date: string;
+  dateChips: string[];
+  category: "all" | Category;
+  onDate: (date: string) => void;
+  onCategory: (category: "all" | Category) => void;
+}) {
+  return (
+    <div className="w-full min-w-0 shrink-0 overflow-hidden border-b border-zinc-800 bg-zinc-950 md:hidden">
+      <p className="truncate px-3 pt-2 text-sm text-zinc-300">Find live music near you</p>
+      <div className="flex items-center gap-2 px-3 pt-2">
+        <label className="min-w-0 flex-1">
+          <span className="sr-only">Date</span>
+          <input
+            type="date"
+            value={date}
+            aria-label="Date"
+            onChange={(event) => onDate(event.target.value)}
+            className="h-11 w-full min-w-0 max-w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-white"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => onDate("")}
+          className="h-11 shrink-0 rounded-lg border border-zinc-700 px-3 text-sm text-zinc-200 hover:bg-zinc-800"
+        >
+          Upcoming
+        </button>
+      </div>
+      <div className="max-w-full overflow-x-auto px-3 pt-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex w-max items-center gap-2">
+          {dateChips.map((chip) => (
+            <button
+              key={chip}
+              type="button"
+              onClick={() => onDate(chip)}
+              className={`h-11 min-w-11 shrink-0 rounded-full px-3 text-sm ${
+                date === chip
+                  ? "bg-white text-zinc-950"
+                  : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+              }`}
+            >
+              {chip}
+            </button>
+          ))}
+          <span className="h-6 w-px shrink-0 bg-zinc-700" aria-hidden="true" />
+          {FILTERS.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              onClick={() => onCategory(filter.id)}
+              className={`h-11 min-w-11 shrink-0 rounded-full px-3 text-sm ${
+                category === filter.id
+                  ? "bg-accent text-zinc-950"
+                  : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
