@@ -73,11 +73,11 @@ export default function AddVideoForm({
         accept="video/mp4,video/webm,video/quicktime"
         className="w-full text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-800 file:px-3 file:py-2 file:text-white"
       />
-      {error ? <p className="text-sm text-orange-300">{error}</p> : null}
+      {error ? <p className="text-sm text-accent">{error}</p> : null}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-60"
+        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-accent-hover disabled:opacity-60"
       >
         {pending ? "Saving…" : "Add clip"}
       </button>

@@ -108,7 +108,7 @@ export default function Discovery({
                   onClick={() => setCategory(filter.id)}
                   className={`rounded-full px-3 py-1 text-xs ${
                     category === filter.id
-                      ? "bg-orange-500 text-white"
+                      ? "bg-accent text-zinc-950"
                       : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
                   }`}
                 >
@@ -138,7 +138,7 @@ export default function Discovery({
                 key={gig.id}
                 className={`w-full rounded-xl border p-4 text-left transition ${
                   selectedId === gig.id
-                    ? "border-orange-500/70 bg-orange-500/10"
+                    ? "border-accent/70 bg-accent/10"
                     : "border-zinc-800 bg-zinc-900/70 hover:border-zinc-600"
                 }`}
               >
@@ -155,7 +155,7 @@ export default function Discovery({
                   <div className="mt-1 text-sm text-zinc-400">{gig.location.label}</div>
                 </button>
                 <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-orange-300">{gig.performer?.name ?? "Unknown"}</span>
+                  <span className="text-accent">{gig.performer?.name ?? "Unknown"}</span>
                   <Link
                     href={`/gigs/${gig.id}`}
                     className="text-zinc-300 underline-offset-2 hover:underline"

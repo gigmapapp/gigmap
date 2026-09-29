@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Map as MapLibreMap, Marker, NavigationControl, Popup } from "maplibre-gl";
+import { ACCENT } from "@/lib/accent";
 import {
   AUSTIN_CENTER,
   CATEGORY_MARKER,
@@ -107,7 +108,7 @@ function syncMarkers(
     const el = document.createElement("button");
     el.type = "button";
     el.className = "gig-marker";
-    el.style.background = CATEGORY_MARKER[gig.category] ?? "#F97316";
+    el.style.background = CATEGORY_MARKER[gig.category] ?? ACCENT;
     el.setAttribute("aria-label", gig.title);
     el.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -116,11 +117,11 @@ function syncMarkers(
 
     const popup = new Popup({ offset: 16, closeButton: false }).setHTML(
       `<div style="min-width:170px">
-          <div style="font-size:11px;color:#fb923c;text-transform:uppercase;letter-spacing:.06em">${gig.category}</div>
+          <div style="font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:.06em">${gig.category}</div>
           <div style="font-weight:650;margin-top:2px">${escapeHtml(gig.title)}</div>
           <div style="color:#a1a1aa;font-size:12px;margin-top:4px">${escapeHtml(formatGigWhen(gig.datetime))}</div>
           <div style="color:#d4d4d8;font-size:12px;margin-top:2px">${escapeHtml(gig.performer?.name ?? "Unknown")}</div>
-          <a href="/gigs/${gig.id}" style="display:inline-block;margin-top:8px;color:#fdba74;font-size:12px">Open gig →</a>
+          <a href="/gigs/${gig.id}" style="display:inline-block;margin-top:8px;color:${ACCENT};font-size:12px">Open gig →</a>
         </div>`,
     );
 

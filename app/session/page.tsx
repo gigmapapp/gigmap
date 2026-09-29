@@ -14,7 +14,7 @@ export default async function SessionPage({
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10">
-      <p className="text-xs uppercase tracking-[0.2em] text-orange-400">Temporary auth</p>
+      <p className="text-xs uppercase tracking-[0.2em] text-accent">Temporary auth</p>
       <h1 className="mt-2 font-display text-3xl text-white">Act as a performer</h1>
       <p className="mt-2 max-w-xl text-sm text-zinc-400">
         v1 uses a cookie, not real accounts. Pick a seeded Austin artist to post gigs and
@@ -38,7 +38,7 @@ export default async function SessionPage({
             </div>
             <button
               type="submit"
-              className="shrink-0 rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white hover:bg-orange-600"
+              className="shrink-0 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-zinc-950 hover:bg-accent-hover"
             >
               Use
             </button>
@@ -47,7 +47,7 @@ export default async function SessionPage({
       </div>
       <p className="mt-8 text-sm text-zinc-400">
         Need a new profile?{" "}
-        <Link href="/performers/new" className="text-orange-300 underline-offset-2 hover:underline">
+        <Link href="/performers/new" className="text-accent underline-offset-2 hover:underline">
           Create a performer
         </Link>
       </p>
