@@ -31,7 +31,7 @@ export default async function GigPage({ params }: PageProps<"/gigs/[id]">) {
           <p className="text-xs uppercase tracking-wide text-zinc-500">Performer</p>
           <Link
             href={`/performers/${performer.id}`}
-            className="mt-1 block font-display text-2xl text-white hover:text-orange-300"
+            className="mt-1 block font-display text-2xl text-white hover:text-accent"
           >
             {performer.name}
           </Link>
@@ -45,7 +45,7 @@ export default async function GigPage({ params }: PageProps<"/gigs/[id]">) {
             </Link>
             <Link
               href={`/performers/${performer.id}/book`}
-              className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-accent-hover"
             >
               Request to book
             </Link>
@@ -54,7 +54,7 @@ export default async function GigPage({ params }: PageProps<"/gigs/[id]">) {
       ) : null}
 
       <p className="mt-8">
-        <Link href="/" className="text-sm text-orange-300 hover:underline">
+        <Link href="/" className="text-sm text-accent hover:underline">
           ← Back to map
         </Link>
       </p>

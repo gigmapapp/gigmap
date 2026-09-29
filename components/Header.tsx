@@ -31,7 +31,7 @@ export default function Header({ performer }: { performer: Performer | null }) {
           ))}
           <Link
             href="/gigs/new"
-            className="ml-1 rounded-lg bg-orange-500 px-3 py-2 font-medium text-white hover:bg-orange-600"
+            className="ml-1 rounded-lg bg-accent px-3 py-2 font-medium text-zinc-950 hover:bg-accent-hover"
           >
             Post a gig
           </Link>
@@ -96,7 +96,7 @@ export default function Header({ performer }: { performer: Performer | null }) {
           <Link
             href="/gigs/new"
             onClick={() => setOpen(false)}
-            className="block rounded-lg bg-orange-500 px-3 py-2 font-medium text-white"
+            className="block rounded-lg bg-accent px-3 py-2 font-medium text-zinc-950 hover:bg-accent-hover"
           >
             Post a gig
           </Link>

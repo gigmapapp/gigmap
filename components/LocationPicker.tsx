@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Map, Marker, NavigationControl } from "maplibre-gl";
+import { ACCENT } from "@/lib/accent";
 import { AUSTIN_CENTER, DARK_MAP_STYLE } from "@/lib/map-style";
 
 export default function LocationPicker({
@@ -46,7 +47,7 @@ export default function LocationPicker({
     const map = mapRef.current;
     if (!map || lat == null || lng == null) return;
     if (!markerRef.current) {
-      markerRef.current = new Marker({ color: "#F97316" })
+      markerRef.current = new Marker({ color: ACCENT })
         .setLngLat([lng, lat])
         .addTo(map);
       return;

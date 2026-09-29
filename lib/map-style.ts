@@ -1,3 +1,5 @@
+import { ACCENT } from "@/lib/accent";
+
 export const AUSTIN_CENTER = {
   lng: -97.7431,
   lat: 30.2672,
@@ -24,7 +26,7 @@ export const DARK_MAP_STYLE = {
 };
 
 export const CATEGORY_MARKER: Record<string, string> = {
-  solo: "#F97316",
+  solo: ACCENT,
   band: "#FAFAFA",
   dj: "#FB7185",
 };

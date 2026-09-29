@@ -66,10 +66,10 @@ export default function BookingForm({ performer }: { performer: Performer }) {
           className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
         />
       </label>
-      {error ? <p className="text-sm text-orange-300">{error}</p> : null}
+      {error ? <p className="text-sm text-accent">{error}</p> : null}
       <button
         type="submit"
-        className="w-full rounded-lg bg-orange-500 py-3 font-medium text-white hover:bg-orange-600"
+        className="w-full rounded-lg bg-accent py-3 font-medium text-zinc-950 hover:bg-accent-hover"
       >
         Send request
       </button>
