@@ -61,14 +61,14 @@ export default function Discovery({
       <section className="relative h-[52vh] min-h-[320px] md:h-auto md:min-h-0 md:flex-1">
         <GigMap gigs={visible} selectedId={selectedId} onSelect={setSelectedId} />
         <div className="pointer-events-none absolute inset-x-0 top-0 p-3 sm:p-4">
-          <div className="pointer-events-auto mx-auto max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950/85 p-3 shadow-xl backdrop-blur">
+          <div className="pointer-events-none mx-auto max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950/85 p-3 shadow-xl backdrop-blur">
             <p className="font-display text-lg tracking-tight text-white">
               Find live music near you.
             </p>
             <p className="mb-3 text-xs text-zinc-400">
               Austin · dates in Central Time · OpenStreetMap tiles
             </p>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="pointer-events-auto flex flex-col gap-2 sm:flex-row">
               <label className="flex-1 text-xs text-zinc-400">
                 Date
                 <input
@@ -86,7 +86,7 @@ export default function Discovery({
                 Upcoming
               </button>
             </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="pointer-events-auto mt-2 flex flex-wrap gap-1.5">
               {dateChips.map((chip) => (
                 <button
                   key={chip}
@@ -102,7 +102,7 @@ export default function Discovery({
                 </button>
               ))}
             </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="pointer-events-auto mt-2 flex flex-wrap gap-1.5">
               {FILTERS.map((filter) => (
                 <button
                   key={filter.id}

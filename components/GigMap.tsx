@@ -7,7 +7,7 @@ import {
   CATEGORY_MARKER,
   DARK_MAP_STYLE,
 } from "@/lib/map-style";
-import { formatGigWhen } from "@/lib/format";
+import { categoryLabel, formatGigWhen } from "@/lib/format";
 import type { Category, Gig, Performer } from "@/lib/types";
 
 export type MappedGig = Gig & { performer: Performer | null };
@@ -66,12 +66,15 @@ export default function GigMap({
     const map = mapRef.current;
     if (!map) return;
     for (const [id, marker] of markersRef.current) {
-      marker.getElement().dataset.selected = id === selectedId ? "true" : "false";
+      const element = marker.getElement();
+      const selected = id === selectedId;
+      element.dataset.selected = selected ? "true" : "false";
+      element.setAttribute("aria-expanded", selected ? "true" : "false");
       const popup = marker.getPopup();
-      if (id === selectedId) {
-        popup?.addTo(map);
-      } else {
-        popup?.remove();
+      if (selected) {
+        if (popup && !popup.isOpen()) popup.addTo(map);
+      } else if (popup?.isOpen()) {
+        popup.remove();
       }
     }
     const selected = gigs.find((gig) => gig.id === selectedId);
@@ -107,24 +110,43 @@ function syncMarkers(
     const el = document.createElement("button");
     el.type = "button";
     el.className = "gig-marker";
-    el.style.background = CATEGORY_MARKER[gig.category] ?? "#F97316";
-    el.setAttribute("aria-label", gig.title);
-    el.addEventListener("click", (event) => {
+    el.style.setProperty("--gig-marker", CATEGORY_MARKER[gig.category] ?? "#F97316");
+    el.dataset.gigId = gig.id;
+    el.setAttribute("aria-label", `${gig.title}, ${gig.performer?.name ?? "Unknown"}`);
+    el.setAttribute("aria-expanded", "false");
+
+    const popup = new Popup({
+      offset: 22,
+      closeButton: true,
+      closeOnClick: false,
+      // Focusing the link on open scrolls the page on touch devices and hides the popup.
+      focusAfterOpen: false,
+      maxWidth: "260px",
+    }).setDOMContent(popupContent(gig));
+
+    // MapLibre opens a marker popup from the map's click event. Two things stop
+    // that on a phone: TouchPanHandler.preventDefault() on touchmove swallows
+    // the synthetic click, and stopping the click here used to keep it from
+    // reaching the map. Keep the gesture on the pin, then open the popup ourselves.
+    const activate = (event: Event) => {
       event.stopPropagation();
       onSelectRef.current(gig.id);
+      if (!popup.isOpen()) popup.addTo(map);
+    };
+    const keepGesture = (event: Event) => {
+      event.stopPropagation();
+    };
+    el.addEventListener("pointerdown", keepGesture);
+    el.addEventListener("mousedown", keepGesture);
+    el.addEventListener("touchstart", keepGesture, { passive: true });
+    el.addEventListener("touchend", (event) => {
+      if (event.changedTouches.length !== 1) return;
+      event.preventDefault();
+      activate(event);
     });
+    el.addEventListener("click", activate);
 
-    const popup = new Popup({ offset: 16, closeButton: false }).setHTML(
-      `<div style="min-width:170px">
-          <div style="font-size:11px;color:#fb923c;text-transform:uppercase;letter-spacing:.06em">${gig.category}</div>
-          <div style="font-weight:650;margin-top:2px">${escapeHtml(gig.title)}</div>
-          <div style="color:#a1a1aa;font-size:12px;margin-top:4px">${escapeHtml(formatGigWhen(gig.datetime))}</div>
-          <div style="color:#d4d4d8;font-size:12px;margin-top:2px">${escapeHtml(gig.performer?.name ?? "Unknown")}</div>
-          <a href="/gigs/${gig.id}" style="display:inline-block;margin-top:8px;color:#fdba74;font-size:12px">Open gig →</a>
-        </div>`,
-    );
-
-    const marker = new Marker({ element: el })
+    const marker = new Marker({ element: el, anchor: "center" })
       .setLngLat([gig.location.lng, gig.location.lat])
       .setPopup(popup)
       .addTo(map);
@@ -136,12 +158,33 @@ function syncMarkers(
   }
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+function popupContent(gig: MappedGig) {
+  const root = document.createElement("div");
+  root.className = "gig-popup";
+
+  const kicker = document.createElement("p");
+  kicker.className = "gig-popup-kicker";
+  kicker.textContent = categoryLabel(gig.category);
+
+  const title = document.createElement("p");
+  title.className = "gig-popup-title";
+  title.textContent = gig.title;
+
+  const performer = document.createElement("p");
+  performer.className = "gig-popup-performer";
+  performer.textContent = gig.performer?.name ?? "Unknown";
+
+  const when = document.createElement("p");
+  when.className = "gig-popup-when";
+  when.textContent = formatGigWhen(gig.datetime);
+
+  const link = document.createElement("a");
+  link.className = "gig-popup-link";
+  link.href = `/gigs/${gig.id}`;
+  link.textContent = "View gig";
+
+  root.append(kicker, title, performer, when, link);
+  return root;
 }
 
 export function categoryDot(category: Category) {

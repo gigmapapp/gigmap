@@ -2,33 +2,41 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {
+  bookingFieldsFromForm,
+  hasBookingErrors,
+  validateBookingFields,
+  type BookingFieldErrors,
+} from "@/lib/booking-validation";
 import { bookings } from "@/lib/repo";
 
-export async function createBookingAction(formData: FormData) {
+export type BookingActionState = {
+  ok: false;
+  fieldErrors: BookingFieldErrors;
+  formError?: string;
+};
+
+export async function createBookingAction(formData: FormData): Promise<BookingActionState> {
   const performerId = String(formData.get("performerId") ?? "");
-  const contactName = String(formData.get("contactName") ?? "").trim();
-  const contactEmail = String(formData.get("contactEmail") ?? "").trim();
-  const eventDetails = String(formData.get("eventDetails") ?? "").trim();
-  const preferredDate = String(formData.get("preferredDate") ?? "");
-  const preferredLocation = String(formData.get("preferredLocation") ?? "").trim();
+  const fields = bookingFieldsFromForm(formData);
   const message = String(formData.get("message") ?? "").trim();
 
-  if (!performerId) throw new Error("Missing performer.");
-  if (!contactName) throw new Error("Name is required.");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-    throw new Error("Enter a valid email.");
+  if (!performerId) {
+    return { ok: false, fieldErrors: {}, formError: "Missing performer." };
   }
-  if (!eventDetails) throw new Error("Tell us about the event.");
-  if (!preferredDate) throw new Error("Preferred date is required.");
-  if (!preferredLocation) throw new Error("Preferred location is required.");
+
+  const fieldErrors = validateBookingFields(fields);
+  if (hasBookingErrors(fieldErrors)) {
+    return { ok: false, fieldErrors };
+  }
 
   const booking = await bookings.create({
     performerId,
-    contactName,
-    contactEmail,
-    eventDetails,
-    preferredDate,
-    preferredLocation,
+    contactName: fields.contactName.trim(),
+    contactEmail: fields.contactEmail.trim(),
+    eventDetails: fields.eventDetails.trim(),
+    preferredDate: fields.preferredDate,
+    preferredLocation: fields.preferredLocation.trim(),
     message,
   });
 
