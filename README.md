@@ -52,14 +52,15 @@ The Austin roster lives in `lib/seed/austin.ts`:
 rm -rf .data/db.json .data/uploads
 ```
 
-**Supabase.** The hosted project already has empty legacy tables (`profiles`, `gigs`, `bookings`) with a different shape. Apply the migrations in filename order:
+**Supabase.** The hosted project already had empty legacy tables (`profiles`, `gigs`, `bookings`) with a different shape. Apply the migrations in filename order:
 
-1. `supabase/migrations/20260929140000_drop_legacy_empty_tables.sql` drops those three only when every matching table is empty. If any has a row, it aborts and drops nothing. On a fresh database it does nothing.
-2. `supabase/migrations/20260929150000_create_gigmap_tables.sql` creates the v1 tables.
-3. `supabase/migrations/20260929160000_revoke_anon_table_writes.sql` removes anon, authenticated, and public insert/update/delete access. Public read of performers, videos, and gigs stays.
-4. `supabase/migrations/20260929170000_revoke_rls_auto_enable.sql` revokes `EXECUTE` on `public.rls_auto_enable()` when that function is already there. It does nothing on a fresh database.
+1. `supabase/migrations/20260929140000_drop_legacy_empty_tables.sql` drops those three only when every matching table is empty. If any has a row, it aborts and drops nothing. On a fresh database it does nothing. Already applied on the hosted project.
+2. `supabase/migrations/20260929150000_create_gigmap_tables.sql` creates the v1 tables. It does not touch Storage.
+3. `supabase/migrations/20260929155000_create_clips_bucket.sql` inserts the public `clips` bucket and a public read policy. It does not `ALTER` `storage.objects`. If this file fails, the tables from step 2 stay; use the dashboard fallback in `ARCHITECTURE.md`.
+4. `supabase/migrations/20260929160000_revoke_anon_table_writes.sql` removes anon, authenticated, and public insert/update/delete access. Public read of performers, videos, and gigs stays.
+5. `supabase/migrations/20260929170000_revoke_rls_auto_enable.sql` revokes `EXECUTE` on `public.rls_auto_enable()` when that function is already there. It does nothing on a fresh database.
 
-Then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the server env vars set. See `ARCHITECTURE.md` for the full steps. Neither path writes booking requests. `supabase db reset` runs the migrations in that order; the drop and the function revoke are no-ops locally, then the seed loads v1 gigs.
+Then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the server env vars set. See `ARCHITECTURE.md` for the full steps, including hosted migration-history versions. Neither path writes booking requests. `supabase db reset` runs the migrations in that order; the drop and the function revoke are no-ops locally, then the seed loads v1 gigs.
 
 ## Stub auth
 

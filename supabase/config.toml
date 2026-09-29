@@ -1,7 +1,10 @@
 # Local CLI only. This repo is not linked to a hosted project.
 # `supabase start` then `supabase db reset` applies migrations in filename order,
-# then supabase/seed.sql. The legacy drop migration is a no-op on that fresh
-# database, and the seed still loads the v1 public.gigs rows.
+# then supabase/seed.sql. The legacy drop and rls_auto_enable revoke are no-ops
+# on that fresh database. The clips migration inserts the bucket; it does not
+# ALTER storage.objects. The seed still loads the v1 public.gigs rows.
+# Hosted schema_migrations versions come from apply_migration and will not
+# match these filenames. See ARCHITECTURE.md before using `supabase db push`.
 
 project_id = "gigmap"
 

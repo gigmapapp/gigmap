@@ -41,8 +41,9 @@ export function renderSeedSql(): string {
   ).join(",\n");
 
   return `-- Austin seed for Gig Map. Safe to re-run: seeded ids are upserted, booking_requests are not modified.
--- Apply supabase/migrations in filename order first. The legacy drop and the
--- rls_auto_enable revoke are no-ops on a fresh database (supabase db reset).
+-- Apply supabase/migrations in filename order first. On a fresh database
+-- (supabase db reset) the legacy drop and the rls_auto_enable revoke are
+-- no-ops, and the clips bucket migration creates the storage.buckets row named clips.
 -- This file then fills the v1 tables.
 -- Gig times are America/Chicago wall-clock times, from tomorrow through about six weeks after this runs.
 -- Generated from lib/seed/austin.ts. Edit the seed data there, then re-render this file

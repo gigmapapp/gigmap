@@ -1,8 +1,15 @@
--- Gig Map v1 tables, storage bucket, and row level security.
+-- Gig Map v1 tables and row level security.
 -- Run 20260929140000_drop_legacy_empty_tables.sql first on the existing project.
 -- That file removes the empty legacy profiles, gigs, and bookings tables so this
 -- file can create public.gigs. On a fresh database the drop migration is a no-op.
--- Do not edit applied history; add a new migration instead.
+--
+-- This file does not touch the storage schema. The clips bucket is
+-- 20260929155000_create_clips_bucket.sql, so a storage error cannot roll these
+-- tables back. Do not add ALTER TABLE on storage.objects here: on hosted
+-- Supabase that table is owned by supabase_storage_admin and RLS is already on.
+--
+-- Safe to re-run. Tables and indexes use IF NOT EXISTS. Policies are dropped
+-- and recreated. Grants and RLS enablement are already idempotent.
 --
 -- Stub auth is an app cookie, not a Postgres user, so policies cannot key off auth.uid().
 -- anon/authenticated may read performers, videos, and gigs.
@@ -10,7 +17,7 @@
 -- service role. 20260929160000_revoke_anon_table_writes.sql removes any direct write
 -- grant or policy that this file, or default privileges, would otherwise leave behind.
 
-create table public.performers (
+create table if not exists public.performers (
   id text primary key check (id ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(id) <= 80),
   name text not null check (char_length(btrim(name)) > 0),
   category text not null check (category in ('solo', 'band', 'dj')),
@@ -20,7 +27,7 @@ create table public.performers (
   created_at timestamptz not null default now()
 );
 
-create table public.videos (
+create table if not exists public.videos (
   id text primary key check (char_length(id) > 0 and char_length(id) <= 80),
   performer_id text not null references public.performers (id) on delete cascade,
   title text not null check (char_length(btrim(title)) > 0),
@@ -29,7 +36,7 @@ create table public.videos (
   created_at timestamptz not null default now()
 );
 
-create table public.gigs (
+create table if not exists public.gigs (
   id text primary key check (char_length(id) > 0 and char_length(id) <= 80),
   performer_id text not null references public.performers (id) on delete cascade,
   title text not null check (char_length(btrim(title)) > 0),
@@ -42,7 +49,7 @@ create table public.gigs (
   created_at timestamptz not null default now()
 );
 
-create table public.booking_requests (
+create table if not exists public.booking_requests (
   id text primary key check (char_length(id) > 0 and char_length(id) <= 80),
   performer_id text not null references public.performers (id) on delete cascade,
   contact_name text not null check (char_length(btrim(contact_name)) > 0),
@@ -55,10 +62,10 @@ create table public.booking_requests (
   created_at timestamptz not null default now()
 );
 
-create index videos_performer_id_idx on public.videos (performer_id);
-create index gigs_performer_id_idx on public.gigs (performer_id);
-create index gigs_datetime_idx on public.gigs (datetime);
-create index booking_requests_performer_id_idx on public.booking_requests (performer_id);
+create index if not exists videos_performer_id_idx on public.videos (performer_id);
+create index if not exists gigs_performer_id_idx on public.gigs (performer_id);
+create index if not exists gigs_datetime_idx on public.gigs (datetime);
+create index if not exists booking_requests_performer_id_idx on public.booking_requests (performer_id);
 
 alter table public.performers enable row level security;
 alter table public.videos enable row level security;
@@ -85,18 +92,21 @@ grant all on table public.videos to service_role;
 grant all on table public.gigs to service_role;
 grant all on table public.booking_requests to service_role;
 
+drop policy if exists performers_public_read on public.performers;
 create policy performers_public_read
   on public.performers
   for select
   to anon, authenticated
   using (true);
 
+drop policy if exists videos_public_read on public.videos;
 create policy videos_public_read
   on public.videos
   for select
   to anon, authenticated
   using (true);
 
+drop policy if exists gigs_public_read on public.gigs;
 create policy gigs_public_read
   on public.gigs
   for select
@@ -105,40 +115,3 @@ create policy gigs_public_read
 
 comment on table public.booking_requests is
   'Private. anon and authenticated have no privileges. The service role reads and writes rows, and the app scopes reads to the stub-session performer.';
-
--- Public clip bucket. 10 MB matches the in-app cap and stays clear of Vercel's request body limit
--- because the browser uploads with a signed URL instead of posting the file to Next.js.
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'clips',
-  'clips',
-  true,
-  10485760,
-  array['video/mp4', 'video/webm', 'video/quicktime']
-)
-on conflict (id) do update set
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
-
-alter table storage.objects enable row level security;
-
--- Public URLs work because the bucket is public. This policy also allows listing and
--- authenticated reads of clip metadata. Filenames are not secret.
-create policy clips_public_read
-  on storage.objects
-  for select
-  to anon, authenticated
-  using (bucket_id = 'clips');
-
--- Signed upload URLs are minted with the service role after the stub session check.
--- The browser PUT verifies that token and writes as superuser, so anon does not need INSERT.
--- Leaving anon without INSERT means the public key cannot upload on its own.
-create policy clips_service_insert
-  on storage.objects
-  for insert
-  to service_role
-  with check (
-    bucket_id = 'clips'
-    and lower(storage.extension(name)) in ('mp4', 'webm', 'mov')
-  );

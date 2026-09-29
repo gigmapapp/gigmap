@@ -8,8 +8,11 @@
 -- This drops write policies (insert, update, delete, and FOR ALL) on those four
 -- tables and revokes the matching privileges. It is safe to run after
 -- 20260929150000_create_gigmap_tables.sql, including when that file never
--- created write policies. Select policies are left in place. The clips bucket
--- is not given an anon insert policy; signed uploads do not need one.
+-- created write policies. Select policies are left in place.
+--
+-- This file does not touch storage.objects. Bucket setup and any clip policies
+-- are 20260929155000_create_clips_bucket.sql. DROP POLICY on storage.objects
+-- needs the same rights as CREATE POLICY, so it stays in that file.
 
 do $$
 declare
@@ -47,7 +50,3 @@ drop policy if exists performers_public_insert on public.performers;
 drop policy if exists videos_public_insert on public.videos;
 drop policy if exists gigs_public_insert on public.gigs;
 drop policy if exists booking_requests_public_insert on public.booking_requests;
-
--- Do not add an anon/authenticated insert policy on storage.objects.
-drop policy if exists clips_anon_insert on storage.objects;
-drop policy if exists clips_public_insert on storage.objects;
