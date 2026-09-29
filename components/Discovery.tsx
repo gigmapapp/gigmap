@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import CategoryBadge from "@/components/CategoryBadge";
-import { formatGigWhen, localDateKey } from "@/lib/format";
+import { formatGigWhen, gigMatchesVenueDate, localDateKey } from "@/lib/format";
 import type { Category, Gig, Performer } from "@/lib/types";
 
 const GigMap = dynamic(() => import("@/components/GigMap"), { ssr: false });
@@ -47,10 +47,8 @@ export default function Discovery({
   }, [mapped]);
 
   const visible = useMemo(() => {
-    const today = localDateKey(new Date().toISOString());
     return mapped.filter((gig) => {
-      const gigDay = localDateKey(gig.datetime);
-      const dateOk = date ? gigDay === date : gigDay >= today;
+      const dateOk = gigMatchesVenueDate(gig.datetime, date);
       const categoryOk = category === "all" || gig.category === category;
       return dateOk && categoryOk;
     });

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requirePerformer } from "@/lib/auth";
 import { gigs } from "@/lib/repo";
 import { CATEGORIES, type Category } from "@/lib/types";
+import { parseVenueDateTimeLocal } from "@/lib/venue-instant";
 
 export async function createGigAction(formData: FormData) {
   const performer = await requirePerformer("/gigs/new");
@@ -31,7 +32,7 @@ export async function createGigAction(formData: FormData) {
     title,
     description,
     category: categoryRaw as Category,
-    datetime: new Date(datetimeLocal).toISOString(),
+    datetime: parseVenueDateTimeLocal(datetimeLocal),
     location: { lat, lng, label },
   });
 

@@ -15,6 +15,16 @@ test("Chicago wall clock keeps the venue hour", () => {
   assert.match(winterEvening, /T21:30:00-06:00$/);
 });
 
+test("seed offsets follow Chicago DST on both sides of Nov 1 2026", () => {
+  const before = austinDateTime(0, 21, 0, new Date("2026-10-31T18:00:00.000Z"));
+  assert.equal(new Date(before).toISOString(), "2026-11-01T02:00:00.000Z");
+  assert.match(before, /T21:00:00-05:00$/);
+
+  const after = austinDateTime(1, 21, 0, new Date("2026-10-31T18:00:00.000Z"));
+  assert.equal(new Date(after).toISOString(), "2026-11-02T03:00:00.000Z");
+  assert.match(after, /T21:00:00-06:00$/);
+});
+
 test("seed gigs run from just after now through about six weeks", () => {
   const now = new Date("2026-09-29T15:00:00.000Z");
   const db = seedDatabase(now);

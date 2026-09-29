@@ -4,7 +4,7 @@ import AddVideoForm from "@/components/AddVideoForm";
 import CategoryBadge from "@/components/CategoryBadge";
 import VideoEmbed from "@/components/VideoEmbed";
 import { getSessionPerformer } from "@/lib/auth";
-import { formatGigWhen } from "@/lib/format";
+import { formatGigWhen, isUpcoming } from "@/lib/format";
 import { clipUploadMode, gigs, performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function PerformerPage({
   const session = await getSessionPerformer();
   const own = session?.id === performer.id;
   const upcoming = (await gigs.list()).filter(
-    (gig) => gig.performerId === performer.id && new Date(gig.datetime) >= new Date(),
+    (gig) => gig.performerId === performer.id && isUpcoming(gig.datetime),
   );
 
   return (
