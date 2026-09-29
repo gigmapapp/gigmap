@@ -181,6 +181,19 @@ export default function Discovery({
   );
 }
 
+/** Calendar label for a venue date key, e.g. 2026-09-30 → "Wed 30". */
+function shortDateChip(isoDate: string) {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).formatToParts(new Date(Date.UTC(year, month - 1, day)));
+  const weekday = parts.find((part) => part.type === "weekday")?.value ?? "";
+  const dayPart = parts.find((part) => part.type === "day")?.value ?? String(day);
+  return `${weekday} ${dayPart}`;
+}
+
 function MobileFilterBar({
   date,
   dateChips,
@@ -216,39 +229,45 @@ function MobileFilterBar({
           Upcoming
         </button>
       </div>
-      <div className="max-w-full overflow-x-auto px-3 pt-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex w-max items-center gap-2">
-          {dateChips.map((chip) => (
-            <button
-              key={chip}
-              type="button"
-              onClick={() => onDate(chip)}
-              className={`h-11 min-w-11 shrink-0 rounded-full px-3 text-sm ${
-                date === chip
-                  ? "bg-white text-zinc-950"
-                  : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-              }`}
-            >
-              {chip}
-            </button>
-          ))}
-          <span className="h-6 w-px shrink-0 bg-zinc-700" aria-hidden="true" />
-          {FILTERS.map((filter) => (
-            <button
-              key={filter.id}
-              type="button"
-              onClick={() => onCategory(filter.id)}
-              className={`h-11 min-w-11 shrink-0 rounded-full px-3 text-sm ${
-                category === filter.id
-                  ? "bg-accent text-zinc-950"
-                  : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-              }`}
-            >
-              {filter.label}
-            </button>
-          ))}
-        </div>
+      <div className="flex gap-2 px-3 pt-2">
+        {FILTERS.map((filter) => (
+          <button
+            key={filter.id}
+            type="button"
+            onClick={() => onCategory(filter.id)}
+            className={`h-11 min-w-11 flex-1 rounded-full px-2 text-sm whitespace-nowrap ${
+              category === filter.id
+                ? "bg-accent text-zinc-950"
+                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            }`}
+          >
+            {filter.label}
+          </button>
+        ))}
       </div>
+      {dateChips.length > 0 ? (
+        <div className="max-w-full overflow-x-auto px-3 pt-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex w-max items-center gap-2">
+            {dateChips.map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                onClick={() => onDate(chip)}
+                aria-label={chip}
+                className={`h-11 min-w-11 shrink-0 rounded-full px-3 text-sm ${
+                  date === chip
+                    ? "bg-white text-zinc-950"
+                    : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                }`}
+              >
+                {shortDateChip(chip)}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="pb-2" />
+      )}
     </div>
   );
 }
