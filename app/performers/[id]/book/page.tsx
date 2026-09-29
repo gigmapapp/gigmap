@@ -14,7 +14,7 @@ export default async function BookPage({
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-10">
-      <p className="text-xs uppercase tracking-[0.2em] text-orange-400">Private event</p>
+      <p className="text-xs uppercase tracking-[0.2em] text-accent">Private event</p>
       <h1 className="mt-2 font-display text-3xl text-white">
         Request {performer.name}
       </h1>

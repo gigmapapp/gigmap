@@ -11,7 +11,7 @@ export default async function PerformersPage() {
     <main className="mx-auto w-full max-w-5xl px-4 py-10">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-orange-400">Roster</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-accent">Roster</p>
           <h1 className="mt-2 font-display text-3xl text-white">Performers</h1>
           <p className="mt-2 text-sm text-zinc-400">
             Solo artists, bands, and DJs posting in Austin.
@@ -29,7 +29,7 @@ export default async function PerformersPage() {
           <Link
             key={performer.id}
             href={`/performers/${performer.id}`}
-            className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5 hover:border-orange-500/40"
+            className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5 hover:border-accent/40"
           >
             <div className="flex items-start justify-between gap-3">
               <h2 className="font-display text-xl text-white">{performer.name}</h2>

@@ -30,7 +30,7 @@ export default function PostGigForm({ performer }: { performer: Performer }) {
       }}
     >
       <p className="text-sm text-zinc-400">
-        Posting as <span className="text-orange-300">{performer.name}</span>
+        Posting as <span className="text-accent">{performer.name}</span>
       </p>
       <Field label="Title" name="title" required placeholder="Late set at Antone's" />
       <label className="block text-sm text-zinc-300">
@@ -111,10 +111,10 @@ export default function PostGigForm({ performer }: { performer: Performer }) {
         required
         placeholder="Hotel Vegas, 1502 E 6th St"
       />
-      {error ? <p className="text-sm text-orange-300">{error}</p> : null}
+      {error ? <p className="text-sm text-accent">{error}</p> : null}
       <button
         type="submit"
-        className="w-full rounded-lg bg-orange-500 py-3 font-medium text-white hover:bg-orange-600"
+        className="w-full rounded-lg bg-accent py-3 font-medium text-zinc-950 hover:bg-accent-hover"
       >
         Publish gig
       </button>

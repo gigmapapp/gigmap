@@ -24,14 +24,14 @@ export default async function BookingsPage({
         performer. Names and emails are not public. No payments or accept/decline workflow in v1.
       </p>
       {created ? (
-        <p className="mt-4 rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-sm text-orange-100">
+        <p className="mt-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent">
           Request saved. Only that performer can see your name and email.
         </p>
       ) : null}
       <div className="mt-8 space-y-3">
         {!session ? (
           <p className="text-sm text-zinc-500">
-            <Link href="/session?next=/bookings" className="text-orange-300 hover:text-orange-200">
+            <Link href="/session?next=/bookings" className="text-accent hover:text-white">
               Act as a performer
             </Link>{" "}
             to see requests sent to them.
@@ -45,7 +45,7 @@ export default async function BookingsPage({
               className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5"
             >
               <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="uppercase tracking-wide text-orange-300">
+                <span className="uppercase tracking-wide text-accent">
                   {booking.status}
                 </span>
                 <span className="text-zinc-500">For you</span>
@@ -53,7 +53,7 @@ export default async function BookingsPage({
               <h2 className="mt-2 font-medium text-white">
                 <Link
                   href={`/performers/${booking.performerId}`}
-                  className="hover:text-orange-300"
+                  className="hover:text-accent"
                 >
                   {names.get(booking.performerId) ?? "Unknown performer"}
                 </Link>
