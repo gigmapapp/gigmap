@@ -7,7 +7,7 @@ export default function SessionBanner({
   performer: Performer | null;
 }) {
   return (
-    <div className="border-b border-accent/20 bg-accent/10 px-4 py-2 text-center text-xs text-accent sm:text-sm">
+    <div className="shrink-0 border-b border-accent/20 bg-accent/10 px-4 py-2 text-center text-xs text-accent sm:text-sm">
       Temporary stub auth — pick a performer cookie, not real accounts.{" "}
       {performer ? (
         <>

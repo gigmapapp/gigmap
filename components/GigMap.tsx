@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Map as MapLibreMap, Marker, NavigationControl, Popup } from "maplibre-gl";
+import { LngLatBounds, Map as MapLibreMap, Marker, NavigationControl, Popup } from "maplibre-gl";
 import {
   AUSTIN_CENTER,
   CATEGORY_MARKER,
@@ -27,6 +27,7 @@ export default function GigMap({
   const gigsRef = useRef(gigs);
   const selectedRef = useRef(selectedId);
   const onSelectRef = useRef(onSelect);
+  const fittedRef = useRef<{ key: string; height: number } | null>(null);
 
   useEffect(() => {
     gigsRef.current = gigs;
@@ -56,19 +57,46 @@ export default function GigMap({
     const sync = () => {
       syncMarkers(map, gigsRef.current, selectedRef.current, onSelectRef, markersRef);
     };
-    map.on("load", sync);
+    map.on("load", () => {
+      // The container can change size while the style is loading (the desktop
+      // column is flex-sized). Resize before placing markers so the camera
+      // and pin positions share the final canvas.
+      map.resize();
+      sync();
+      fitGigsWhenNeeded(map, gigsRef.current, fittedRef);
+    });
     return () => {
       map.remove();
       mapRef.current = null;
       markers.clear();
+      fittedRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    syncMarkers(map, gigs, selectedId, onSelectRef, markersRef);
-  }, [gigs, selectedId]);
+    syncMarkers(map, gigs, selectedRef.current, onSelectRef, markersRef);
+
+    let cancelled = false;
+    const fit = () => {
+      if (cancelled) return true;
+      return fitGigsWhenNeeded(map, gigs, fittedRef);
+    };
+    if (fit()) {
+      return () => {
+        cancelled = true;
+      };
+    }
+    const observer = new ResizeObserver(() => {
+      if (fit()) observer.disconnect();
+    });
+    observer.observe(map.getContainer());
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [gigs]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -98,7 +126,40 @@ export default function GigMap({
     }
   }, [gigs, selectedId]);
 
-  return <div ref={containerRef} className="h-full w-full md:min-h-[320px]" />;
+  return <div ref={containerRef} className="h-full min-h-0 w-full" />;
+}
+
+/**
+ * Frame the visible gigs once the canvas has a real size. Selecting a pin
+ * does not call this again, so that camera move stays put. A later resize
+ * from a not-yet-laid-out canvas (height under 50px) is allowed to refit.
+ */
+function fitGigsWhenNeeded(
+  map: MapLibreMap,
+  gigs: MappedGig[],
+  fittedRef: { current: { key: string; height: number } | null },
+) {
+  const el = map.getContainer();
+  if (el.clientWidth < 2 || el.clientHeight < 2) return false;
+  const key = gigs.map((gig) => gig.id).join("\n");
+  const previous = fittedRef.current;
+  if (previous?.key === key && previous.height >= 50 && el.clientHeight >= 50) return true;
+  map.resize();
+  if (gigs.length > 0) {
+    const bounds = new LngLatBounds();
+    for (const gig of gigs) bounds.extend([gig.location.lng, gig.location.lat]);
+    const wide = el.clientWidth >= 768;
+    const maxPad = Math.max(16, el.clientHeight * 0.4);
+    const top = Math.min(wide ? Math.round(el.clientHeight * 0.3) : 24, maxPad);
+    const side = Math.min(wide ? 48 : 24, maxPad);
+    map.fitBounds(bounds, {
+      padding: { top, right: side, bottom: side, left: side },
+      maxZoom: 14,
+      duration: 0,
+    });
+  }
+  fittedRef.current = { key, height: el.clientHeight };
+  return true;
 }
 
 /** Cap the card so it can sit fully inside a narrow map. */

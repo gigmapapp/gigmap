@@ -31,10 +31,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${manrope.variable} ${syne.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full w-full min-w-0 flex-col bg-canvas text-foreground">
+      <body className="flex h-dvh min-h-0 w-full min-w-0 flex-col overflow-hidden bg-canvas text-foreground">
         <SessionBanner performer={performer} />
         <Header performer={performer} />
-        <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">{children}</div>
+        {/* Definite height so the home map fills the viewport instead of
+            stretching to the gig list and parking pins below the fold. */}
+        <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto">{children}</div>
       </body>
     </html>
   );

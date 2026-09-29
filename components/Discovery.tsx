@@ -55,8 +55,8 @@ export default function Discovery({
   }, [mapped, date, category]);
 
   return (
-    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col md:flex-row">
-      <section className="relative flex h-auto min-h-0 w-full min-w-0 flex-col md:block md:h-auto md:min-h-0 md:flex-1">
+    <div className="flex w-full min-w-0 flex-col md:min-h-0 md:flex-1 md:flex-row md:overflow-hidden">
+      <section className="relative w-full min-w-0 md:h-full md:min-h-0 md:flex-1">
         <MobileFilterBar
           date={date}
           dateChips={dateChips}
@@ -64,7 +64,7 @@ export default function Discovery({
           onDate={setDate}
           onCategory={setCategory}
         />
-        <div className="relative h-[40vh] min-h-[220px] w-full min-w-0 md:contents">
+        <div className="relative h-[40vh] min-h-[220px] w-full min-w-0 md:absolute md:inset-0 md:h-auto md:min-h-0">
           <GigMap gigs={visible} selectedId={selectedId} onSelect={setSelectedId} />
           <div className="pointer-events-none absolute inset-x-0 top-0 hidden p-3 sm:p-4 md:block">
             <div className="pointer-events-none mx-auto max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950/85 p-3 shadow-xl backdrop-blur">
@@ -129,7 +129,7 @@ export default function Discovery({
         </div>
       </section>
 
-      <aside className="flex max-h-[48vh] w-full min-w-0 flex-col border-t border-zinc-800 bg-zinc-950 md:max-h-none md:w-[390px] md:border-l md:border-t-0">
+      <aside className="flex max-h-[48vh] w-full min-w-0 flex-col border-t border-zinc-800 bg-zinc-950 md:h-full md:max-h-none md:min-h-0 md:w-[390px] md:overflow-hidden md:border-l md:border-t-0">
         <div className="flex items-center justify-between px-4 py-3">
           <h2 className="font-display text-lg text-white">
             {date ? `Gigs on ${date}` : "Upcoming gigs"}
