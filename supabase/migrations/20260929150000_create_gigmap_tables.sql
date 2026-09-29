@@ -1,5 +1,8 @@
 -- Gig Map v1 tables, storage bucket, and row level security.
--- Apply on an empty Supabase project. Do not edit applied history; add a new migration instead.
+-- Run 20260929140000_drop_legacy_empty_tables.sql first on the existing project.
+-- That file removes the empty legacy profiles, gigs, and bookings tables so this
+-- file can create public.gigs. On a fresh database the drop migration is a no-op.
+-- Do not edit applied history; add a new migration instead.
 --
 -- Stub auth is an app cookie, not a Postgres user, so policies cannot key off auth.uid().
 -- anon/authenticated may read the public catalog and insert rows.

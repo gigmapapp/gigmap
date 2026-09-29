@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
+const migrationsDir = path.join(process.cwd(), "supabase/migrations");
 const migration = readFileSync(
-  path.join(process.cwd(), "supabase/migrations/20260929150000_create_gigmap_tables.sql"),
+  path.join(migrationsDir, "20260929150000_create_gigmap_tables.sql"),
+  "utf8",
+);
+const dropLegacy = readFileSync(
+  path.join(migrationsDir, "20260929140000_drop_legacy_empty_tables.sql"),
   "utf8",
 );
 
@@ -27,6 +32,32 @@ test("catalog tables are publicly readable and insertable", () => {
     assert.match(migration, new RegExp(`${table}_public_insert`));
     assert.match(migration, new RegExp(`grant select, insert on table public\\.${table} to anon, authenticated`));
   }
+});
+
+test("legacy drop migration sorts first and aborts when a legacy table has rows", () => {
+  const files = readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort();
+  assert.deepEqual(files, [
+    "20260929140000_drop_legacy_empty_tables.sql",
+    "20260929150000_create_gigmap_tables.sql",
+  ]);
+  assert.match(dropLegacy, /empty legacy tables/i);
+  assert.match(dropLegacy, /raise exception/);
+  assert.match(dropLegacy, /Nothing was dropped/);
+  assert.doesNotMatch(dropLegacy, /drop\s+table[^;]*cascade/i);
+  assert.doesNotMatch(dropLegacy, /drop\s+table\s+auth\.users/i);
+
+  const raiseAt = dropLegacy.indexOf("raise exception");
+  const dropAt = dropLegacy.search(/drop table public\./i);
+  assert.ok(raiseAt > 0 && dropAt > raiseAt);
+
+  const bookingsAt = dropLegacy.indexOf("'bookings'");
+  const gigsAt = dropLegacy.indexOf("'gigs'");
+  const profilesAt = dropLegacy.indexOf("'profiles'");
+  assert.ok(bookingsAt > 0 && bookingsAt < gigsAt && gigsAt < profilesAt);
+  assert.match(dropLegacy, /requester_id/);
+  assert.match(dropLegacy, /musician_id/);
+  assert.match(dropLegacy, /is_musician/);
+  assert.match(dropLegacy, /count\(\*\)/);
 });
 
 test("clip bucket is public with a size cap and no anon insert policy", () => {

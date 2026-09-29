@@ -1,5 +1,7 @@
 # Local CLI only. This repo is not linked to a hosted project.
-# `supabase start` then `supabase db reset` applies migrations and supabase/seed.sql.
+# `supabase start` then `supabase db reset` applies migrations in filename order,
+# then supabase/seed.sql. The legacy drop migration is a no-op on that fresh
+# database, and the seed still loads the v1 public.gigs rows.
 
 project_id = "gigmap"
 

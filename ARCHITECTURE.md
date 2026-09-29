@@ -56,7 +56,10 @@ No passwords, email confirmation, or RLS exist in v1.
 
 `lib/repo/supabase.ts` implements the same interfaces with `@supabase/supabase-js` and the service-role client in `lib/supabase/server.ts`. That client is server-only. The browser never sees the service role key.
 
-Schema, RLS, and the `clips` bucket live in `supabase/migrations/20260929150000_create_gigmap_tables.sql`.
+Schema, RLS, and the `clips` bucket live in `supabase/migrations/`. Apply them in filename order on the existing project:
+
+1. `20260929140000_drop_legacy_empty_tables.sql` drops empty legacy `profiles`, `gigs`, and `bookings` (different columns from v1). It aborts if any of those legacy tables has a row, and it is a no-op when they are absent. It does not use `CASCADE` and does not modify `auth.users`.
+2. `20260929150000_create_gigmap_tables.sql` creates the v1 tables, including a new `public.gigs`.
 
 - Public read of `performers`, `videos`, and `gigs` for `anon` and `authenticated`.
 - Inserts for those tables, plus `booking_requests`, are allowed for `anon` and `authenticated` because stub auth has no `auth.uid()`.

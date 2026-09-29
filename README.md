@@ -52,7 +52,12 @@ The Austin roster lives in `lib/seed/austin.ts`:
 rm -rf .data/db.json .data/uploads
 ```
 
-**Supabase.** Apply `supabase/migrations/20260929150000_create_gigmap_tables.sql`, then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the server env vars set. See the pull request notes or `ARCHITECTURE.md` for the full steps. Neither path writes booking requests.
+**Supabase.** The hosted project already has empty legacy tables (`profiles`, `gigs`, `bookings`) with a different shape. Apply the migrations in filename order:
+
+1. `supabase/migrations/20260929140000_drop_legacy_empty_tables.sql` drops those three only when every matching table is empty. If any has a row, it aborts and drops nothing. On a fresh database it does nothing.
+2. `supabase/migrations/20260929150000_create_gigmap_tables.sql` creates the v1 tables.
+
+Then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the server env vars set. See `ARCHITECTURE.md` for the full steps. Neither path writes booking requests. `supabase db reset` runs the same two files in order; the drop is a no-op locally, then the seed loads v1 gigs.
 
 ## Stub auth
 
