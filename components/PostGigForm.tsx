@@ -6,12 +6,20 @@ import { useState } from "react";
 import { createGigAction } from "@/app/actions/gigs";
 import { AUSTIN_CENTER } from "@/lib/map-style";
 import type { Performer } from "@/lib/types";
+import { toVenueDateTimeLocal } from "@/lib/venue-time";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
 });
 
-export default function PostGigForm({ performer }: { performer: Performer }) {
+export default function PostGigForm({
+  performer,
+  initialDateTime,
+}: {
+  performer: Performer;
+  /** Stored UTC instant. Prefilled as venue wall time, not the browser zone. */
+  initialDateTime?: string;
+}) {
   const [lat, setLat] = useState<number | null>(AUSTIN_CENTER.lat);
   const [lng, setLng] = useState<number | null>(AUSTIN_CENTER.lng);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +38,7 @@ export default function PostGigForm({ performer }: { performer: Performer }) {
       }}
     >
       <p className="text-sm text-zinc-400">
-        Posting as <span className="text-orange-300">{performer.name}</span>
+        Posting as <span className="text-accent">{performer.name}</span>
       </p>
       <Field label="Title" name="title" required placeholder="Late set at Antone's" />
       <label className="block text-sm text-zinc-300">
@@ -57,10 +65,12 @@ export default function PostGigForm({ performer }: { performer: Performer }) {
         </label>
         <label className="block text-sm text-zinc-300">
           Date and time
+          <span className="mt-0.5 block text-xs text-zinc-500">Central Time (Chicago)</span>
           <input
             type="datetime-local"
             name="datetime"
             required
+            defaultValue={initialDateTime ? toVenueDateTimeLocal(initialDateTime) : undefined}
             className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
           />
         </label>
@@ -111,10 +121,10 @@ export default function PostGigForm({ performer }: { performer: Performer }) {
         required
         placeholder="Hotel Vegas, 1502 E 6th St"
       />
-      {error ? <p className="text-sm text-orange-300">{error}</p> : null}
+      {error ? <p className="text-sm text-accent">{error}</p> : null}
       <button
         type="submit"
-        className="w-full rounded-lg bg-orange-500 py-3 font-medium text-white hover:bg-orange-600"
+        className="w-full rounded-lg bg-accent py-3 font-medium text-zinc-950 hover:bg-accent-hover"
       >
         Publish gig
       </button>

@@ -4,7 +4,7 @@ import AddVideoForm from "@/components/AddVideoForm";
 import CategoryBadge from "@/components/CategoryBadge";
 import VideoEmbed from "@/components/VideoEmbed";
 import { getSessionPerformer } from "@/lib/auth";
-import { formatGigWhen } from "@/lib/format";
+import { formatGigWhen, isUpcoming } from "@/lib/format";
 import { clipUploadMode, gigs, performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function PerformerPage({
   const session = await getSessionPerformer();
   const own = session?.id === performer.id;
   const upcoming = (await gigs.list()).filter(
-    (gig) => gig.performerId === performer.id && new Date(gig.datetime) >= new Date(),
+    (gig) => gig.performerId === performer.id && isUpcoming(gig.datetime),
   );
 
   return (
@@ -34,7 +34,7 @@ export default async function PerformerPage({
         </div>
         <Link
           href={`/performers/${performer.id}/book`}
-          className="rounded-lg bg-orange-500 px-4 py-2 text-center text-sm font-medium text-white hover:bg-orange-600"
+          className="rounded-lg bg-accent px-4 py-2 text-center text-sm font-medium text-zinc-950 hover:bg-accent-hover"
         >
           Request to book
         </Link>
@@ -72,7 +72,7 @@ export default async function PerformerPage({
               <Link
                 key={gig.id}
                 href={`/gigs/${gig.id}`}
-                className="block rounded-xl border border-zinc-800 bg-zinc-900/70 p-4 hover:border-orange-500/40"
+                className="block rounded-xl border border-zinc-800 bg-zinc-900/70 p-4 hover:border-accent/40"
               >
                 <div className="font-medium text-white">{gig.title}</div>
                 <div className="mt-1 text-sm text-zinc-400">

@@ -3,7 +3,7 @@ import { createPerformerAction } from "@/app/actions/performers";
 export default function NewPerformerPage() {
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-10">
-      <p className="text-xs uppercase tracking-[0.2em] text-orange-400">New profile</p>
+      <p className="text-xs uppercase tracking-[0.2em] text-accent">New profile</p>
       <h1 className="mt-2 font-display text-3xl text-white">Create a performer</h1>
       <p className="mt-2 text-sm text-zinc-400">
         This writes to the local store and sets the stub session cookie to your new profile.
@@ -56,7 +56,7 @@ export default function NewPerformerPage() {
         </label>
         <button
           type="submit"
-          className="w-full rounded-lg bg-orange-500 py-3 font-medium text-white hover:bg-orange-600"
+          className="w-full rounded-lg bg-accent py-3 font-medium text-zinc-950 hover:bg-accent-hover"
         >
           Save profile
         </button>

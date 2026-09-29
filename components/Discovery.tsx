@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import CategoryBadge from "@/components/CategoryBadge";
-import { formatGigWhen, localDateKey } from "@/lib/format";
+import { formatGigWhen, gigMatchesVenueDate, localDateKey } from "@/lib/format";
 import type { Category, Gig, Performer } from "@/lib/types";
 
 const GigMap = dynamic(() => import("@/components/GigMap"), { ssr: false });
@@ -47,10 +47,8 @@ export default function Discovery({
   }, [mapped]);
 
   const visible = useMemo(() => {
-    const today = localDateKey(new Date().toISOString());
     return mapped.filter((gig) => {
-      const gigDay = localDateKey(gig.datetime);
-      const dateOk = date ? gigDay === date : gigDay >= today;
+      const dateOk = gigMatchesVenueDate(gig.datetime, date);
       const categoryOk = category === "all" || gig.category === category;
       return dateOk && categoryOk;
     });
@@ -110,7 +108,7 @@ export default function Discovery({
                   onClick={() => setCategory(filter.id)}
                   className={`rounded-full px-3 py-1 text-xs ${
                     category === filter.id
-                      ? "bg-orange-500 text-white"
+                      ? "bg-accent text-zinc-950"
                       : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
                   }`}
                 >
@@ -140,7 +138,7 @@ export default function Discovery({
                 key={gig.id}
                 className={`w-full rounded-xl border p-4 text-left transition ${
                   selectedId === gig.id
-                    ? "border-orange-500/70 bg-orange-500/10"
+                    ? "border-accent/70 bg-accent/10"
                     : "border-zinc-800 bg-zinc-900/70 hover:border-zinc-600"
                 }`}
               >
@@ -157,7 +155,7 @@ export default function Discovery({
                   <div className="mt-1 text-sm text-zinc-400">{gig.location.label}</div>
                 </button>
                 <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-orange-300">{gig.performer?.name ?? "Unknown"}</span>
+                  <span className="text-accent">{gig.performer?.name ?? "Unknown"}</span>
                   <Link
                     href={`/gigs/${gig.id}`}
                     className="text-zinc-300 underline-offset-2 hover:underline"
