@@ -2,13 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import { Map as MapLibreMap, Marker, NavigationControl, Popup } from "maplibre-gl";
-import { ACCENT } from "@/lib/accent";
 import {
   AUSTIN_CENTER,
   CATEGORY_MARKER,
   DARK_MAP_STYLE,
 } from "@/lib/map-style";
-import { formatGigWhen } from "@/lib/format";
+import { categoryLabel, formatGigWhen } from "@/lib/format";
 import type { Category, Gig, Performer } from "@/lib/types";
 
 export type MappedGig = Gig & { performer: Performer | null };
@@ -67,12 +66,18 @@ export default function GigMap({
     const map = mapRef.current;
     if (!map) return;
     for (const [id, marker] of markersRef.current) {
-      marker.getElement().dataset.selected = id === selectedId ? "true" : "false";
+      const element = marker.getElement();
+      const selected = id === selectedId;
+      element.dataset.selected = selected ? "true" : "false";
+      element.setAttribute("aria-expanded", selected ? "true" : "false");
       const popup = marker.getPopup();
-      if (id === selectedId) {
-        popup?.addTo(map);
-      } else {
-        popup?.remove();
+      if (selected) {
+        if (popup && !popup.isOpen()) {
+          popup.setLngLat(marker.getLngLat());
+          popup.addTo(map);
+        }
+      } else if (popup?.isOpen()) {
+        popup.remove();
       }
     }
     const selected = gigs.find((gig) => gig.id === selectedId);
@@ -108,26 +113,49 @@ function syncMarkers(
     const el = document.createElement("button");
     el.type = "button";
     el.className = "gig-marker";
-    el.style.background = CATEGORY_MARKER[gig.category] ?? ACCENT;
-    el.setAttribute("aria-label", gig.title);
-    el.addEventListener("click", (event) => {
+    el.style.setProperty("--gig-marker", CATEGORY_MARKER[gig.category] ?? "var(--accent)");
+    el.dataset.gigId = gig.id;
+    el.setAttribute("aria-label", `${gig.title}, ${gig.performer?.name ?? "Unknown"}`);
+    el.setAttribute("aria-expanded", "false");
+
+    const popup = new Popup({
+      offset: 22,
+      closeButton: true,
+      closeOnClick: false,
+      // Focusing the link on open scrolls the page on touch devices and hides the popup.
+      focusAfterOpen: false,
+      maxWidth: "260px",
+    }).setDOMContent(popupContent(gig));
+
+    // MapLibre only opens a marker popup from the map click, inside togglePopup,
+    // which is also what assigns the popup's coordinates. TouchPanHandler
+    // preventDefault() on a moving touch cancels that click, so a tap never
+    // arrived. Keep the gesture on the pin and open the popup from here.
+    const activate = (event: Event) => {
       event.stopPropagation();
       onSelectRef.current(gig.id);
+      popup.setLngLat([gig.location.lng, gig.location.lat]);
+      if (!popup.isOpen()) popup.addTo(map);
+    };
+    const keepGesture = (event: Event) => {
+      event.stopPropagation();
+    };
+    el.addEventListener("pointerdown", keepGesture);
+    el.addEventListener("mousedown", keepGesture);
+    el.addEventListener("touchstart", keepGesture, { passive: true });
+    el.addEventListener("touchend", (event) => {
+      if (event.changedTouches.length !== 1) return;
+      event.preventDefault();
+      activate(event);
     });
+    el.addEventListener("click", activate);
 
-    const popup = new Popup({ offset: 16, closeButton: false }).setHTML(
-      `<div style="min-width:170px">
-          <div style="font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:.06em">${gig.category}</div>
-          <div style="font-weight:650;margin-top:2px">${escapeHtml(gig.title)}</div>
-          <div style="color:#a1a1aa;font-size:12px;margin-top:4px">${escapeHtml(formatGigWhen(gig.datetime))}</div>
-          <div style="color:#d4d4d8;font-size:12px;margin-top:2px">${escapeHtml(gig.performer?.name ?? "Unknown")}</div>
-          <a href="/gigs/${gig.id}" style="display:inline-block;margin-top:8px;color:${ACCENT};font-size:12px">Open gig →</a>
-        </div>`,
-    );
-
-    const marker = new Marker({ element: el })
-      .setLngLat([gig.location.lng, gig.location.lat])
+    // setPopup before setLngLat. Marker.setLngLat only copies coordinates onto
+    // a popup that is already attached. The other order leaves the popup with
+    // no position, so addTo creates no DOM while isOpen() stays true.
+    const marker = new Marker({ element: el, anchor: "center" })
       .setPopup(popup)
+      .setLngLat([gig.location.lng, gig.location.lat])
       .addTo(map);
 
     if (gig.id === selectedId) {
@@ -137,12 +165,33 @@ function syncMarkers(
   }
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+function popupContent(gig: MappedGig) {
+  const root = document.createElement("div");
+  root.className = "gig-popup";
+
+  const kicker = document.createElement("p");
+  kicker.className = "gig-popup-kicker";
+  kicker.textContent = categoryLabel(gig.category);
+
+  const title = document.createElement("p");
+  title.className = "gig-popup-title";
+  title.textContent = gig.title;
+
+  const performer = document.createElement("p");
+  performer.className = "gig-popup-performer";
+  performer.textContent = gig.performer?.name ?? "Unknown";
+
+  const when = document.createElement("p");
+  when.className = "gig-popup-when";
+  when.textContent = formatGigWhen(gig.datetime);
+
+  const link = document.createElement("a");
+  link.className = "gig-popup-link";
+  link.href = `/gigs/${gig.id}`;
+  link.textContent = "View gig";
+
+  root.append(kicker, title, performer, when, link);
+  return root;
 }
 
 export function categoryDot(category: Category) {

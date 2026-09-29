@@ -69,6 +69,65 @@ select {
   border-bottom-color: #18181b;
 }
 
+.maplibregl-popup {
+  z-index: 20;
+}
+
+.maplibregl-popup-close-button {
+  color: #a1a1aa;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  right: 4px;
+  top: 4px;
+}
+
+.maplibregl-popup-close-button:hover {
+  background: transparent;
+  color: var(--accent);
+}
+
+.gig-popup-kicker {
+  margin: 0;
+  font-size: 11px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.gig-popup-title {
+  margin: 2px 28px 0 0;
+  font-weight: 650;
+  color: #fafafa;
+}
+
+.gig-popup-performer,
+.gig-popup-when {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.gig-popup-performer {
+  color: #d4d4d8;
+}
+
+.gig-popup-when {
+  color: #a1a1aa;
+}
+
+.gig-popup-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.gig-popup-link:hover {
+  color: color-mix(in srgb, var(--accent) 72%, white);
+}
+
 .maplibregl-canvas {
   filter: invert(0.9) hue-rotate(180deg) saturate(0.45) brightness(0.92);
 }
@@ -83,15 +142,48 @@ select {
 }
 
 .gig-marker {
+  --gig-marker: var(--accent);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  line-height: 0;
+}
+
+.gig-marker::before {
+  content: "";
   width: 18px;
   height: 18px;
   border-radius: 999px;
   border: 2px solid #09090b;
+  background: var(--gig-marker);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
-  cursor: pointer;
+  pointer-events: none;
 }
 
-.gig-marker[data-selected="true"] {
+.gig-marker[data-selected="true"]::before {
   transform: scale(1.25);
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+/* Unlayered so these beat the global `* { border-color }` rule. */
+.booking-field {
+  border-color: #3f3f46;
+}
+
+.booking-field:focus,
+.booking-field[aria-invalid="true"] {
+  border-color: var(--accent);
+}
+
+.booking-form-error {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
 }
