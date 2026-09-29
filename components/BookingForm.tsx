@@ -186,7 +186,7 @@ export default function BookingForm({ performer }: { performer: Performer }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-orange-500 py-3 font-medium text-white hover:bg-orange-600 disabled:cursor-wait disabled:opacity-70"
+        className="w-full rounded-lg bg-accent py-3 font-medium text-zinc-950 hover:bg-accent-hover disabled:cursor-wait disabled:opacity-70"
       >
         {pending ? "Sending..." : "Send request"}
       </button>
