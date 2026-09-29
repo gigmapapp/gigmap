@@ -5,9 +5,10 @@
 -- Do not edit applied history; add a new migration instead.
 --
 -- Stub auth is an app cookie, not a Postgres user, so policies cannot key off auth.uid().
--- anon/authenticated may read the public catalog and insert rows.
--- They cannot read booking_requests. The server reads that table with the service role
--- and only returns rows for the performer id in the stub session.
+-- anon/authenticated may read performers, videos, and gigs.
+-- They cannot read booking_requests. The server reads and writes every table with the
+-- service role. 20260929160000_revoke_anon_table_writes.sql removes any direct write
+-- grant or policy that this file, or default privileges, would otherwise leave behind.
 
 create table public.performers (
   id text primary key check (id ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(id) <= 80),
@@ -74,11 +75,10 @@ revoke all on table public.videos from public, anon, authenticated;
 revoke all on table public.gigs from public, anon, authenticated;
 revoke all on table public.booking_requests from public, anon, authenticated;
 
-grant select, insert on table public.performers to anon, authenticated;
-grant select, insert on table public.videos to anon, authenticated;
-grant select, insert on table public.gigs to anon, authenticated;
--- Inserts only. No select, update, or delete for the public Data API.
-grant insert on table public.booking_requests to anon, authenticated;
+-- Read-only for the public Data API. No insert, update, or delete.
+grant select on table public.performers to anon, authenticated;
+grant select on table public.videos to anon, authenticated;
+grant select on table public.gigs to anon, authenticated;
 
 grant all on table public.performers to service_role;
 grant all on table public.videos to service_role;
@@ -91,23 +91,11 @@ create policy performers_public_read
   to anon, authenticated
   using (true);
 
-create policy performers_public_insert
-  on public.performers
-  for insert
-  to anon, authenticated
-  with check (true);
-
 create policy videos_public_read
   on public.videos
   for select
   to anon, authenticated
   using (true);
-
-create policy videos_public_insert
-  on public.videos
-  for insert
-  to anon, authenticated
-  with check (true);
 
 create policy gigs_public_read
   on public.gigs
@@ -115,20 +103,8 @@ create policy gigs_public_read
   to anon, authenticated
   using (true);
 
-create policy gigs_public_insert
-  on public.gigs
-  for insert
-  to anon, authenticated
-  with check (true);
-
-create policy booking_requests_public_insert
-  on public.booking_requests
-  for insert
-  to anon, authenticated
-  with check (true);
-
 comment on table public.booking_requests is
-  'Private. anon and authenticated have insert only. Inbox reads use the service role and are scoped in the app to the stub-session performer.';
+  'Private. anon and authenticated have no privileges. The service role reads and writes rows, and the app scopes reads to the stub-session performer.';
 
 -- Public clip bucket. 10 MB matches the in-app cap and stays clear of Vercel's request body limit
 -- because the browser uploads with a signed URL instead of posting the file to Next.js.

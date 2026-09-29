@@ -41,9 +41,9 @@ export function renderSeedSql(): string {
   ).join(",\n");
 
   return `-- Austin seed for Gig Map. Safe to re-run: seeded ids are upserted, booking_requests are not modified.
--- Apply both migrations first. 20260929140000_drop_legacy_empty_tables.sql runs before
--- 20260929150000_create_gigmap_tables.sql. On a fresh database (supabase db reset) the
--- drop is a no-op, then this file fills the v1 tables.
+-- Apply supabase/migrations in filename order first. The legacy drop and the
+-- rls_auto_enable revoke are no-ops on a fresh database (supabase db reset).
+-- This file then fills the v1 tables.
 -- Gig times are America/Chicago wall-clock times, from tomorrow through about six weeks after this runs.
 -- Generated from lib/seed/austin.ts. Edit the seed data there, then re-render this file
 -- with: npx tsx scripts/render-seed-sql.ts

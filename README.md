@@ -56,8 +56,10 @@ rm -rf .data/db.json .data/uploads
 
 1. `supabase/migrations/20260929140000_drop_legacy_empty_tables.sql` drops those three only when every matching table is empty. If any has a row, it aborts and drops nothing. On a fresh database it does nothing.
 2. `supabase/migrations/20260929150000_create_gigmap_tables.sql` creates the v1 tables.
+3. `supabase/migrations/20260929160000_revoke_anon_table_writes.sql` removes anon, authenticated, and public insert/update/delete access. Public read of performers, videos, and gigs stays.
+4. `supabase/migrations/20260929170000_revoke_rls_auto_enable.sql` revokes `EXECUTE` on `public.rls_auto_enable()` when that function is already there. It does nothing on a fresh database.
 
-Then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the server env vars set. See `ARCHITECTURE.md` for the full steps. Neither path writes booking requests. `supabase db reset` runs the same two files in order; the drop is a no-op locally, then the seed loads v1 gigs.
+Then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the server env vars set. See `ARCHITECTURE.md` for the full steps. Neither path writes booking requests. `supabase db reset` runs the migrations in that order; the drop and the function revoke are no-ops locally, then the seed loads v1 gigs.
 
 ## Stub auth
 
@@ -84,4 +86,4 @@ Pages talk to `lib/repo`. That module uses Supabase when `NEXT_PUBLIC_SUPABASE_U
 
 Clip files in Supabase mode upload from the browser to the public `clips` bucket (10 MB cap) using a short-lived signed URL. They do not pass through the Next.js server. Local JSON mode still writes `.data/uploads/` and serves them from `/api/uploads/[filename]`.
 
-Booking requests are visible only to the stub-session performer they were sent to. The anon key cannot read that table.
+Booking requests are visible only to the stub-session performer they were sent to. The anon key cannot read or write that table, or write the other tables. Table writes use the server service role.

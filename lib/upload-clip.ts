@@ -1,6 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { CLIPS_BUCKET } from "@/lib/clips";
 
+// Anon key only. This client must not read or write Postgres tables.
+// uploadToSignedUrl uses the token minted by the service role.
+
 export async function uploadClipToSignedUrl(
   file: File,
   target: { path: string; token: string },
