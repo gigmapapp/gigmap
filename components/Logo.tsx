@@ -9,7 +9,10 @@ export default function Logo({
     <Link href="/" className="inline-flex shrink-0 items-center">
       <svg
         xmlns="http://www.w3.org/2000/svg"
+        width="828"
+        height="209"
         viewBox="8 8 828 209"
+        preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="GigMap"
         className={`block ${className}`}
