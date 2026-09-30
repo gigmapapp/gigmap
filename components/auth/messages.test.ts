@@ -101,8 +101,20 @@ test("forms reject the same cases the account actions reject", () => {
   assert.match(reset.password ?? "", /8/);
   assert.equal(reset.confirm, undefined);
 
-  const profile = profileFieldErrors(form({ name: "  ", category: "solo" }));
+  const profile = profileFieldErrors(
+    form({
+      name: "  ",
+      category: "nope",
+      bio: "x".repeat(501),
+      city: " ",
+      genres: "a, b, c, d, e, f, g, h, i",
+    }),
+  );
   assert.match(profile.name ?? "", /name/i);
+  assert.match(profile.category ?? "", /solo, band, or DJ/i);
+  assert.match(profile.bio ?? "", /500/);
+  assert.match(profile.city ?? "", /city is required/i);
+  assert.match(profile.genres ?? "", /8/);
 });
 
 function form(values: Record<string, string>) {

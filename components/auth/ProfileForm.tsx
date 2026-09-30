@@ -163,7 +163,7 @@ export default function ProfileForm({
           name="city"
           required
           autoComplete="address-level2"
-          placeholder="Where you play"
+          placeholder="Mystic, CT"
           defaultValue={defaults?.city}
           error={fieldErrors.city}
           onChange={() => clearField("city")}
