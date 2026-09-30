@@ -1,8 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
-import { AuthStatus, authButtonClass, authFieldClass } from "@/components/auth/AuthFrame";
+import { startTransition, useActionState, type FormEvent } from "react";
+import {
+  AuthAnnouncer,
+  AuthField,
+  AuthFormError,
+  AuthSubmit,
+  useAuthFeedback,
+} from "@/components/auth/AuthControls";
+import { signInFieldErrors } from "@/components/auth/messages";
 import type { AuthFormState } from "@/app/actions/auth";
+
+const FIELDS = ["email", "password"] as const;
 
 export default function SignInForm({
   action,
@@ -17,34 +26,48 @@ export default function SignInForm({
     error: initialError ?? null,
     message: null,
   });
+  const feedback = useAuthFeedback(state.error);
+
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const errors = signInFieldErrors(formData);
+    if (Object.keys(errors).length > 0) {
+      feedback.apply(errors, FIELDS);
+      return;
+    }
+    feedback.apply({}, FIELDS);
+    startTransition(() => {
+      formAction(formData);
+    });
+  }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} onSubmit={onSubmit} className="space-y-4" noValidate>
+      <AuthAnnouncer message={feedback.announcement} announceKey={feedback.announceKey} />
       <input type="hidden" name="next" value={next} />
-      <AuthStatus error={state.error} message={state.message} />
-      <label className="block text-sm text-zinc-300">
-        Email
-        <input
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          className={authFieldClass}
-        />
-      </label>
-      <label className="block text-sm text-zinc-300">
-        Password
-        <input
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className={authFieldClass}
-        />
-      </label>
-      <button type="submit" disabled={pending} className={authButtonClass}>
-        {pending ? "Signing in…" : "Sign in"}
-      </button>
+      <AuthFormError notice={feedback.formNotice} errorRef={feedback.formErrorRef} />
+      <AuthField
+        label="Email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        required
+        error={feedback.fieldErrors.email}
+        inputRef={feedback.bind("email")}
+        onChange={() => feedback.clear("email")}
+      />
+      <AuthField
+        label="Password"
+        name="password"
+        type="password"
+        autoComplete="current-password"
+        required
+        error={feedback.fieldErrors.password}
+        inputRef={feedback.bind("password")}
+        onChange={() => feedback.clear("password")}
+      />
+      <AuthSubmit pending={pending} idle="Sign in" busy="Signing in…" />
     </form>
   );
 }

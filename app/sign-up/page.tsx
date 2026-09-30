@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { signUpAction } from "@/app/actions/auth";
-import AuthFrame from "@/components/auth/AuthFrame";
+import AuthFrame, { authTextLinkClass } from "@/components/auth/AuthFrame";
 import SignUpForm from "@/components/auth/SignUpForm";
 import { safeNextPath } from "@/lib/auth/access";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "Create an account",
+};
 
 export default async function SignUpPage({
   searchParams,
@@ -20,7 +24,7 @@ export default async function SignUpPage({
       title="Create an account"
       description="We email you a confirmation link before you can post gigs or add clips."
       footer={
-        <Link href={`/sign-in?next=${encodeURIComponent(next)}`} className="text-accent hover:underline">
+        <Link href={`/sign-in?next=${encodeURIComponent(next)}`} className={authTextLinkClass}>
           Already have an account? Sign in
         </Link>
       }

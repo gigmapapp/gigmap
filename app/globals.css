@@ -207,10 +207,20 @@ select {
   border-color: var(--accent);
 }
 
-.booking-form-error {
+.booking-form-error,
+.auth-form-error {
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   background-color: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--accent);
+}
+
+.auth-field {
+  border-color: #3f3f46;
+}
+
+.auth-field:focus,
+.auth-field[aria-invalid="true"] {
+  border-color: var(--accent);
 }
 
 @media (max-width: 767px) {

@@ -32,9 +32,9 @@ export default async function PerformersPage() {
             href={`/performers/${performer.id}`}
             className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5 hover:border-accent/40"
           >
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="font-display text-xl text-white">{performer.name}</h2>
-              <span className="flex items-center gap-2">
+            <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+              <h2 className="min-w-0 font-display text-xl break-words text-white">{performer.name}</h2>
+              <span className="flex flex-wrap items-center gap-2">
                 {performer.claimed ? null : <DemoBadge />}
                 <CategoryBadge category={performer.category} />
               </span>

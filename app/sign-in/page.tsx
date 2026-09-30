@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { signInAction } from "@/app/actions/auth";
-import AuthFrame from "@/components/auth/AuthFrame";
+import AuthFrame, { authTextLinkClass } from "@/components/auth/AuthFrame";
 import SignInForm from "@/components/auth/SignInForm";
 import { safeNextPath } from "@/lib/auth/access";
 import { configErrorFromQuery } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "Sign in",
+};
 
 export default async function SignInPage({
   searchParams,
@@ -22,15 +26,14 @@ export default async function SignInPage({
       title="Sign in"
       description="Email and password. Browsing the map does not need an account."
       footer={
-        <>
-          <Link href={`/sign-up?next=${encodeURIComponent(next)}`} className="text-accent hover:underline">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5">
+          <Link href={`/sign-up?next=${encodeURIComponent(next)}`} className={authTextLinkClass}>
             Create an account
           </Link>
-          <span className="mx-2 text-zinc-600">·</span>
-          <Link href="/forgot-password" className="text-accent hover:underline">
+          <Link href="/forgot-password" className={authTextLinkClass}>
             Forgot password
           </Link>
-        </>
+        </div>
       }
     >
       <SignInForm action={signInAction} next={next} initialError={initialError} />

@@ -1,6 +1,6 @@
 export default function DemoBadge() {
   return (
-    <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
+    <span className="inline-flex shrink-0 items-center rounded-full bg-zinc-950 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-zinc-200 ring-1 ring-zinc-500">
       Demo
     </span>
   );

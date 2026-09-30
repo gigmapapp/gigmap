@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { signOutAction } from "@/app/actions/auth";
 import { createProfileAction } from "@/app/actions/account";
-import AuthFrame from "@/components/auth/AuthFrame";
+import AuthFrame, { authButtonClass, authSecondaryButtonClass } from "@/components/auth/AuthFrame";
 import ProfileForm from "@/components/auth/ProfileForm";
 import CategoryBadge from "@/components/CategoryBadge";
 import { safeNextPath } from "@/lib/auth/access";
@@ -9,6 +9,10 @@ import { requireUser } from "@/lib/auth/session";
 import { performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "Account",
+};
 
 export default async function AccountPage({
   searchParams,
@@ -32,43 +36,53 @@ export default async function AccountPage({
     );
   }
 
+  const genres = performer.genres.length > 0 ? performer.genres.join(", ") : "No genres yet";
+
   return (
-    <AuthFrame
-      eyebrow="Account"
-      title={performer.name}
-      description={user.email ?? "Signed in"}
-      footer={
+    <AuthFrame eyebrow="Account" title={performer.name} description={user.email ?? "Signed in"}>
+      <dl className="space-y-4">
+        <div>
+          <dt className="text-sm text-zinc-500">Category</dt>
+          <dd className="mt-1.5">
+            <CategoryBadge category={performer.category} />
+          </dd>
+        </div>
+        <div>
+          <dt className="text-sm text-zinc-500">City</dt>
+          <dd className="mt-1 text-base break-words text-white">{performer.city}</dd>
+        </div>
+        <div>
+          <dt className="text-sm text-zinc-500">Genres</dt>
+          <dd className="mt-1 text-base break-words text-white">{genres}</dd>
+        </div>
+        <div>
+          <dt className="text-sm text-zinc-500">Bio</dt>
+          <dd className="mt-1 text-base leading-relaxed break-words text-zinc-200">
+            {performer.bio || "No bio yet."}
+          </dd>
+        </div>
+      </dl>
+      <div className="mt-6 flex flex-col gap-3">
+        <Link href={`/performers/${performer.id}`} className={authButtonClass}>
+          View profile
+        </Link>
+        <Link href="/gigs/new" className={authSecondaryButtonClass}>
+          Post a gig
+        </Link>
+        <Link
+          href="/bookings"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-base text-zinc-300 hover:bg-zinc-800 hover:text-white"
+        >
+          Booking requests
+        </Link>
         <form action={signOutAction}>
-          <button type="submit" className="text-zinc-400 hover:text-white">
+          <button
+            type="submit"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 text-base text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          >
             Sign out
           </button>
         </form>
-      }
-    >
-      <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5">
-        <CategoryBadge category={performer.category} />
-        <p className="text-sm text-zinc-300">{performer.bio || "No bio yet."}</p>
-        <p className="text-sm text-zinc-500">
-          {performer.city}
-          {performer.genres.length > 0 ? ` · ${performer.genres.join(" · ")}` : ""}
-        </p>
-        <div className="flex flex-wrap gap-2 text-sm">
-          <Link
-            href={`/performers/${performer.id}`}
-            className="rounded-lg bg-zinc-800 px-3 py-2 text-white hover:bg-zinc-700"
-          >
-            View profile
-          </Link>
-          <Link
-            href="/gigs/new"
-            className="rounded-lg bg-accent px-3 py-2 font-medium text-zinc-950 hover:bg-accent-hover"
-          >
-            Post a gig
-          </Link>
-          <Link href="/bookings" className="rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-800">
-            Booking requests
-          </Link>
-        </div>
       </div>
     </AuthFrame>
   );
