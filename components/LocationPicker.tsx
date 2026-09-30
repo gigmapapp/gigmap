@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Map, Marker, NavigationControl } from "maplibre-gl";
 import { ACCENT } from "@/lib/accent";
-import { AUSTIN_CENTER, DARK_MAP_STYLE } from "@/lib/map-style";
+import { DARK_MAP_STYLE, MYSTIC_CENTER } from "@/lib/map-style";
 
 export default function LocationPicker({
   lat,
@@ -28,7 +28,7 @@ export default function LocationPicker({
     const map = new Map({
       container: containerRef.current,
       style: DARK_MAP_STYLE,
-      center: [AUSTIN_CENTER.lng, AUSTIN_CENTER.lat],
+      center: [MYSTIC_CENTER.lng, MYSTIC_CENTER.lat],
       zoom: 12.2,
     });
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");

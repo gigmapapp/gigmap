@@ -34,7 +34,7 @@ export default function NewPerformerPage() {
           City
           <input
             name="city"
-            defaultValue="Austin, TX"
+            defaultValue="Mystic, CT"
             className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
           />
         </label>

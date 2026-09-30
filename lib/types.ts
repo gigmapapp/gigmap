@@ -32,6 +32,11 @@ export interface Gig {
   description: string;
   category: Category;
   datetime: string;
+  /**
+   * IANA zone for this gig's wall clock, when the API sends one.
+   * Missing values display in America/New_York. The post form does not send it.
+   */
+  timezone?: string | null;
   location: GeoLocation;
   createdAt: string;
 }

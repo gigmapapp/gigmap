@@ -1,5 +1,7 @@
-import { VENUE_TIME_ZONE } from "@/lib/venue-time";
 import { SEED_GIGS, SEED_PERFORMERS } from "./austin";
+
+/** Literal Chicago clock. Do not follow VENUE_TIME_ZONE or seed.sql will move. */
+const AUSTIN_SEED_TIME_ZONE = "America/Chicago";
 
 function sqlString(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
@@ -13,7 +15,7 @@ function sqlTextArray(values: string[]): string {
 function sqlGigTime(dayOffset: number, hour: number, minute: number): string {
   const hh = String(hour).padStart(2, "0");
   const mm = String(minute).padStart(2, "0");
-  return `((timezone('${VENUE_TIME_ZONE}', now()))::date + ${dayOffset} + time '${hh}:${mm}') at time zone '${VENUE_TIME_ZONE}'`;
+  return `((timezone('${AUSTIN_SEED_TIME_ZONE}', now()))::date + ${dayOffset} + time '${hh}:${mm}') at time zone '${AUSTIN_SEED_TIME_ZONE}'`;
 }
 
 /**

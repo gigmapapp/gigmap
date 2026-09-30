@@ -6,11 +6,14 @@ export {
   gigMatchesVenueDate,
   isUpcoming,
   localDateKey,
+  resolveTimeZone,
   toVenueDateTimeLocal,
   VENUE_TIME_ZONE,
+  venueZoneLabel,
+  venueZoneLongName,
 } from "@/lib/venue-time";
 
-/** @see VENUE_TIME_ZONE */
+/** Alias of VENUE_TIME_ZONE. The value is America/New_York, the launch default. */
 export { VENUE_TIME_ZONE as AUSTIN_TZ } from "@/lib/venue-time";
 
 export function categoryLabel(category: Category) {

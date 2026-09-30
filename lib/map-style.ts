@@ -1,8 +1,12 @@
 import { ACCENT } from "@/lib/accent";
 
-export const AUSTIN_CENTER = {
-  lng: -97.7431,
-  lat: 30.2672,
+/**
+ * GNIS populated place for Mystic, Connecticut (41.354266°N, 71.966462°W).
+ * Zoom matches the previous metro framing.
+ */
+export const MYSTIC_CENTER = {
+  lng: -71.966462,
+  lat: 41.354266,
   zoom: 12.35,
 };
 
