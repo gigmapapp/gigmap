@@ -36,8 +36,13 @@ export interface Gig {
   category: Category;
   /** UTC instant. Wall clock is `timezone`. */
   datetime: string;
-  /** IANA zone of the venue. The server sets this from lat/lng. */
-  timezone: string;
+  /**
+   * IANA zone for this gig's wall clock, when the API sends one.
+   * When it is missing, display derives a zone from lat/lng.
+   * America/New_York is only used when the pin does not resolve.
+   * The post form does not send this field. The server sets it from lat/lng on create.
+   */
+  timezone?: string | null;
   location: GeoLocation;
   /** Public page this listing was copied from. Null on owner posts. */
   sourceUrl: string | null;

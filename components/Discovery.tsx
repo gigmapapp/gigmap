@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import CategoryBadge from "@/components/CategoryBadge";
-import { formatGigWhen, gigMatchesVenueDate, localDateKey } from "@/lib/format";
+import { formatGigWhen, gigMatchesVenueDate, localDateKey, zoneForGig } from "@/lib/format";
 import type { Category, Gig, Performer } from "@/lib/types";
 
 const GigMap = dynamic(() => import("@/components/GigMap"), { ssr: false });
@@ -41,14 +41,14 @@ export default function Discovery({
   const dateChips = useMemo(() => {
     const keys = new Set<string>();
     for (const gig of mapped) {
-      keys.add(localDateKey(gig.datetime, gig.timezone));
+      keys.add(localDateKey(gig.datetime, zoneForGig(gig)));
     }
     return [...keys].sort().slice(0, 6);
   }, [mapped]);
 
   const visible = useMemo(() => {
     return mapped.filter((gig) => {
-      const dateOk = gigMatchesVenueDate(gig.datetime, date, new Date(), gig.timezone);
+      const dateOk = gigMatchesVenueDate(gig.datetime, date, new Date(), zoneForGig(gig));
       const categoryOk = category === "all" || gig.category === category;
       return dateOk && categoryOk;
     });
@@ -72,7 +72,7 @@ export default function Discovery({
                 Find live music near you.
               </p>
               <p className="mb-3 text-xs text-zinc-400">
-                Austin · dates in Central Time · OpenStreetMap tiles
+                Mystic · times in each gig&apos;s zone · OpenStreetMap tiles
               </p>
               <div className="pointer-events-auto flex flex-col gap-2 sm:flex-row">
                 <label className="flex-1 text-xs text-zinc-400">
@@ -158,7 +158,7 @@ export default function Discovery({
                 >
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <CategoryBadge category={gig.category} />
-                    <span className="text-xs text-zinc-400">{formatGigWhen(gig.datetime, gig.timezone)}</span>
+                    <span className="text-xs text-zinc-400">{formatGigWhen(gig.datetime, zoneForGig(gig))}</span>
                   </div>
                   <div className="font-medium text-white">{gig.title}</div>
                   <div className="mt-1 text-sm text-zinc-400">{gig.location.label}</div>

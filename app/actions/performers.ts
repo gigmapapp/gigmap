@@ -22,7 +22,7 @@ export async function createPerformerAction(formData: FormData) {
     name,
     category: asCategory(formData.get("category")),
     bio: String(formData.get("bio") ?? ""),
-    city: String(formData.get("city") ?? "Austin, TX"),
+    city: String(formData.get("city") ?? "Mystic, CT"),
     genres: String(formData.get("genres") ?? "")
       .split(",")
       .map((genre) => genre.trim())

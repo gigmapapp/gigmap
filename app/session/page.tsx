@@ -17,7 +17,7 @@ export default async function SessionPage({
       <p className="text-xs uppercase tracking-[0.2em] text-accent">Temporary auth</p>
       <h1 className="mt-2 font-display text-3xl text-white">Act as a performer</h1>
       <p className="mt-2 max-w-xl text-sm text-zinc-400">
-        v1 uses a cookie, not real accounts. Pick a seeded Austin artist to post gigs and
+        v1 uses a cookie, not real accounts. Pick a seeded artist to post gigs and
         upload clips. Fans can browse and request bookings without this step.
       </p>
       <div className="mt-8 grid gap-3">

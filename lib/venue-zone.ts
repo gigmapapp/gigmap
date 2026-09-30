@@ -1,6 +1,6 @@
 import { Temporal } from "@js-temporal/polyfill";
-import tzLookup from "@photostructure/tz-lookup";
 import type { GigSourceKind } from "@/lib/types";
+import { timeZoneAt } from "@/lib/tz-at";
 
 /**
  * Area/location IANA names only. POSIX abbreviations (`EST`) and fixed
@@ -17,20 +17,14 @@ export function isVenueTimeZoneName(zone: string): boolean {
 }
 
 /**
- * Offline lat/lng → IANA lookup. The server calls this when a gig is created.
- * Do not import it from a client component: the lookup table would ship to the browser.
+ * Offline lat/lng → IANA lookup for a stored gig zone. Uses the same `tz-lookup`
+ * wrapper as display (`timeZoneAt`). The server calls this when a gig is created
+ * and does not accept a client-submitted zone. Display imports `timeZoneAt`
+ * directly; do not import this module from a client component.
  */
 export function lookupVenueTimeZone(lat: number, lng: number): string {
-  if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
-    throw new Error(PIN_ERROR);
-  }
-  let zone: string;
-  try {
-    zone = tzLookup(lat, lng);
-  } catch {
-    throw new Error(PIN_ERROR);
-  }
-  if (!isVenueTimeZoneName(zone)) throw new Error(PIN_ERROR);
+  const zone = timeZoneAt(lat, lng);
+  if (!zone || !isVenueTimeZoneName(zone)) throw new Error(PIN_ERROR);
   try {
     Temporal.Now.zonedDateTimeISO(zone);
   } catch {

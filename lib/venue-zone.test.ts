@@ -41,7 +41,7 @@ test("posting a gig derives the zone and does not read one from the client", () 
     "app/performers/[id]/page.tsx",
   ]) {
     const source = readFileSync(path.join(root, relative), "utf8");
-    assert.match(source, /gig\.timezone/);
+    assert.match(source, /zoneForGig\(gig\)/);
     assert.doesNotMatch(source, /formatGigWhen\(gig\.datetime\)/);
     assert.doesNotMatch(source, /formatGigDay\(gig\.datetime\)/);
     assert.doesNotMatch(source, /localDateKey\(gig\.datetime\)/);
@@ -50,7 +50,7 @@ test("posting a gig derives the zone and does not read one from the client", () 
   for (const file of [...walk(path.join(root, "components")), ...walk(path.join(root, "app"))]) {
     const source = readFileSync(file, "utf8");
     if (!source.includes('"use client"') && !source.includes("'use client'")) continue;
-    assert.doesNotMatch(source, /venue-zone|tz-lookup/, path.relative(root, file));
+    assert.doesNotMatch(source, /@\/lib\/venue-zone/, path.relative(root, file));
   }
 });
 

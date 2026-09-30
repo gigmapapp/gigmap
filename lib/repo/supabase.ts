@@ -189,7 +189,7 @@ export const supabasePerformers: PerformerRepository = {
       name: input.name.trim(),
       category: input.category,
       bio: input.bio.trim(),
-      city: input.city.trim() || "Austin, TX",
+      city: input.city.trim() || "Mystic, CT",
       genres: input.genres.map((genre) => genre.trim()).filter(Boolean),
     };
     for (let n = 1; n < 50; n += 1) {

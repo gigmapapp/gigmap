@@ -1,10 +1,9 @@
 /**
- * Fallback zone when a caller has no gig yet. Austin pins are America/Chicago.
- * Pass the gig's IANA id as the trailing argument. Leaving it off stays on
- * Chicago, so existing call sites do not shift by an hour.
- * Chicago is UTC−05:00 in summer (CDT) and UTC−06:00 in winter (CST).
+ * Default IANA zone when a gig has no `timezone`.
+ * The launch area is Mystic, CT. Pass a per-gig zone when one is present.
+ * New York is UTC−04:00 in summer (EDT) and UTC−05:00 in winter (EST).
  */
-export const VENUE_TIME_ZONE = "America/Chicago";
+export const VENUE_TIME_ZONE = "America/New_York";
 
 type WallParts = {
   year: string;
@@ -14,6 +13,47 @@ type WallParts = {
   minute: string;
   second: string;
 };
+
+/** Use a gig's IANA zone when it is valid. Otherwise the launch default. */
+export function resolveTimeZone(timeZone?: string | null): string {
+  if (typeof timeZone !== "string") return VENUE_TIME_ZONE;
+  const trimmed = timeZone.trim();
+  if (!trimmed) return VENUE_TIME_ZONE;
+  try {
+    Intl.DateTimeFormat("en-US", { timeZone: trimmed }).format(0);
+    return trimmed;
+  } catch {
+    return VENUE_TIME_ZONE;
+  }
+}
+
+function zonedInstant(instant: string | Date): Date {
+  const date = typeof instant === "string" ? new Date(instant) : instant;
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
+function timeZoneName(
+  timeZone: string | null | undefined,
+  instant: string | Date,
+  name: "shortGeneric" | "longGeneric",
+): string {
+  const zone = resolveTimeZone(timeZone);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    timeZoneName: name,
+  }).formatToParts(zonedInstant(instant));
+  return parts.find((part) => part.type === "timeZoneName")?.value ?? zone;
+}
+
+/** Short generic label, stable across DST: ET, CT, MT, PT. */
+export function venueZoneLabel(timeZone?: string | null, instant: string | Date = new Date()): string {
+  return timeZoneName(timeZone, instant, "shortGeneric");
+}
+
+/** Long generic name, stable across DST: "Eastern Time". */
+export function venueZoneLongName(timeZone?: string | null, instant: string | Date = new Date()): string {
+  return timeZoneName(timeZone, instant, "longGeneric");
+}
 
 function wallParts(iso: string, timeZone: string): WallParts {
   const date = new Date(iso);
@@ -44,20 +84,23 @@ function wallParts(iso: string, timeZone: string): WallParts {
   };
 }
 
-export function formatGigWhen(iso: string, timeZone = VENUE_TIME_ZONE) {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
+export function formatGigWhen(iso: string, timeZone?: string | null) {
+  const zone = resolveTimeZone(timeZone);
+  const formatted = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
     weekday: "short",
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(iso));
+  return `${formatted} ${venueZoneLabel(zone, iso)}`;
 }
 
-export function formatGigDay(iso: string, timeZone = VENUE_TIME_ZONE) {
+export function formatGigDay(iso: string, timeZone?: string | null) {
+  const zone = resolveTimeZone(timeZone);
   return new Intl.DateTimeFormat("en-US", {
-    timeZone,
+    timeZone: zone,
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -65,8 +108,8 @@ export function formatGigDay(iso: string, timeZone = VENUE_TIME_ZONE) {
 }
 
 /** Venue-local calendar date, `YYYY-MM-DD`. Used to bucket gigs onto a day. */
-export function localDateKey(iso: string, timeZone = VENUE_TIME_ZONE) {
-  const parts = wallParts(iso, timeZone);
+export function localDateKey(iso: string, timeZone?: string | null) {
+  const parts = wallParts(iso, resolveTimeZone(timeZone));
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
@@ -74,8 +117,8 @@ export function localDateKey(iso: string, timeZone = VENUE_TIME_ZONE) {
  * Wall time for an `<input type="datetime-local">`. The value has no offset;
  * it is the venue clock, not the browser's timezone.
  */
-export function toVenueDateTimeLocal(iso: string, timeZone = VENUE_TIME_ZONE) {
-  const parts = wallParts(iso, timeZone);
+export function toVenueDateTimeLocal(iso: string, timeZone?: string | null) {
+  const parts = wallParts(iso, resolveTimeZone(timeZone));
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
 
@@ -86,17 +129,18 @@ export function isUpcoming(iso: string, now = new Date()) {
 }
 
 /**
- * Discovery date filter. A selected day matches the venue-local date in
- * `timeZone`. With no selection, the gig is on today's date in that zone
- * or later.
+ * Discovery date filter. A selected day matches the venue-local date.
+ * With no selection, the gig is on today's venue date or later.
+ * `timeZone` is the gig's IANA zone when one exists.
  */
 export function gigMatchesVenueDate(
   iso: string,
   selectedDate: string,
   now = new Date(),
-  timeZone = VENUE_TIME_ZONE,
+  timeZone?: string | null,
 ) {
-  const gigDay = localDateKey(iso, timeZone);
+  const zone = resolveTimeZone(timeZone);
+  const gigDay = localDateKey(iso, zone);
   if (selectedDate) return gigDay === selectedDate;
-  return gigDay >= localDateKey(now.toISOString(), timeZone);
+  return gigDay >= localDateKey(now.toISOString(), zone);
 }
