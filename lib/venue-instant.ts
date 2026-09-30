@@ -1,5 +1,5 @@
 import { Temporal } from "@js-temporal/polyfill";
-import { localDateKey, VENUE_TIME_ZONE } from "@/lib/venue-time";
+import { localDateKey, resolveTimeZone } from "@/lib/venue-time";
 
 const DATE_TIME_LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
 
@@ -10,39 +10,43 @@ const DATE_TIME_LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/
  * server timezone (UTC on Vercel) and store the gig hours early.
  *
  * DST uses Temporal's `compatible` disambiguation, which does not depend on the host zone:
- * - Overlap, when clocks fall back (1:30 AM Chicago on 2026-11-01 happens twice):
- *   keep the earlier instant, still on daylight time (CDT, UTC−05:00).
- * - Gap, when clocks spring forward (2:30 AM Chicago on 2026-03-08 does not exist):
- *   move forward by the skipped hour and store 3:30 AM CDT (UTC−05:00).
+ * - Overlap, when clocks fall back: keep the earlier instant, still on daylight time.
+ * - Gap, when clocks spring forward: move forward by the skipped hour.
+ *
+ * Omitted, null, or invalid `timeZone` uses the launch default (America/New_York).
+ * Pass another IANA id for a different venue. The create-gig action passes the
+ * zone looked up from the pin, so a posted time is that venue's wall clock.
  */
-export function parseVenueDateTimeLocal(value: string, timeZone = VENUE_TIME_ZONE): string {
-  const zoned = zonedFromLocal(value, timeZone);
+export function parseVenueDateTimeLocal(value: string, timeZone?: string | null): string {
+  const zoned = zonedFromLocal(value, resolveTimeZone(timeZone));
   return new Date(zoned.epochMilliseconds).toISOString();
 }
 
 /** Midnight at the start of the venue-local calendar day that contains `date`. */
-export function startOfLocalDay(date = new Date(), timeZone = VENUE_TIME_ZONE): Date {
-  const key = localDateKey(date.toISOString(), timeZone);
-  return new Date(parseVenueDateTimeLocal(`${key}T00:00`, timeZone));
+export function startOfLocalDay(date = new Date(), timeZone?: string | null): Date {
+  const zone = resolveTimeZone(timeZone);
+  const key = localDateKey(date.toISOString(), zone);
+  return new Date(parseVenueDateTimeLocal(`${key}T00:00`, zone));
 }
 
 /**
  * ISO string whose wall clock and numeric offset match the venue zone.
- * Seed data uses this so the instant is explicit without a fixed offset.
+ * The numeric offset is included so the instant does not depend on the host zone.
  */
 export function venueOffsetIso(
   daysFromToday: number,
   hour: number,
   minute: number,
   now = new Date(),
-  timeZone = VENUE_TIME_ZONE,
+  timeZone?: string | null,
 ): string {
+  const zone = resolveTimeZone(timeZone);
   const day = Temporal.Instant.fromEpochMilliseconds(now.getTime())
-    .toZonedDateTimeISO(timeZone)
+    .toZonedDateTimeISO(zone)
     .toPlainDate()
     .add({ days: daysFromToday });
   const local = `${pad(day.year)}-${pad(day.month)}-${pad(day.day)}T${pad(hour)}:${pad(minute)}`;
-  const zoned = zonedFromLocal(local, timeZone);
+  const zoned = zonedFromLocal(local, zone);
   const iso = `${pad(zoned.year)}-${pad(zoned.month)}-${pad(zoned.day)}T${pad(zoned.hour)}:${pad(zoned.minute)}:00${zoned.offset}`;
   if (Number.isNaN(new Date(iso).getTime())) {
     throw new Error(`Invalid venue datetime: ${iso}`);

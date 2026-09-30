@@ -161,7 +161,7 @@ export default function BookingForm({ performer }: { performer: BookingTarget })
           label="Preferred location"
           name="preferredLocation"
           required
-          placeholder="East Austin backyard"
+          placeholder="Mystic backyard"
           error={fieldErrors.preferredLocation}
           inputRef={(node) => setFieldRef(fieldRefs.current, "preferredLocation", node)}
           onChange={() => clearFieldError("preferredLocation")}

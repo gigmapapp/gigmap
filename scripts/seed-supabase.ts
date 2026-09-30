@@ -1,6 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
-import { seedDatabase } from "../lib/seed/austin";
+import { seedDatabase } from "../lib/seed/database";
 
 loadEnvConfig(process.cwd());
 
@@ -35,25 +35,9 @@ if (performerError) {
   process.exit(1);
 }
 
-let videoIndex = 0;
-const videos = db.performers.flatMap((performer) =>
-  performer.videos.map((video) => {
-    const createdAt = new Date(new Date(performer.createdAt).getTime() + videoIndex).toISOString();
-    videoIndex += 1;
-    return {
-      id: video.id,
-      performer_id: performer.id,
-      title: video.title,
-      source_type: video.sourceType,
-      url: video.url,
-      created_at: createdAt,
-    };
-  }),
-);
-
-const { error: videoError } = await supabase.from("videos").upsert(videos, { onConflict: "id" });
-if (videoError) {
-  console.error(videoError.message);
+const videos = db.performers.flatMap((performer) => performer.videos);
+if (videos.length > 0) {
+  console.error("The Mystic seed inserts no videos. Refusing to upsert clip rows.");
   process.exit(1);
 }
 
@@ -68,6 +52,9 @@ const { error: gigError } = await supabase.from("gigs").upsert(
     lat: gig.location.lat,
     lng: gig.location.lng,
     label: gig.location.label,
+    timezone: gig.timezone,
+    source_url: gig.sourceUrl,
+    source_kind: gig.sourceKind,
     created_at: gig.createdAt,
   })),
   { onConflict: "id" },

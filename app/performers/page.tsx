@@ -15,7 +15,7 @@ export default async function PerformersPage() {
           <p className="text-xs uppercase tracking-[0.2em] text-accent">Roster</p>
           <h1 className="mt-2 font-display text-3xl text-white">Performers</h1>
           <p className="mt-2 text-sm text-zinc-400">
-            Solo artists, bands, and DJs posting in Austin.
+            Solo artists, bands, and DJs posting gigs.
           </p>
         </div>
         <Link

@@ -1,8 +1,8 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { seedDatabase } from "@/lib/seed/austin";
 import { bookingTargetError } from "@/lib/auth/access";
 import { updateOwnedPerformer, type ProfileUpdateColumns } from "@/lib/auth/profile-update";
+import { seedDatabase } from "@/lib/seed/database";
 import type {
   BookingRequest,
   CreateBookingInput,
@@ -19,6 +19,7 @@ import type {
   PerformerRepository,
 } from "@/lib/repo/interface";
 import { slugify } from "@/lib/slug";
+import { lookupVenueTimeZone, readStoredSource, readStoredTimeZone } from "@/lib/venue-zone";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DB_PATH = path.join(DATA_DIR, "db.json");
@@ -69,7 +70,15 @@ function parseDb(raw: string): StoredDatabase {
       userId: row.userId ?? null,
       videos: row.videos ?? [],
     })),
-    gigs: parsed.gigs,
+    gigs: parsed.gigs.map((gig) => {
+      const source = readStoredSource(gig.sourceKind, gig.sourceUrl);
+      return {
+        ...gig,
+        timezone: readStoredTimeZone(gig.timezone, gig.location.lat, gig.location.lng),
+        sourceUrl: source.sourceUrl,
+        sourceKind: source.sourceKind,
+      };
+    }),
     bookings: parsed.bookings,
   };
 }
@@ -230,11 +239,14 @@ export const jsonGigs: GigRepository = {
         description: input.description.trim(),
         category: input.category,
         datetime: input.datetime,
+        timezone: lookupVenueTimeZone(input.location.lat, input.location.lng),
         location: {
           lat: input.location.lat,
           lng: input.location.lng,
           label: input.location.label.trim(),
         },
+        sourceUrl: null,
+        sourceKind: "owner",
         createdAt: new Date().toISOString(),
       };
       db.gigs.push(gig);

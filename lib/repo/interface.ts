@@ -27,6 +27,10 @@ export interface PerformerRepository {
 export interface GigRepository {
   list(): Promise<Gig[]>;
   get(id: string): Promise<Gig | null>;
+  /**
+   * Stores the UTC instant from `input.datetime` and sets `timezone` from the
+   * venue lat/lng. There is no timezone field on the input.
+   */
   create(input: CreateGigInput): Promise<Gig>;
 }
 

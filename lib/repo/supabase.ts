@@ -20,13 +20,16 @@ import type {
   CreatePerformerInput,
   CreateVideoInput,
   Gig,
+  GigSourceKind,
   Performer,
   Video,
 } from "@/lib/types";
+import { lookupVenueTimeZone, readStoredSource, readStoredTimeZone } from "@/lib/venue-zone";
 
 const PERFORMER_COLUMNS = "id, name, category, bio, city, genres, created_at, user_id";
 const VIDEO_COLUMNS = "id, performer_id, title, source_type, url, created_at";
-const GIG_COLUMNS = "id, performer_id, title, description, category, datetime, lat, lng, label, created_at";
+const GIG_COLUMNS =
+  "id, performer_id, title, description, category, datetime, lat, lng, label, timezone, source_url, source_kind, created_at";
 const BOOKING_COLUMNS =
   "id, performer_id, contact_name, contact_email, event_details, preferred_date, preferred_location, message, status, created_at";
 
@@ -60,6 +63,9 @@ type GigRow = {
   lat: number;
   lng: number;
   label: string;
+  timezone: string | null;
+  source_url: string | null;
+  source_kind: GigSourceKind | null;
   created_at: string;
 };
 
@@ -120,6 +126,7 @@ function toPerformer(row: PerformerRow, videos: Video[]): Performer {
 }
 
 function toGig(row: GigRow): Gig {
+  const source = readStoredSource(row.source_kind, row.source_url);
   return {
     id: row.id,
     performerId: row.performer_id,
@@ -127,11 +134,14 @@ function toGig(row: GigRow): Gig {
     description: row.description,
     category: row.category,
     datetime: row.datetime,
+    timezone: readStoredTimeZone(row.timezone, row.lat, row.lng),
     location: {
       lat: row.lat,
       lng: row.lng,
       label: row.label,
     },
+    sourceUrl: source.sourceUrl,
+    sourceKind: source.sourceKind,
     createdAt: row.created_at,
   };
 }
@@ -303,6 +313,9 @@ export const supabaseGigs: GigRepository = {
       lat: input.location.lat,
       lng: input.location.lng,
       label: input.location.label.trim(),
+      timezone: lookupVenueTimeZone(input.location.lat, input.location.lng),
+      source_url: null,
+      source_kind: "owner" as const,
     };
     const { client } = await userDb();
     const { data, error } = await client

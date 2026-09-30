@@ -6,6 +6,7 @@ import { requirePerformer } from "@/lib/auth/session";
 import { gigs } from "@/lib/repo";
 import { CATEGORIES, type Category } from "@/lib/types";
 import { parseVenueDateTimeLocal } from "@/lib/venue-instant";
+import { lookupVenueTimeZone } from "@/lib/venue-zone";
 
 export async function createGigAction(formData: FormData) {
   const performer = await requirePerformer("/gigs/new");
@@ -27,12 +28,13 @@ export async function createGigAction(formData: FormData) {
     throw new Error("Pick a category.");
   }
 
+  const timezone = lookupVenueTimeZone(lat, lng);
   const gig = await gigs.create({
     performerId: performer.id,
     title,
     description,
     category: categoryRaw as Category,
-    datetime: parseVenueDateTimeLocal(datetimeLocal),
+    datetime: parseVenueDateTimeLocal(datetimeLocal, timezone),
     location: { lat, lng, label },
   });
 

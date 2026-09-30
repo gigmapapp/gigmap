@@ -67,10 +67,10 @@ async function seed(db: PGlite) {
       ('clip-a', 'owner-a', 'Clip A', 'url', 'https://example.com/a.mp4'),
       ('clip-demo', 'demo-act', 'Demo clip', 'url', 'https://example.com/d.mp4');
     insert into public.gigs (
-      id, performer_id, title, description, category, datetime, lat, lng, label
+      id, performer_id, title, description, category, datetime, lat, lng, label, timezone
     ) values
-      ('gig-a', 'owner-a', 'Show A', '', 'band', now(), 30.27, -97.74, 'Venue A'),
-      ('gig-demo', 'demo-act', 'Demo show', '', 'solo', now(), 30.27, -97.74, 'Venue D');
+      ('gig-a', 'owner-a', 'Show A', '', 'band', now(), 30.27, -97.74, 'Venue A', 'America/Chicago'),
+      ('gig-demo', 'demo-act', 'Demo show', '', 'solo', now(), 30.27, -97.74, 'Venue D', 'America/Chicago');
     insert into public.booking_requests (
       id, performer_id, contact_name, contact_email, event_details,
       preferred_date, preferred_location, message
@@ -150,7 +150,19 @@ test("RLS lets an owner edit their rows and blocks everyone else", { timeout: 60
     );
     assert.deepEqual(
       publicRows.rows.map((row) => row.id),
-      ["demo-act", "owner-a", "owner-b"],
+      [
+        "a-j-croce",
+        "a-vibe-the-encore-2000s-party",
+        "demo-act",
+        "dj-blade-mon",
+        "hubby-jenkins",
+        "monophonics",
+        "owner-a",
+        "owner-b",
+        "ramblin-dan-stevens",
+        "the-cartells",
+        "violet-theory",
+      ],
     );
 
     await expectDenied(
@@ -244,7 +256,7 @@ test("RLS lets an owner edit their rows and blocks everyone else", { timeout: 60
       db,
       "authenticated",
       OWNER_B,
-      "insert into public.gigs (id, performer_id, title, category, datetime, lat, lng, label) values ('gig-x', 'owner-a', 'X', 'band', now(), 1, 2, 'Here')",
+      "insert into public.gigs (id, performer_id, title, category, datetime, lat, lng, label, timezone) values ('gig-x', 'owner-a', 'X', 'band', now(), 1, 2, 'Here', 'America/Chicago')",
     );
     await expectDenied(
       db,
@@ -254,7 +266,7 @@ test("RLS lets an owner edit their rows and blocks everyone else", { timeout: 60
     );
     const ownGig = await asRole(db, "authenticated", OWNER_A, (tx) =>
       tx.query(
-        "insert into public.gigs (id, performer_id, title, category, datetime, lat, lng, label) values ('gig-own', 'owner-a', 'Own', 'band', now(), 1, 2, 'Here') returning id",
+        "insert into public.gigs (id, performer_id, title, category, datetime, lat, lng, label, timezone) values ('gig-own', 'owner-a', 'Own', 'band', now(), 1, 2, 'Here', 'America/Chicago') returning id",
       ),
     );
     assert.equal(ownGig.rows[0]?.id, "gig-own");
