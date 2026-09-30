@@ -225,3 +225,13 @@ select {
     min-width: 0;
   }
 }
+
+/* Date inputs have a large intrinsic min-width. Unlayered so it beats the
+   control's automatic minimum size and stays inside the filter grid column. */
+.filter-date-input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
