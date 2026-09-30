@@ -31,6 +31,11 @@
 alter table public.performers
   add column if not exists user_id uuid;
 
+-- City is required from the profile form. Seed rows set it explicitly.
+-- Drop the Austin default from 20260929150000 so an omitted city cannot sneak in.
+alter table public.performers
+  alter column city drop default;
+
 do $$
 begin
   if not exists (

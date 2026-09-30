@@ -108,14 +108,14 @@ export function AuthAnnouncer({
   );
 }
 
+// Supabase's rate_limited response is the real throttle. This countdown is UX only.
 const RESEND_COOLDOWN_SECONDS = 30;
-const RESEND_SENT_MESSAGE = "If an account exists, we sent a new link.";
 
 type ResendAction = (state: AuthActionResult, formData: FormData) => Promise<AuthActionResult>;
 
 type ResendPhase =
   | { kind: "idle" }
-  | { kind: "sent" }
+  | { kind: "sent"; message: string }
   | { kind: "limited" }
   | { kind: "error"; message: string };
 
@@ -147,7 +147,7 @@ export function ResendConfirmation({
       void action({ ok: true }, data)
         .then((result) => {
           if (result.ok) {
-            setPhase({ kind: "sent" });
+            setPhase({ kind: "sent", message: result.message ?? "" });
             return;
           }
           if (result.code === "rate_limited") {
@@ -163,7 +163,7 @@ export function ResendConfirmation({
 
   const status =
     phase.kind === "sent"
-      ? RESEND_SENT_MESSAGE
+      ? phase.message
       : phase.kind === "limited"
         ? messageForAuthCode("rate_limited")
         : phase.kind === "error"

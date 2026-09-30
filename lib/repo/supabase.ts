@@ -214,7 +214,7 @@ export const supabasePerformers: PerformerRepository = {
       name: input.name.trim(),
       category: input.category,
       bio: input.bio.trim(),
-      city: input.city.trim() || "Austin, TX",
+      city: input.city.trim(),
       genres: input.genres.map((genre) => genre.trim()).filter(Boolean),
       user_id: userId,
     };

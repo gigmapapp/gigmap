@@ -54,7 +54,11 @@ const PROVIDER_CODES: Record<string, AuthErrorCode> = {
 };
 
 export const CONFIRMATION_RESENT_MESSAGE =
-  "If that email is waiting for confirmation, a new link is on its way.";
+  "If that email is waiting for confirmation, we've sent a new link.";
+
+export const PROFILE_VALIDATION_SUMMARY = "Please fix the highlighted fields.";
+
+export const PROFILE_ALREADY_EXISTS_MESSAGE = "You already have a profile.";
 
 export const PASSWORD_RESET_MESSAGE =
   "If that email has an account, a reset link is on its way.";
@@ -118,14 +122,18 @@ export function neutralEmailOutcome(
 
 export function profileValidationFailure(fieldErrors: ProfileFieldErrors): ProfileActionFailure {
   const field = PROFILE_FIELDS.find((name) => fieldErrors[name]);
-  const message = (field && fieldErrors[field]) || "Check the profile fields.";
   return {
     ok: false,
     code: "validation",
     field,
-    message,
+    message: PROFILE_VALIDATION_SUMMARY,
     fieldErrors,
+    formError: PROFILE_VALIDATION_SUMMARY,
   };
+}
+
+export function profileAlreadyExistsFailure(): ProfileActionFailure {
+  return profileFormFailure(PROFILE_ALREADY_EXISTS_MESSAGE, "validation");
 }
 
 export function profileFormFailure(message: string, code: AuthErrorCode = "unknown"): ProfileActionFailure {

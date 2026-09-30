@@ -59,10 +59,10 @@ async function applyMigrations(db: PGlite) {
 async function seed(db: PGlite) {
   await db.exec(`
     insert into auth.users (id) values ('${OWNER_A}'), ('${OWNER_B}'), ('${OWNER_C}');
-    insert into public.performers (id, name, category, user_id) values
-      ('owner-a', 'Owner A', 'band', '${OWNER_A}'),
-      ('owner-b', 'Owner B', 'dj', '${OWNER_B}'),
-      ('demo-act', 'Demo Act', 'solo', null);
+    insert into public.performers (id, name, category, city, user_id) values
+      ('owner-a', 'Owner A', 'band', 'Austin, TX', '${OWNER_A}'),
+      ('owner-b', 'Owner B', 'dj', 'Austin, TX', '${OWNER_B}'),
+      ('demo-act', 'Demo Act', 'solo', 'Austin, TX', null);
     insert into public.videos (id, performer_id, title, source_type, url) values
       ('clip-a', 'owner-a', 'Clip A', 'url', 'https://example.com/a.mp4'),
       ('clip-demo', 'demo-act', 'Demo clip', 'url', 'https://example.com/d.mp4');
@@ -157,25 +157,25 @@ test("RLS lets an owner edit their rows and blocks everyone else", { timeout: 60
       db,
       "anon",
       null,
-      "insert into public.performers (id, name, category, user_id) values ('anon-act', 'Anon', 'solo', null)",
+      "insert into public.performers (id, name, category, city, user_id) values ('anon-act', 'Anon', 'solo', 'Austin, TX', null)",
     );
     await expectDenied(
       db,
       "authenticated",
       OWNER_A,
-      "insert into public.performers (id, name, category, user_id) values ('stolen', 'Stolen', 'solo', $1)",
+      "insert into public.performers (id, name, category, city, user_id) values ('stolen', 'Stolen', 'solo', 'Austin, TX', $1)",
       [OWNER_B],
     );
     await expectDenied(
       db,
       "authenticated",
       OWNER_A,
-      "insert into public.performers (id, name, category) values ('unclaimed-new', 'Nope', 'solo')",
+      "insert into public.performers (id, name, category, city) values ('unclaimed-new', 'Nope', 'solo', 'Austin, TX')",
     );
 
     const created = await asRole(db, "authenticated", OWNER_C, (tx) =>
       tx.query(
-        "insert into public.performers (id, name, category, user_id) values ('owner-c', 'Owner C', 'solo', $1) returning id",
+        "insert into public.performers (id, name, category, city, user_id) values ('owner-c', 'Owner C', 'solo', 'Austin, TX', $1) returning id",
         [OWNER_C],
       ),
     );
@@ -184,7 +184,7 @@ test("RLS lets an owner edit their rows and blocks everyone else", { timeout: 60
       () =>
         asRole(db, "authenticated", OWNER_A, (tx) =>
           tx.query(
-            "insert into public.performers (id, name, category, user_id) values ('second-a', 'Second', 'solo', $1)",
+            "insert into public.performers (id, name, category, city, user_id) values ('second-a', 'Second', 'solo', 'Austin, TX', $1)",
             [OWNER_A],
           ),
         ),
@@ -297,7 +297,9 @@ test("RLS lets an owner edit their rows and blocks everyone else", { timeout: 60
       ["book-a", "book-b", "book-demo"],
     );
 
-    await db.exec(`insert into public.performers (id, name, category) values ('demo-two', 'Demo Two', 'dj')`);
+    await db.exec(
+      `insert into public.performers (id, name, category, city) values ('demo-two', 'Demo Two', 'dj', 'Austin, TX')`,
+    );
     const nullOwners = await db.query<{ n: number }>(
       "select count(*)::int as n from public.performers where user_id is null",
     );

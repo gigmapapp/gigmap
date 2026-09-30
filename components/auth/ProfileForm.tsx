@@ -6,7 +6,13 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AuthAnnouncer, AuthField, AuthSubmit } from "@/components/auth/AuthControls";
 import { authSecondaryButtonClass } from "@/components/auth/AuthFrame";
 import { profileFieldErrors } from "@/components/auth/messages";
-import type { ProfileActionResult, ProfileField, ProfileFieldErrors } from "@/lib/auth/result";
+import {
+  PROFILE_ALREADY_EXISTS_MESSAGE,
+  PROFILE_VALIDATION_SUMMARY,
+  type ProfileActionResult,
+  type ProfileField,
+  type ProfileFieldErrors,
+} from "@/lib/auth/result";
 
 const FIELDS = ["name", "category", "city", "genres", "bio"] as const;
 
@@ -77,7 +83,7 @@ export default function ProfileForm({
     const formData = new FormData(form);
     const errors = profileFieldErrors(formData);
     if (Object.keys(errors).length > 0) {
-      showErrors(errors, null, form);
+      showErrors(errors, PROFILE_VALIDATION_SUMMARY, form);
       return;
     }
 
@@ -119,6 +125,14 @@ export default function ProfileForm({
           className="auth-form-error rounded-lg border px-3 py-3 text-sm outline-none"
         >
           {formError}
+          {formError === PROFILE_ALREADY_EXISTS_MESSAGE ? (
+            <>
+              {" "}
+              <Link href="/account" className="font-medium text-accent underline-offset-4 hover:underline">
+                Go to your account
+              </Link>
+            </>
+          ) : null}
         </p>
       ) : null}
       <AuthField
@@ -147,8 +161,10 @@ export default function ProfileForm({
         <AuthField
           label="City"
           name="city"
+          required
           autoComplete="address-level2"
-          defaultValue={defaults?.city ?? "Austin, TX"}
+          placeholder="Where you play"
+          defaultValue={defaults?.city}
           error={fieldErrors.city}
           onChange={() => clearField("city")}
         />

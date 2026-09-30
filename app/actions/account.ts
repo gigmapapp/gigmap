@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { safeNextPath } from "@/lib/auth/access";
 import { profileFieldsFromForm, profileSaveFailure, profileUpdateColumns } from "@/lib/auth/profile-update";
-import { type ProfileActionResult, profileFormFailure } from "@/lib/auth/result";
+import { type ProfileActionResult, profileAlreadyExistsFailure, profileFormFailure } from "@/lib/auth/result";
 import { requireUser } from "@/lib/auth/session";
 import { performers } from "@/lib/repo";
 
@@ -16,7 +16,7 @@ function savedProfileFailure(error: unknown): ProfileActionResult {
 export async function createProfileAction(formData: FormData): Promise<ProfileActionResult> {
   const user = await requireUser("/account");
   const existing = await performers.getByUserId(user.id);
-  if (existing) redirect(`/performers/${existing.id}`);
+  if (existing) return profileAlreadyExistsFailure();
 
   const fields = profileFieldsFromForm(formData);
   const invalid = profileSaveFailure(fields);

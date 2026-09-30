@@ -1,4 +1,4 @@
-import { CATEGORIES, type Category, type CreatePerformerInput } from "@/lib/types";
+import { CATEGORIES, type Category } from "@/lib/types";
 
 /**
  * Confirmed: performers with no owner are demo profiles. The Book button is
@@ -88,36 +88,6 @@ export function defaultNextForOtp(type: AllowedOtpType | null): string {
 
 export function parseCategory(value: string): Category | null {
   return (CATEGORIES as readonly string[]).includes(value) ? (value as Category) : null;
-}
-
-export function parseProfileFields(input: {
-  name: string;
-  category: string;
-  bio: string;
-  city: string;
-  genres: string;
-  userId: string;
-}): { ok: true; value: CreatePerformerInput } | { ok: false; error: string } {
-  const name = input.name.trim();
-  if (!name) return { ok: false, error: "Name is required." };
-  const category = parseCategory(input.category);
-  if (!category) return { ok: false, error: "Pick solo, band, or DJ." };
-  const userId = input.userId.trim();
-  if (!userId) return { ok: false, error: "Sign in to create a profile." };
-  return {
-    ok: true,
-    value: {
-      name,
-      category,
-      bio: input.bio.trim(),
-      city: input.city.trim() || "Austin, TX",
-      genres: input.genres
-        .split(",")
-        .map((genre) => genre.trim())
-        .filter(Boolean),
-      userId,
-    },
-  };
 }
 
 export function authUnavailableMessage(): string {

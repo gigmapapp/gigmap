@@ -56,6 +56,8 @@ test("owner writes use the user client and bookings stay on the service role", (
   const account = source("app/actions/account.ts");
   assert.match(account, /export async function updateProfileAction/);
   assert.match(account, /profileSaveFailure/);
+  assert.match(account, /profileAlreadyExistsFailure/);
   assert.match(account, /performers\.update\(/);
   assert.doesNotMatch(account, /throw new Error/);
+  assert.doesNotMatch(account, /if \(existing\) redirect/);
 });

@@ -7,11 +7,11 @@ import {
   bookingsOpenForPerformer,
   defaultNextForOtp,
   isClaimedPerformer,
-  parseProfileFields,
   safeNextPath,
   validateEmail,
   validatePassword,
 } from "./access";
+import { parseProfileFields } from "./profile-update";
 
 test("unclaimed performers are demo profiles and cannot take bookings", () => {
   assert.equal(REFUSE_BOOKINGS_FOR_UNCLAIMED_PERFORMERS, true);
@@ -62,12 +62,22 @@ test("profile and password checks reject empty auth input", () => {
     userId: "user-1",
   });
   assert.equal(badCategory.ok, false);
+  const emptyCity = parseProfileFields({
+    name: "Night Birds",
+    category: "band",
+    bio: "",
+    city: "  ",
+    genres: "",
+    userId: "user-1",
+  });
+  assert.equal(emptyCity.ok, false);
+  if (!emptyCity.ok) assert.match(emptyCity.error, /city/i);
   const parsed = parseProfileFields({
     name: " Night Birds ",
     category: "band",
     bio: " horns ",
-    city: "",
-    genres: "jazz, soul",
+    city: " Austin, TX ",
+    genres: "jazz, soul, Jazz",
     userId: "user-1",
   });
   assert.equal(parsed.ok, true);

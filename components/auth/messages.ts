@@ -76,6 +76,9 @@ export function profileFieldErrors(formData: FormData): AuthFieldErrors {
   return collectProfileFieldErrors({
     name: String(formData.get("name") ?? ""),
     category: String(formData.get("category") ?? ""),
+    bio: String(formData.get("bio") ?? ""),
+    city: String(formData.get("city") ?? ""),
+    genres: String(formData.get("genres") ?? ""),
   });
 }
 

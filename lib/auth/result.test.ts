@@ -6,6 +6,9 @@ import {
   authErrorFromProvider,
   messageForAuthCode,
   neutralEmailOutcome,
+  PROFILE_ALREADY_EXISTS_MESSAGE,
+  PROFILE_VALIDATION_SUMMARY,
+  profileAlreadyExistsFailure,
   profileFormFailure,
   profileValidationFailure,
 } from "./result";
@@ -87,9 +90,17 @@ test("profile saves return field errors in the booking shape", () => {
   assert.equal(invalid.ok, false);
   assert.equal(invalid.code, "validation");
   assert.equal(invalid.field, "name");
+  assert.equal(invalid.message, PROFILE_VALIDATION_SUMMARY);
+  assert.equal(invalid.formError, PROFILE_VALIDATION_SUMMARY);
   assert.equal(invalid.fieldErrors.name, "Name is required.");
   assert.equal(invalid.fieldErrors.category, "Pick solo, band, or DJ.");
-  assert.equal(invalid.formError, undefined);
+
+  const existing = profileAlreadyExistsFailure();
+  assert.equal(existing.ok, false);
+  assert.equal(existing.code, "validation");
+  assert.equal(existing.formError, PROFILE_ALREADY_EXISTS_MESSAGE);
+  assert.equal(existing.message, PROFILE_ALREADY_EXISTS_MESSAGE);
+  assert.deepEqual(existing.fieldErrors, {});
 
   const refused = profileFormFailure("You can only edit your own profile.");
   assert.deepEqual(refused.fieldErrors, {});

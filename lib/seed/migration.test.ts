@@ -104,6 +104,7 @@ test("auth ownership migration keeps anon read-only and keys policies off auth.u
   const raw = readMigration("20260930120600_performer_auth_ownership.sql");
   const sql = statements(raw);
   assert.match(raw, /user_id uuid/);
+  assert.match(raw, /alter column city drop default/i);
   assert.match(sql, /references auth\.users \(id\) on delete set null/i);
   assert.match(sql, /create unique index if not exists performers_user_id_key/i);
   assert.match(sql, /grant select on table public\.booking_requests to authenticated/);
