@@ -2,9 +2,14 @@ import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
 import { planTimezoneBackfill } from "../lib/venue-zone";
 
-// Fills gigs.timezone from lat/lng where it is still null.
-// Run after 20260930180000_gigs_add_timezone.sql and before
-// 20260930181000_gigs_timezone_not_null.sql.
+// Optional dev tool. Not a production step.
+// Production fills gigs.timezone in
+// supabase/migrations/20260930180500_gigs_backfill_timezone.sql, which
+// apply_migration can run with no service-role key.
+//
+// This script fills null zones with the same lat/lng lookup the app uses
+// when a gig is created. Use it only on a local database whose rows are not
+// the Austin sample or the Milestone gig.
 //
 //   npx tsx scripts/backfill-gig-timezones.ts
 //   npx tsx scripts/backfill-gig-timezones.ts --dry-run

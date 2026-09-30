@@ -3,11 +3,15 @@ import { createClient } from "@supabase/supabase-js";
 import { AUSTIN_PERFORMER_IDS, KNOWN_ORPHAN_CLIP } from "../lib/seed/austin-ids";
 import { austinClipPaths } from "../lib/seed/austin-removal";
 
+// Optional, later. The release does not depend on this script.
 // Deletes leftover clip objects under the retired Austin performer ids.
 // Hosted Supabase blocks DELETE on storage.objects, so this uses the Storage
 // API with the service role. It does not delete videos rows or other prefixes.
 //
 // Dry-run is the default. Nothing is removed unless --apply is passed.
+// Dashboard alternative: Storage → clips → delete
+// maya-chen/6b602aa7-5527-45d0-bf40-651cfd01418c.mp4
+// The Austin seed videos are external URLs, not objects in this bucket.
 //
 //   npx tsx scripts/remove-austin-clips.ts
 //   npx tsx scripts/remove-austin-clips.ts --apply

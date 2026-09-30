@@ -1,15 +1,15 @@
--- Set gigs.timezone NOT NULL after every existing row has a zone.
+-- Set gigs.timezone NOT NULL.
 --
--- Production, when public.gigs already has rows:
---   1. Apply 20260930180000_gigs_add_timezone.sql (column stays nullable).
---   2. Run: npx tsx scripts/backfill-gig-timezones.ts
---      (or npm run backfill:timezones). --dry-run prints the plan.
---   3. Apply this file. If any timezone is still null it aborts and leaves
---      the column nullable, so it can be retried after the backfill.
+-- Apply after 20260930180500_gigs_backfill_timezone.sql. That file fills
+-- every existing row and raises if any timezone is still null, so this
+-- file's guard does not fail on the hosted data. If a null is still present
+-- this file aborts and leaves the column nullable.
 --
--- Fresh database (supabase db reset): the table is empty here, so this file
--- only sets NOT NULL. seed.sql then inserts a zone for every Austin gig.
+-- Fresh database: the table is empty, the backfill updates nothing, and this
+-- file only sets NOT NULL. seed.sql and the Mystic swap insert a zone on
+-- every new row.
 -- Re-running this file after the column is already NOT NULL does nothing.
+-- No service-role key. scripts/backfill-gig-timezones.ts is not a prod step.
 --
 -- Does not touch storage.objects. Does not re-run earlier migrations.
 -- Never re-run 20260929160000_revoke_anon_table_writes.sql after
@@ -30,7 +30,7 @@ begin
 
   if exists (select 1 from public.gigs where timezone is null) then
     raise exception
-      'gigs.timezone is null on existing rows. Run scripts/backfill-gig-timezones.ts, then re-apply 20260930181000_gigs_timezone_not_null.sql. The column was left nullable.';
+      'gigs.timezone is still null. Apply 20260930180500_gigs_backfill_timezone.sql, then re-apply this file. The column was left nullable.';
   end if;
 
   alter table public.gigs alter column timezone set not null;

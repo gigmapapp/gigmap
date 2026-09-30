@@ -1,11 +1,9 @@
 -- Add gigs.timezone (IANA name) for the venue of each gig.
 --
--- Nullable on purpose. Postgres cannot turn lat/lng into a zone without a
--- boundary table, and a bounding-box CASE mis-labels the Indiana and Florida
--- borders. Apply this file, run scripts/backfill-gig-timezones.ts (same
--- lookup the app uses), then apply 20260930181000_gigs_timezone_not_null.sql.
--- On an empty database the later file is enough by itself; seed.sql supplies
--- the zone.
+-- Nullable in this file. The next migration,
+-- 20260930180500_gigs_backfill_timezone.sql, fills every existing row in SQL.
+-- Then 20260930181000_gigs_timezone_not_null.sql sets NOT NULL.
+-- On an empty database the backfill updates nothing and the assertion passes.
 --
 -- Safe to re-run. The column, check, function, and trigger are replaced in
 -- place. This file does not touch storage.objects and does not edit earlier
@@ -27,7 +25,7 @@ alter table public.gigs
   );
 
 comment on column public.gigs.timezone is
-  'IANA time zone of the venue, derived from lat/lng. Null only until scripts/backfill-gig-timezones.ts runs. datetime is the UTC instant of that zone''s wall clock.';
+  'IANA time zone of the venue. Null only until 20260930180500_gigs_backfill_timezone.sql runs. datetime is the UTC instant of that zone''s wall clock.';
 
 -- CHECK cannot subquery pg_timezone_names. This trigger asks Postgres whether
 -- the name is one it can use (the same set as pg_timezone_names, minus

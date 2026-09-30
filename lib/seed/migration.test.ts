@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
+import { AUSTIN_GIG_IDS, MILESTONE_GIG_ID } from "./austin-ids";
 
 const migrationsDir = path.join(process.cwd(), "supabase/migrations");
 const migrationFiles = [
@@ -11,6 +12,7 @@ const migrationFiles = [
   "20260929160000_revoke_anon_table_writes.sql",
   "20260929170000_revoke_rls_auto_enable.sql",
   "20260930180000_gigs_add_timezone.sql",
+  "20260930180500_gigs_backfill_timezone.sql",
   "20260930181000_gigs_timezone_not_null.sql",
   "20260930182000_gigs_public_listing.sql",
   "20260930183000_replace_austin_seed_with_mystic.sql",
@@ -118,16 +120,33 @@ test("timezone migration adds a nullable IANA column and does not alter storage"
   assert.doesNotMatch(sql, /alter column timezone set not null/i);
 });
 
+test("timezone backfill is SQL and asserts that no nulls remain", () => {
+  const raw = readMigration("20260930180500_gigs_backfill_timezone.sql");
+  const sql = statements(raw);
+  assert.match(sql, new RegExp(`where id = '${MILESTONE_GIG_ID}'`));
+  assert.match(sql, /set timezone = 'America\/New_York'/);
+  assert.match(sql, /set timezone = 'America\/Chicago'/);
+  for (const id of AUSTIN_GIG_IDS) {
+    assert.match(sql, new RegExp(`'${id}'`));
+  }
+  assert.match(sql, /when lng > -87\.5 then 'America\/New_York'/);
+  assert.match(sql, /else 'America\/Chicago'/);
+  assert.match(sql, /where timezone is null/);
+  assert.match(sql, /raise exception/);
+  assert.match(sql, /still null after the SQL backfill/);
+  assert.doesNotMatch(sql, /storage\.objects|alter table storage|service_role|backfill-gig-timezones/i);
+});
+
 test("timezone not-null migration aborts while any row is missing a zone", () => {
   const raw = readMigration("20260930181000_gigs_timezone_not_null.sql");
   const sql = statements(raw);
   assert.match(sql, /where timezone is null/);
   assert.match(sql, /raise exception/);
-  assert.match(sql, /backfill-gig-timezones/);
+  assert.match(sql, /20260930180500_gigs_backfill_timezone\.sql/);
   assert.match(sql, /alter table public\.gigs alter column timezone set not null/i);
   assert.match(sql, /is_nullable = 'NO'/);
   assert.match(raw, /20260929160000_revoke_anon_table_writes/);
-  assert.doesNotMatch(sql, /storage\.objects|alter table storage/i);
+  assert.doesNotMatch(sql, /storage\.objects|alter table storage|backfill-gig-timezones/i);
 });
 
 test("public listing columns are nullable and require a source url", () => {

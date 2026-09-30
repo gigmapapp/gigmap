@@ -60,9 +60,18 @@ rm -rf .data/db.json .data/uploads
 4. `supabase/migrations/20260929160000_revoke_anon_table_writes.sql` removes anon, authenticated, and public insert/update/delete access. Public read of performers, videos, and gigs stays. **Do not re-run this file after the PR #10 ownership migration** (`20260930120600_performer_auth_ownership.sql`). It would drop those owner write policies.
 5. `supabase/migrations/20260929170000_revoke_rls_auto_enable.sql` revokes `EXECUTE` on `public.rls_auto_enable()` when that function is already there. It does nothing on a fresh database.
 6. `supabase/migrations/20260930180000_gigs_add_timezone.sql` adds nullable `gigs.timezone`.
-7. On a database that already has gigs, run `npm run backfill:timezones`, then apply `supabase/migrations/20260930181000_gigs_timezone_not_null.sql`. A fresh database can apply that file immediately. See `ARCHITECTURE.md`.
-8. `supabase/migrations/20260930182000_gigs_public_listing.sql` adds nullable `source_url` and `source_kind`.
-9. On a database that still has the Austin sample, apply PR #10's ownership migration first if you use it, then `supabase/migrations/20260930183000_replace_austin_seed_with_mystic.sql`. It deletes those rows by id and inserts the Mystic listings. Then `npm run clips:remove-austin` (add `-- --apply` to delete). See `ARCHITECTURE.md`.
+7. `supabase/migrations/20260930180500_gigs_backfill_timezone.sql` fills every existing row in SQL and raises if any zone is still null. No service-role key. The hosted rows are the Austin seed ids (`America/Chicago`) and the Milestone gig (`America/New_York`). Any other null uses `America/New_York` when `lng > -87.5`, otherwise `America/Chicago`.
+8. `supabase/migrations/20260930181000_gigs_timezone_not_null.sql` sets `NOT NULL`. The previous file already asserted that no nulls remain.
+9. `supabase/migrations/20260930182000_gigs_public_listing.sql` adds nullable `source_url` and `source_kind`.
+10. On a database that still has the Austin sample, apply PR #10's ownership migration first if you use it, then `supabase/migrations/20260930183000_replace_austin_seed_with_mystic.sql`. It deletes those rows by id and inserts the Mystic listings. See `ARCHITECTURE.md`.
+
+`npm run backfill:timezones` is an optional dev tool. It is not a production step.
+
+Clip cleanup is optional and later. The release does not depend on it. The Austin seed videos are external sample URLs, not objects in `clips`. The only object path recorded under the 10 Austin prefixes is:
+
+- `maya-chen/6b602aa7-5527-45d0-bf40-651cfd01418c.mp4`
+
+The other prefixes (`broken-strings`, `dj-nova`, `elijah-brooks`, `velvet-static`, `luna-park`, `nightbirds`, `harper-quinn`, `bassline-society`, `copper-notes`) have no object paths in the seed or migrations. Nate can delete that one file in the dashboard (Storage → `clips`) whenever he wants. `npm run clips:remove-austin` (add `-- --apply` to delete) is the same optional cleanup and needs a service-role key.
 
 A fresh database gets the Mystic rows from that migration and from `supabase/seed.sql`. `npm run seed:supabase` upserts the same listings and does not delete Austin rows. Neither path writes booking requests. `supabase db reset` runs the migrations in filename order, then the seed.
 
