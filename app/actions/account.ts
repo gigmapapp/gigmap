@@ -2,27 +2,60 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { parseProfileFields, safeNextPath } from "@/lib/auth/access";
+import { safeNextPath } from "@/lib/auth/access";
+import { profileFieldsFromForm, profileSaveFailure, profileUpdateColumns } from "@/lib/auth/profile-update";
+import { type ProfileActionResult, profileFormFailure } from "@/lib/auth/result";
 import { requireUser } from "@/lib/auth/session";
 import { performers } from "@/lib/repo";
 
-export async function createProfileAction(formData: FormData) {
+function savedProfileFailure(error: unknown): ProfileActionResult {
+  const message = error instanceof Error ? error.message : "Could not save profile.";
+  return profileFormFailure(message);
+}
+
+export async function createProfileAction(formData: FormData): Promise<ProfileActionResult> {
   const user = await requireUser("/account");
   const existing = await performers.getByUserId(user.id);
   if (existing) redirect(`/performers/${existing.id}`);
 
-  const parsed = parseProfileFields({
-    name: String(formData.get("name") ?? ""),
-    category: String(formData.get("category") ?? ""),
-    bio: String(formData.get("bio") ?? ""),
-    city: String(formData.get("city") ?? ""),
-    genres: String(formData.get("genres") ?? ""),
-    userId: user.id,
-  });
-  if (!parsed.ok) throw new Error(parsed.error);
+  const fields = profileFieldsFromForm(formData);
+  const invalid = profileSaveFailure(fields);
+  if (invalid) return invalid;
+  const columns = profileUpdateColumns(fields);
+  if (!columns) return profileFormFailure("Check the profile fields.", "validation");
 
-  const performer = await performers.create(parsed.value);
+  let performer;
+  try {
+    performer = await performers.create({ ...columns, userId: user.id });
+  } catch (error) {
+    return savedProfileFailure(error);
+  }
+
   revalidatePath("/", "layout");
   const next = safeNextPath(String(formData.get("next") ?? ""), `/performers/${performer.id}`);
   redirect(next === "/" ? `/performers/${performer.id}` : next);
+}
+
+export async function updateProfileAction(formData: FormData): Promise<ProfileActionResult> {
+  const user = await requireUser("/account");
+  const existing = await performers.getByUserId(user.id);
+  if (!existing) return profileFormFailure("Create a profile before editing it.");
+
+  const fields = profileFieldsFromForm(formData);
+  const invalid = profileSaveFailure(fields);
+  if (invalid) return invalid;
+  const columns = profileUpdateColumns(fields);
+  if (!columns) return profileFormFailure("Check the profile fields.", "validation");
+
+  let performer;
+  try {
+    performer = await performers.update(existing.id, user.id, columns);
+  } catch (error) {
+    return savedProfileFailure(error);
+  }
+  if (!performer) return profileFormFailure("You can only edit your own profile.");
+
+  revalidatePath("/", "layout");
+  revalidatePath(`/performers/${performer.id}`);
+  redirect("/account");
 }

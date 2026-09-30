@@ -1,4 +1,10 @@
-import { parseProfileFields, validateEmail, validatePassword } from "../../lib/auth/access";
+import { validateEmail, validatePassword } from "../../lib/auth/access";
+import { collectProfileFieldErrors } from "../../lib/auth/profile-update";
+import {
+  messageForAuthCode,
+  type AuthActionFailure,
+  type AuthErrorCode,
+} from "../../lib/auth/result";
 
 export type AuthFieldErrors = Record<string, string>;
 
@@ -8,43 +14,34 @@ export type AuthNotice = {
   message: string;
 };
 
-/** Turn provider copy into the short messages the forms show. */
-export function presentAuthError(error: string): AuthNotice {
-  if (/invalid login credentials|invalid email or password/i.test(error)) {
-    return { kind: "credentials", message: "That email or password is wrong." };
+/** Turn an auth result code into the short messages the forms show. */
+export function presentAuthError(error: { code: AuthErrorCode; message: string }): AuthNotice {
+  switch (error.code) {
+    case "invalid_credentials":
+      return { kind: "credentials", message: messageForAuthCode("invalid_credentials") };
+    case "email_not_confirmed":
+      return {
+        kind: "unconfirmed",
+        title: "Confirm your email",
+        message: messageForAuthCode("email_not_confirmed"),
+      };
+    case "user_already_exists":
+      return { kind: "taken", message: messageForAuthCode("user_already_exists") };
+    case "rate_limited":
+      return { kind: "generic", message: messageForAuthCode("rate_limited") };
+    default:
+      return { kind: "generic", message: error.message };
   }
-  if (/email not confirmed/i.test(error)) {
-    return {
-      kind: "unconfirmed",
-      title: "Confirm your email",
-      message: "Open the confirmation link from your inbox, then sign in.",
-    };
-  }
-  if (/already registered|already exists|user already/i.test(error)) {
-    return {
-      kind: "taken",
-      message: "An account with that email already exists. Sign in instead.",
-    };
-  }
-  return { kind: "generic", message: error };
 }
 
-function fieldMessage(error: string): AuthFieldErrors | null {
-  if (/valid email/i.test(error)) return { email: error };
-  if (/at least \d+ characters/i.test(error)) return { password: error };
-  if (/do not match/i.test(error)) return { confirm: error };
-  if (/name is required/i.test(error)) return { name: error };
-  if (/solo, band, or dj/i.test(error)) return { category: error };
-  return null;
-}
-
-export function splitAuthError(error: string | null): {
+export function splitAuthError(error: AuthActionFailure | null): {
   fields: AuthFieldErrors;
   form: AuthNotice | null;
 } {
   if (!error) return { fields: {}, form: null };
-  const fields = fieldMessage(error);
-  if (fields) return { fields, form: null };
+  if (error.field && (error.code === "validation" || error.code === "weak_password")) {
+    return { fields: { [error.field]: error.message }, form: null };
+  }
   return { fields: {}, form: presentAuthError(error) };
 }
 
@@ -73,16 +70,10 @@ export function resetFieldErrors(formData: FormData): AuthFieldErrors {
 }
 
 export function profileFieldErrors(formData: FormData): AuthFieldErrors {
-  const parsed = parseProfileFields({
+  return collectProfileFieldErrors({
     name: String(formData.get("name") ?? ""),
     category: String(formData.get("category") ?? ""),
-    bio: String(formData.get("bio") ?? ""),
-    city: String(formData.get("city") ?? ""),
-    genres: String(formData.get("genres") ?? ""),
-    userId: "pending",
   });
-  if (parsed.ok) return {};
-  return fieldMessage(parsed.error) ?? { form: parsed.error };
 }
 
 function passwordPairErrors(formData: FormData, includeEmail: boolean): AuthFieldErrors {

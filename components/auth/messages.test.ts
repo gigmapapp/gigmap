@@ -11,19 +11,61 @@ import {
 } from "./messages";
 
 test("auth errors use the short account copy", () => {
-  assert.equal(presentAuthError("Invalid login credentials").message, "That email or password is wrong.");
-  assert.equal(presentAuthError("Email not confirmed").title, "Confirm your email");
-  assert.match(presentAuthError("User already registered").message, /already exists/i);
-  assert.equal(presentAuthError("Something else from the provider").message, "Something else from the provider");
+  assert.equal(
+    presentAuthError({ code: "invalid_credentials", message: "Email not confirmed" }).message,
+    "That email or password is wrong.",
+  );
+  assert.equal(
+    presentAuthError({ code: "email_not_confirmed", message: "Invalid login credentials" }).title,
+    "Confirm your email",
+  );
+  assert.match(
+    presentAuthError({ code: "user_already_exists", message: "User already registered" }).message,
+    /already exists/i,
+  );
+  assert.equal(
+    presentAuthError({ code: "unknown", message: "Something else from the provider" }).message,
+    "Something else from the provider",
+  );
+  assert.equal(presentAuthError({ code: "rate_limited", message: "User not found" }).message, "Too many attempts. Wait a bit and try again.");
 });
 
 test("password and email problems stay on the field", () => {
-  assert.deepEqual(splitAuthError("Enter a valid email address.").fields, {
-    email: "Enter a valid email address.",
-  });
-  assert.equal(splitAuthError("Use at least 8 characters.").form, null);
-  assert.equal(splitAuthError("Passwords do not match.").fields.confirm, "Passwords do not match.");
-  assert.equal(splitAuthError("Invalid login credentials").form?.kind, "credentials");
+  assert.deepEqual(
+    splitAuthError({
+      ok: false,
+      code: "validation",
+      field: "email",
+      message: "Enter a valid email address.",
+    }).fields,
+    { email: "Enter a valid email address." },
+  );
+  assert.equal(
+    splitAuthError({
+      ok: false,
+      code: "validation",
+      field: "password",
+      message: "Use at least 8 characters.",
+    }).form,
+    null,
+  );
+  assert.equal(
+    splitAuthError({
+      ok: false,
+      code: "validation",
+      field: "confirm",
+      message: "Passwords do not match.",
+    }).fields.confirm,
+    "Passwords do not match.",
+  );
+  assert.equal(
+    splitAuthError({
+      ok: false,
+      code: "invalid_credentials",
+      message: "Email not confirmed",
+    }).form?.kind,
+    "credentials",
+  );
   assert.equal(splitAuthError(null).form, null);
 });
 

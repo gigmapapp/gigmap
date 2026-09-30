@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { signOutAction } from "@/app/actions/auth";
-import { createProfileAction } from "@/app/actions/account";
+import { createProfileAction, updateProfileAction } from "@/app/actions/account";
 import AuthFrame, { authButtonClass, authSecondaryButtonClass } from "@/components/auth/AuthFrame";
 import ProfileForm from "@/components/auth/ProfileForm";
 import CategoryBadge from "@/components/CategoryBadge";
@@ -17,12 +17,13 @@ export const metadata = {
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; edit?: string }>;
 }) {
   const query = await searchParams;
   const user = await requireUser("/account");
   const next = safeNextPath(query.next, "/account");
   const performer = await performers.getByUserId(user.id);
+  const editing = query.edit === "1";
 
   if (!performer) {
     return (
@@ -40,7 +41,21 @@ export default async function AccountPage({
 
   return (
     <AuthFrame eyebrow="Account" title={performer.name} description={user.email ?? "Signed in"}>
-      <dl className="space-y-4">
+      {editing ? (
+        <ProfileForm
+          action={updateProfileAction}
+          next="/account"
+          submitLabel="Save changes"
+          defaults={{
+            name: performer.name,
+            category: performer.category,
+            bio: performer.bio,
+            city: performer.city,
+            genres: performer.genres.join(", "),
+          }}
+        />
+      ) : (
+        <dl className="space-y-4">
         <div>
           <dt className="text-sm text-zinc-500">Category</dt>
           <dd className="mt-1.5">
@@ -61,8 +76,18 @@ export default async function AccountPage({
             {performer.bio || "No bio yet."}
           </dd>
         </div>
-      </dl>
+        </dl>
+      )}
       <div className="mt-6 flex flex-col gap-3">
+        {editing ? (
+          <Link href="/account" className={authSecondaryButtonClass}>
+            Cancel
+          </Link>
+        ) : (
+          <Link href="/account?edit=1" className={authSecondaryButtonClass}>
+            Edit profile
+          </Link>
+        )}
         <Link href={`/performers/${performer.id}`} className={authButtonClass}>
           View profile
         </Link>

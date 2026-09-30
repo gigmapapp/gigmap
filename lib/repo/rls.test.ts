@@ -212,6 +212,34 @@ test("RLS lets an owner edit their rows and blocks everyone else", { timeout: 60
     const demo = await db.query<{ name: string }>("select name from public.performers where id = 'demo-act'");
     assert.equal(demo.rows[0]?.name, "Demo Act");
 
+    const edited = await asRole(db, "authenticated", OWNER_A, (tx) =>
+      tx.query(
+        "update public.performers set name = 'Owner A edited', category = 'solo', bio = 'edited bio', genres = '{folk,jazz}' where id = 'owner-a'",
+      ),
+    );
+    assert.equal(edited.rowCount, 1);
+    const otherProfile = await asRole(db, "authenticated", OWNER_B, (tx) =>
+      tx.query(
+        "update public.performers set name = 'hacked', category = 'dj', bio = 'hacked', genres = '{nope}', id = 'stolen-slug', user_id = $1 where id = 'owner-a'",
+        [OWNER_B],
+      ),
+    );
+    assert.equal(otherProfile.rowCount, 0);
+    const owned = await db.query<{
+      id: string;
+      name: string;
+      category: string;
+      bio: string;
+      genres: string[];
+      user_id: string;
+    }>("select id, name, category, bio, genres, user_id from public.performers where id = 'owner-a'");
+    assert.equal(owned.rows[0]?.id, "owner-a");
+    assert.equal(owned.rows[0]?.name, "Owner A edited");
+    assert.equal(owned.rows[0]?.category, "solo");
+    assert.equal(owned.rows[0]?.bio, "edited bio");
+    assert.deepEqual(owned.rows[0]?.genres, ["folk", "jazz"]);
+    assert.equal(owned.rows[0]?.user_id, OWNER_A);
+
     await expectDenied(
       db,
       "authenticated",

@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { bookingTargetError } from "@/lib/auth/access";
+import { type ProfileUpdateColumns } from "@/lib/auth/profile-update";
 import { CLIPS_BUCKET, clipObjectPath } from "@/lib/clips";
 import { requireBookingPerformerId } from "@/lib/repo/booking-scope";
 import type {
@@ -231,6 +232,29 @@ export const supabasePerformers: PerformerRepository = {
       if (error?.code !== "23505") fail(error ?? { message: "insert failed" }, "Could not create performer.");
     }
     throw new Error("Could not create performer.");
+  },
+  async update(performerId, actorUserId, input: ProfileUpdateColumns) {
+    const { client, userId } = await userDb();
+    if (actorUserId !== userId) return null;
+    const payload = {
+      name: input.name,
+      category: input.category,
+      bio: input.bio,
+      city: input.city,
+      genres: input.genres,
+    };
+    const { data, error } = await client
+      .from("performers")
+      .update(payload)
+      .eq("id", performerId)
+      .eq("user_id", userId)
+      .select(PERFORMER_COLUMNS)
+      .maybeSingle();
+    if (error) fail(error, "Could not update profile.");
+    if (!data) return null;
+    const row = data as PerformerRow;
+    const videos = await videosFor([row.id]);
+    return toPerformer(row, videos.get(row.id) ?? []);
   },
   async addVideo(performerId, input: CreateVideoInput) {
     const { client } = await userDb();

@@ -4,24 +4,37 @@ import { unstable_rethrow } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AuthAnnouncer, AuthField, AuthSubmit } from "@/components/auth/AuthControls";
 import { profileFieldErrors } from "@/components/auth/messages";
+import type { ProfileActionResult, ProfileField, ProfileFieldErrors } from "@/lib/auth/result";
 
 const FIELDS = ["name", "category", "city", "genres", "bio"] as const;
 
-/** Onboarding fields only. The server action attaches the signed-in user id. */
+export type ProfileFormDefaults = {
+  name: string;
+  category: string;
+  bio: string;
+  city: string;
+  genres: string;
+};
+
+/** Onboarding and edit fields. The server action attaches the signed-in user id. */
 export default function ProfileForm({
   action,
   next,
+  defaults,
+  submitLabel = "Save profile",
 }: {
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<ProfileActionResult>;
   next: string;
+  defaults?: ProfileFormDefaults;
+  submitLabel?: string;
 }) {
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<ProfileFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [announceKey, setAnnounceKey] = useState(0);
 
-  function clearField(name: string) {
+  function clearField(name: ProfileField) {
     setFieldErrors((current) => {
       if (!current[name]) return current;
       const next = { ...current };
@@ -56,7 +69,18 @@ export default function ProfileForm({
     setPending(true);
     void (async () => {
       try {
-        await action(formData);
+        const result = await action(formData);
+        if (!result.ok) {
+          setFieldErrors(result.fieldErrors);
+          setFormError(result.formError ?? null);
+          const summary = [result.formError, ...FIELDS.map((name) => result.fieldErrors[name])]
+            .filter((message): message is string => Boolean(message))
+            .join(" ");
+          setAnnouncement(summary);
+          setAnnounceKey((key) => key + 1);
+          const first = FIELDS.find((name) => result.fieldErrors[name]);
+          if (first) form.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+        }
       } catch (err) {
         unstable_rethrow(err);
         const message = err instanceof Error ? err.message : "Could not save profile.";
@@ -70,7 +94,12 @@ export default function ProfileForm({
   }
 
   return (
-    <form action={action} onSubmit={onSubmit} className="space-y-4" noValidate>
+    <form
+      action={action as unknown as (formData: FormData) => Promise<void>}
+      onSubmit={onSubmit}
+      className="space-y-4"
+      noValidate
+    >
       <AuthAnnouncer message={announcement} announceKey={announceKey} />
       <input type="hidden" name="next" value={next} />
       {formError ? (
@@ -84,6 +113,7 @@ export default function ProfileForm({
         required
         autoComplete="nickname"
         placeholder="Stage or band name"
+        defaultValue={defaults?.name}
         error={fieldErrors.name}
         onChange={() => clearField("name")}
       />
@@ -91,7 +121,7 @@ export default function ProfileForm({
         <AuthField
           label="Category"
           name="category"
-          defaultValue="solo"
+          defaultValue={defaults?.category ?? "solo"}
           options={[
             { value: "solo", label: "Solo" },
             { value: "band", label: "Band" },
@@ -104,7 +134,7 @@ export default function ProfileForm({
           label="City"
           name="city"
           autoComplete="address-level2"
-          defaultValue="Austin, TX"
+          defaultValue={defaults?.city ?? "Austin, TX"}
           error={fieldErrors.city}
           onChange={() => clearField("city")}
         />
@@ -114,6 +144,7 @@ export default function ProfileForm({
         name="genres"
         placeholder="house, disco"
         hint="Separate with commas."
+        defaultValue={defaults?.genres}
         error={fieldErrors.genres}
         onChange={() => clearField("genres")}
       />
@@ -123,10 +154,11 @@ export default function ProfileForm({
         multiline
         rows={4}
         placeholder="What you play, and the rooms you play it in."
+        defaultValue={defaults?.bio}
         error={fieldErrors.bio}
         onChange={() => clearField("bio")}
       />
-      <AuthSubmit pending={pending} idle="Save profile" busy="Saving…" />
+      <AuthSubmit pending={pending} idle={submitLabel} busy="Saving…" />
     </form>
   );
 }

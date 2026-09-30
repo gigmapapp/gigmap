@@ -1,15 +1,16 @@
 "use client";
 
-import { startTransition, useActionState, type FormEvent } from "react";
+import { startTransition, useActionState, useState, type FormEvent } from "react";
 import {
   AuthAnnouncer,
   AuthField,
   AuthFormError,
   AuthSubmit,
+  ResendConfirmation,
   useAuthFeedback,
 } from "@/components/auth/AuthControls";
 import { signInFieldErrors } from "@/components/auth/messages";
-import type { AuthFormState } from "@/app/actions/auth";
+import { authFailure, type AuthActionResult } from "@/lib/auth/result";
 
 const FIELDS = ["email", "password"] as const;
 
@@ -18,19 +19,21 @@ export default function SignInForm({
   next,
   initialError,
 }: {
-  action: (state: AuthFormState, formData: FormData) => Promise<AuthFormState>;
+  action: (state: AuthActionResult, formData: FormData) => Promise<AuthActionResult>;
   next: string;
   initialError?: string | null;
 }) {
-  const [state, formAction, pending] = useActionState(action, {
-    error: initialError ?? null,
-    message: null,
-  });
-  const feedback = useAuthFeedback(state.error);
+  const [state, formAction, pending] = useActionState(
+    action,
+    initialError ? authFailure("unknown", initialError) : { ok: true },
+  );
+  const feedback = useAuthFeedback(state);
+  const [email, setEmail] = useState("");
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
+    setEmail(String(formData.get("email") ?? "").trim());
     const errors = signInFieldErrors(formData);
     if (Object.keys(errors).length > 0) {
       feedback.apply(errors, FIELDS);
@@ -47,6 +50,7 @@ export default function SignInForm({
       <AuthAnnouncer message={feedback.announcement} announceKey={feedback.announceKey} />
       <input type="hidden" name="next" value={next} />
       <AuthFormError notice={feedback.formNotice} errorRef={feedback.formErrorRef} />
+      {feedback.formNotice?.kind === "unconfirmed" && email ? <ResendConfirmation email={email} /> : null}
       <AuthField
         label="Email"
         name="email"

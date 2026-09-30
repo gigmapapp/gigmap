@@ -46,4 +46,16 @@ test("owner writes use the user client and bookings stay on the service role", (
   const bookingCreate = repo.slice(repo.indexOf("async create(input: CreateBookingInput)"));
   assert.match(bookingCreate, /bookingTargetError/);
   assert.match(bookingCreate, /getServiceClient\(\)/);
+
+  const profileUpdate = repo.slice(repo.indexOf("async update(performerId"), repo.indexOf("async addVideo"));
+  assert.match(profileUpdate, /userDb\(/);
+  assert.match(profileUpdate, /\.eq\("user_id", userId\)/);
+  assert.doesNotMatch(profileUpdate, /user_id:/);
+  assert.doesNotMatch(profileUpdate, /\bid:/);
+
+  const account = source("app/actions/account.ts");
+  assert.match(account, /export async function updateProfileAction/);
+  assert.match(account, /profileSaveFailure/);
+  assert.match(account, /performers\.update\(/);
+  assert.doesNotMatch(account, /throw new Error/);
 });

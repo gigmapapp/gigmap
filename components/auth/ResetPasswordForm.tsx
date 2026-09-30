@@ -9,18 +9,18 @@ import {
   useAuthFeedback,
 } from "@/components/auth/AuthControls";
 import { resetFieldErrors } from "@/components/auth/messages";
-import type { AuthFormState } from "@/app/actions/auth";
+import type { AuthActionResult } from "@/lib/auth/result";
 
 const FIELDS = ["password", "confirm"] as const;
-const initial: AuthFormState = { error: null, message: null };
+const initial: AuthActionResult = { ok: true };
 
 export default function ResetPasswordForm({
   action,
 }: {
-  action: (state: AuthFormState, formData: FormData) => Promise<AuthFormState>;
+  action: (state: AuthActionResult, formData: FormData) => Promise<AuthActionResult>;
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
-  const feedback = useAuthFeedback(state.error);
+  const feedback = useAuthFeedback(state);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

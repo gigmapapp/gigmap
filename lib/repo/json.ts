@@ -2,6 +2,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { seedDatabase } from "@/lib/seed/austin";
 import { bookingTargetError } from "@/lib/auth/access";
+import { updateOwnedPerformer, type ProfileUpdateColumns } from "@/lib/auth/profile-update";
 import type {
   BookingRequest,
   CreateBookingInput,
@@ -162,6 +163,34 @@ export const jsonPerformers: PerformerRepository = {
       };
       db.performers.push(row);
       return toPerformer(row);
+    });
+  },
+  async update(performerId, actorUserId, input: ProfileUpdateColumns) {
+    return updateDb((db) => {
+      const outcome = updateOwnedPerformer(
+        db.performers.map((row) => ({
+          id: row.id,
+          userId: row.userId,
+          name: row.name,
+          category: row.category,
+          bio: row.bio,
+          city: row.city,
+          genres: row.genres ?? [],
+        })),
+        actorUserId,
+        performerId,
+        input,
+      );
+      if (!outcome.updated) return null;
+      const next = outcome.rows.find((row) => row.id === performerId);
+      const stored = db.performers.find((row) => row.id === performerId);
+      if (!next || !stored) return null;
+      stored.name = next.name;
+      stored.category = next.category;
+      stored.bio = next.bio;
+      stored.city = next.city;
+      stored.genres = next.genres;
+      return toPerformer(stored);
     });
   },
   async addVideo(performerId, input: CreateVideoInput) {

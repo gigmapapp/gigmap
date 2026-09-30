@@ -6,22 +6,23 @@ import {
   AuthField,
   AuthFormError,
   AuthSubmit,
+  ResendConfirmation,
   useAuthFeedback,
 } from "@/components/auth/AuthControls";
 import { AuthInbox } from "@/components/auth/AuthFrame";
 import { signUpFieldErrors } from "@/components/auth/messages";
-import type { AuthFormState } from "@/app/actions/auth";
+import type { AuthActionResult } from "@/lib/auth/result";
 
 const FIELDS = ["email", "password", "confirm"] as const;
-const initial: AuthFormState = { error: null, message: null };
+const initial: AuthActionResult = { ok: true };
 
 export default function SignUpForm({
   action,
 }: {
-  action: (state: AuthFormState, formData: FormData) => Promise<AuthFormState>;
+  action: (state: AuthActionResult, formData: FormData) => Promise<AuthActionResult>;
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
-  const feedback = useAuthFeedback(state.error);
+  const feedback = useAuthFeedback(state);
   const [sentTo, setSentTo] = useState<string | null>(null);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -39,8 +40,13 @@ export default function SignUpForm({
     });
   }
 
-  if (state.message) {
-    return <AuthInbox title="Check your email" email={sentTo} body={state.message} />;
+  if (state.ok && state.message) {
+    return (
+      <div>
+        <AuthInbox title="Check your email" email={sentTo} body={state.message} />
+        {sentTo ? <ResendConfirmation email={sentTo} /> : null}
+      </div>
+    );
   }
 
   return (

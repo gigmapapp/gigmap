@@ -10,18 +10,18 @@ import {
 } from "@/components/auth/AuthControls";
 import { AuthInbox } from "@/components/auth/AuthFrame";
 import { forgotFieldErrors } from "@/components/auth/messages";
-import type { AuthFormState } from "@/app/actions/auth";
+import type { AuthActionResult } from "@/lib/auth/result";
 
 const FIELDS = ["email"] as const;
-const initial: AuthFormState = { error: null, message: null };
+const initial: AuthActionResult = { ok: true };
 
 export default function ForgotPasswordForm({
   action,
 }: {
-  action: (state: AuthFormState, formData: FormData) => Promise<AuthFormState>;
+  action: (state: AuthActionResult, formData: FormData) => Promise<AuthActionResult>;
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
-  const feedback = useAuthFeedback(state.error);
+  const feedback = useAuthFeedback(state);
   const [sentTo, setSentTo] = useState<string | null>(null);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -39,7 +39,7 @@ export default function ForgotPasswordForm({
     });
   }
 
-  if (state.message) {
+  if (state.ok && state.message) {
     return <AuthInbox title="Check your email" email={sentTo} body={state.message} />;
   }
 

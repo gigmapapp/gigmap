@@ -12,50 +12,67 @@ import {
   validatePassword,
 } from "@/lib/auth/access";
 import { authCallbackUrl } from "@/lib/auth/site";
+import {
+  CONFIRMATION_RESENT_MESSAGE,
+  PASSWORD_RESET_MESSAGE,
+  type AuthActionResult,
+  authErrorFromProvider,
+  authFailure,
+  neutralEmailOutcome,
+} from "@/lib/auth/result";
 import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { isAuthConfigured } from "@/lib/supabase/public-env";
-
-export type AuthFormState = {
-  error: string | null;
-  message: string | null;
-};
 
 async function authClient() {
   if (!isAuthConfigured()) return null;
   return createAuthServerClient();
 }
 
-export async function signInAction(_state: AuthFormState, formData: FormData): Promise<AuthFormState> {
+function validationFailure(field: string, message: string): AuthActionResult {
+  return authFailure("validation", message, field);
+}
+
+function unavailable(): AuthActionResult {
+  return authFailure("unknown", authUnavailableMessage());
+}
+
+export async function signInAction(
+  _state: AuthActionResult,
+  formData: FormData,
+): Promise<AuthActionResult> {
   const next = safeNextPath(String(formData.get("next") ?? "/"));
   const emailError = validateEmail(String(formData.get("email") ?? ""));
-  if (emailError) return { error: emailError, message: null };
+  if (emailError) return validationFailure("email", emailError);
   const password = String(formData.get("password") ?? "");
   const passwordError = validatePassword(password);
-  if (passwordError) return { error: passwordError, message: null };
+  if (passwordError) return validationFailure("password", passwordError);
 
   const supabase = await authClient();
-  if (!supabase) return { error: authUnavailableMessage(), message: null };
+  if (!supabase) return unavailable();
 
   const { error } = await supabase.auth.signInWithPassword({
     email: normalizeEmail(String(formData.get("email") ?? "")),
     password,
   });
-  if (error) return { error: error.message, message: null };
+  if (error) return authErrorFromProvider(error);
   redirect(next);
 }
 
-export async function signUpAction(_state: AuthFormState, formData: FormData): Promise<AuthFormState> {
+export async function signUpAction(
+  _state: AuthActionResult,
+  formData: FormData,
+): Promise<AuthActionResult> {
   const emailError = validateEmail(String(formData.get("email") ?? ""));
-  if (emailError) return { error: emailError, message: null };
+  if (emailError) return validationFailure("email", emailError);
   const password = String(formData.get("password") ?? "");
   const passwordError = validatePassword(password);
-  if (passwordError) return { error: passwordError, message: null };
+  if (passwordError) return validationFailure("password", passwordError);
   if (password !== String(formData.get("confirm") ?? "")) {
-    return { error: "Passwords do not match.", message: null };
+    return validationFailure("confirm", "Passwords do not match.");
   }
 
   const supabase = await authClient();
-  if (!supabase) return { error: authUnavailableMessage(), message: null };
+  if (!supabase) return unavailable();
 
   const email = normalizeEmail(String(formData.get("email") ?? ""));
   const { data, error } = await supabase.auth.signUp({
@@ -65,46 +82,67 @@ export async function signUpAction(_state: AuthFormState, formData: FormData): P
       emailRedirectTo: await authCallbackUrl("/account"),
     },
   });
-  if (error) return { error: error.message, message: null };
+  if (error) return authErrorFromProvider(error);
   if (data.session) redirect("/account");
   return {
-    error: null,
+    ok: true,
     message: "Check your email for a confirmation link, then come back to finish your profile.",
   };
 }
 
-export async function forgotPasswordAction(_state: AuthFormState, formData: FormData): Promise<AuthFormState> {
+export async function forgotPasswordAction(
+  _state: AuthActionResult,
+  formData: FormData,
+): Promise<AuthActionResult> {
   const emailError = validateEmail(String(formData.get("email") ?? ""));
-  if (emailError) return { error: emailError, message: null };
+  if (emailError) return validationFailure("email", emailError);
   const supabase = await authClient();
-  if (!supabase) return { error: authUnavailableMessage(), message: null };
+  if (!supabase) return unavailable();
 
   const { error } = await supabase.auth.resetPasswordForEmail(
     normalizeEmail(String(formData.get("email") ?? "")),
     { redirectTo: await authCallbackUrl("/reset-password") },
   );
-  if (error) return { error: error.message, message: null };
-  return {
-    error: null,
-    message: "If that email has an account, a reset link is on its way.",
-  };
+  return neutralEmailOutcome(error, PASSWORD_RESET_MESSAGE);
 }
 
-export async function updatePasswordAction(_state: AuthFormState, formData: FormData): Promise<AuthFormState> {
+export async function resendConfirmationAction(
+  _state: AuthActionResult,
+  formData: FormData,
+): Promise<AuthActionResult> {
+  const emailError = validateEmail(String(formData.get("email") ?? ""));
+  if (emailError) return validationFailure("email", emailError);
+  const supabase = await authClient();
+  if (!supabase) return unavailable();
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: normalizeEmail(String(formData.get("email") ?? "")),
+    options: {
+      emailRedirectTo: await authCallbackUrl("/account"),
+    },
+  });
+  return neutralEmailOutcome(error, CONFIRMATION_RESENT_MESSAGE);
+}
+
+export async function updatePasswordAction(
+  _state: AuthActionResult,
+  formData: FormData,
+): Promise<AuthActionResult> {
   const password = String(formData.get("password") ?? "");
   const passwordError = validatePassword(password);
-  if (passwordError) return { error: passwordError, message: null };
+  if (passwordError) return validationFailure("password", passwordError);
   if (password !== String(formData.get("confirm") ?? "")) {
-    return { error: "Passwords do not match.", message: null };
+    return validationFailure("confirm", "Passwords do not match.");
   }
   const supabase = await authClient();
-  if (!supabase) return { error: authUnavailableMessage(), message: null };
+  if (!supabase) return unavailable();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims.sub) {
-    return { error: "Open the reset link from your email, then choose a new password.", message: null };
+    return authFailure("unknown", "Open the reset link from your email, then choose a new password.");
   }
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: error.message, message: null };
+  if (error) return authErrorFromProvider(error);
   redirect("/account");
 }
 

@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
-import { authButtonClass, authFieldClass } from "@/components/auth/AuthFrame";
+import { startTransition, useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
+import { resendConfirmationAction } from "@/app/actions/auth";
+import { authButtonClass, authFieldClass, authSecondaryButtonClass } from "@/components/auth/AuthFrame";
 import { splitAuthError, type AuthFieldErrors, type AuthNotice } from "@/components/auth/messages";
+import type { AuthActionResult } from "@/lib/auth/result";
 
-export function useAuthFeedback(serverError: string | null) {
+export function useAuthFeedback(state: AuthActionResult) {
+  const serverError = state.ok ? null : state;
+  const errorKey = serverError ? `${serverError.code}:${serverError.field ?? ""}:${serverError.message}` : "";
   const [clientErrors, setClientErrors] = useState<AuthFieldErrors>({});
   const [hidden, setHidden] = useState<string[]>([]);
-  const [seenError, setSeenError] = useState(serverError);
+  const [seenError, setSeenError] = useState(errorKey);
   const [announcement, setAnnouncement] = useState("");
   const [announceKey, setAnnounceKey] = useState(0);
   const refs = useRef(new Map<string, HTMLElement>());
@@ -16,8 +20,8 @@ export function useAuthFeedback(serverError: string | null) {
 
   let hiddenFields = hidden;
   let localClientErrors = clientErrors;
-  if (serverError !== seenError) {
-    setSeenError(serverError);
+  if (errorKey !== seenError) {
+    setSeenError(errorKey);
     setHidden([]);
     setClientErrors({});
     hiddenFields = [];
@@ -47,7 +51,7 @@ export function useAuthFeedback(serverError: string | null) {
       return;
     }
     formErrorRef.current?.focus();
-  }, [serverError]);
+  }, [errorKey, serverError]);
 
   function apply(errors: AuthFieldErrors, order: readonly string[]) {
     const summary = order
@@ -101,6 +105,45 @@ export function AuthAnnouncer({
     <p key={announceKey} role="alert" className="sr-only">
       {message}
     </p>
+  );
+}
+
+export function ResendConfirmation({ email }: { email: string }) {
+  const [state, setState] = useState<AuthActionResult>({ ok: true });
+  const [pending, setPending] = useState(false);
+
+  function onClick() {
+    const data = new FormData();
+    data.set("email", email);
+    setPending(true);
+    startTransition(() => {
+      void resendConfirmationAction({ ok: true }, data)
+        .then(setState)
+        .finally(() => setPending(false));
+    });
+  }
+
+  return (
+    <div className="mt-4">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={pending || !email}
+        className={`${authSecondaryButtonClass} disabled:cursor-wait disabled:opacity-70`}
+      >
+        {pending ? "Sending…" : "Resend confirmation email"}
+      </button>
+      {state.ok && state.message ? (
+        <p role="status" className="mt-3 text-sm text-zinc-300">
+          {state.message}
+        </p>
+      ) : null}
+      {!state.ok ? (
+        <p role="alert" className="auth-form-error mt-3 rounded-lg border px-3 py-3 text-sm">
+          {state.message}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
