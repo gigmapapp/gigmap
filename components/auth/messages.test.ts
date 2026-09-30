@@ -61,10 +61,27 @@ test("password and email problems stay on the field", () => {
   assert.equal(
     splitAuthError({
       ok: false,
+      code: "weak_password",
+      message: "Password should be at least 6 characters",
+    }).fields.password,
+    "Choose a stronger password.",
+  );
+  assert.equal(
+    splitAuthError({
+      ok: false,
       code: "invalid_credentials",
       message: "Email not confirmed",
     }).form?.kind,
     "credentials",
+  );
+  assert.equal(
+    splitAuthError({ ok: false, code: "invalid_credentials", message: "Invalid login credentials" }).fields
+      .password,
+    undefined,
+  );
+  assert.match(
+    splitAuthError({ ok: false, code: "rate_limited", message: "over_email_send_rate_limit" }).form?.message ?? "",
+    /wait a bit/i,
   );
   assert.equal(splitAuthError(null).form, null);
 });

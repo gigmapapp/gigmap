@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AuthAnnouncer, AuthField, AuthSubmit } from "@/components/auth/AuthControls";
+import { authSecondaryButtonClass } from "@/components/auth/AuthFrame";
 import { profileFieldErrors } from "@/components/auth/messages";
 import type { ProfileActionResult, ProfileField, ProfileFieldErrors } from "@/lib/auth/result";
 
@@ -22,17 +24,27 @@ export default function ProfileForm({
   next,
   defaults,
   submitLabel = "Save profile",
+  cancelHref,
 }: {
   action: (formData: FormData) => Promise<ProfileActionResult>;
   next: string;
   defaults?: ProfileFormDefaults;
   submitLabel?: string;
+  cancelHref?: string;
 }) {
   const [fieldErrors, setFieldErrors] = useState<ProfileFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [announceKey, setAnnounceKey] = useState(0);
+  const formErrorRef = useRef<HTMLParagraphElement | null>(null);
+  const focusFormError = useRef(false);
+
+  useEffect(() => {
+    if (!focusFormError.current) return;
+    focusFormError.current = false;
+    formErrorRef.current?.focus();
+  }, [announceKey, formError]);
 
   function clearField(name: ProfileField) {
     setFieldErrors((current) => {
@@ -43,24 +55,29 @@ export default function ProfileForm({
     });
   }
 
+  function showErrors(fields: ProfileFieldErrors, nextFormError: string | null, form: HTMLFormElement) {
+    setFieldErrors(fields);
+    setFormError(nextFormError);
+    const summary = [nextFormError, ...FIELDS.map((name) => fields[name])]
+      .filter((message): message is string => Boolean(message))
+      .join(" ");
+    setAnnouncement(summary);
+    setAnnounceKey((key) => key + 1);
+    const first = FIELDS.find((name) => fields[name]);
+    if (first) {
+      form.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+      return;
+    }
+    focusFormError.current = Boolean(nextFormError);
+  }
+
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
     const errors = profileFieldErrors(formData);
-    if (errors.form || Object.keys(errors).length > 0) {
-      const { form: nextForm, ...fields } = errors;
-      setFormError(nextForm ?? null);
-      setFieldErrors(fields);
-      const summary = [nextForm, ...FIELDS.map((name) => fields[name])]
-        .filter((message): message is string => Boolean(message))
-        .join(" ");
-      setAnnouncement(summary);
-      setAnnounceKey((key) => key + 1);
-      const first = FIELDS.find((name) => fields[name]);
-      if (first) {
-        form.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
-      }
+    if (Object.keys(errors).length > 0) {
+      showErrors(errors, null, form);
       return;
     }
 
@@ -71,22 +88,14 @@ export default function ProfileForm({
       try {
         const result = await action(formData);
         if (!result.ok) {
-          setFieldErrors(result.fieldErrors);
-          setFormError(result.formError ?? null);
-          const summary = [result.formError, ...FIELDS.map((name) => result.fieldErrors[name])]
-            .filter((message): message is string => Boolean(message))
-            .join(" ");
-          setAnnouncement(summary);
-          setAnnounceKey((key) => key + 1);
-          const first = FIELDS.find((name) => result.fieldErrors[name]);
-          if (first) form.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+          const formMessage =
+            result.formError ?? (Object.keys(result.fieldErrors).length > 0 ? null : result.message);
+          showErrors(result.fieldErrors, formMessage, form);
         }
       } catch (err) {
         unstable_rethrow(err);
         const message = err instanceof Error ? err.message : "Could not save profile.";
-        setFormError(message);
-        setAnnouncement(message);
-        setAnnounceKey((key) => key + 1);
+        showErrors({}, message, form);
       } finally {
         setPending(false);
       }
@@ -103,7 +112,12 @@ export default function ProfileForm({
       <AuthAnnouncer message={announcement} announceKey={announceKey} />
       <input type="hidden" name="next" value={next} />
       {formError ? (
-        <p tabIndex={-1} role="alert" className="auth-form-error rounded-lg border px-3 py-3 text-sm outline-none">
+        <p
+          ref={formErrorRef}
+          tabIndex={-1}
+          role="alert"
+          className="auth-form-error rounded-lg border px-3 py-3 text-sm outline-none"
+        >
           {formError}
         </p>
       ) : null}
@@ -159,6 +173,11 @@ export default function ProfileForm({
         onChange={() => clearField("bio")}
       />
       <AuthSubmit pending={pending} idle={submitLabel} busy="Saving…" />
+      {cancelHref ? (
+        <Link href={cancelHref} className={authSecondaryButtonClass}>
+          Cancel
+        </Link>
+      ) : null}
     </form>
   );
 }

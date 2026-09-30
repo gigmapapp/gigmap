@@ -4,7 +4,7 @@ import { startTransition, useEffect, useId, useRef, useState, type ReactNode, ty
 import { resendConfirmationAction } from "@/app/actions/auth";
 import { authButtonClass, authFieldClass, authSecondaryButtonClass } from "@/components/auth/AuthFrame";
 import { splitAuthError, type AuthFieldErrors, type AuthNotice } from "@/components/auth/messages";
-import type { AuthActionResult } from "@/lib/auth/result";
+import { messageForAuthCode, type AuthActionResult } from "@/lib/auth/result";
 
 export function useAuthFeedback(state: AuthActionResult) {
   const serverError = state.ok ? null : state;
@@ -108,39 +108,95 @@ export function AuthAnnouncer({
   );
 }
 
-export function ResendConfirmation({ email }: { email: string }) {
-  const [state, setState] = useState<AuthActionResult>({ ok: true });
+const RESEND_COOLDOWN_SECONDS = 30;
+const RESEND_SENT_MESSAGE = "If an account exists, we sent a new link.";
+
+type ResendAction = (state: AuthActionResult, formData: FormData) => Promise<AuthActionResult>;
+
+type ResendPhase =
+  | { kind: "idle" }
+  | { kind: "sent" }
+  | { kind: "limited" }
+  | { kind: "error"; message: string };
+
+export function ResendConfirmation({
+  email,
+  action = resendConfirmationAction,
+}: {
+  email: string;
+  action?: ResendAction;
+}) {
+  const statusId = useId();
+  const [phase, setPhase] = useState<ResendPhase>({ kind: "idle" });
   const [pending, setPending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setTimeout(() => setCooldown((current) => current - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [cooldown]);
 
   function onClick() {
+    if (pending || cooldown > 0 || !email) return;
     const data = new FormData();
     data.set("email", email);
+    setPhase({ kind: "idle" });
     setPending(true);
     startTransition(() => {
-      void resendConfirmationAction({ ok: true }, data)
-        .then(setState)
+      void action({ ok: true }, data)
+        .then((result) => {
+          if (result.ok) {
+            setPhase({ kind: "sent" });
+            return;
+          }
+          if (result.code === "rate_limited") {
+            setPhase({ kind: "limited" });
+            setCooldown(RESEND_COOLDOWN_SECONDS);
+            return;
+          }
+          setPhase({ kind: "error", message: result.message });
+        })
         .finally(() => setPending(false));
     });
   }
+
+  const status =
+    phase.kind === "sent"
+      ? RESEND_SENT_MESSAGE
+      : phase.kind === "limited"
+        ? messageForAuthCode("rate_limited")
+        : phase.kind === "error"
+          ? phase.message
+          : "";
+  const cooling = cooldown > 0;
+  const label = pending ? "Sending…" : cooling ? `Try again in ${cooldown}s` : "Resend confirmation email";
 
   return (
     <div className="mt-4">
       <button
         type="button"
         onClick={onClick}
-        disabled={pending || !email}
-        className={`${authSecondaryButtonClass} disabled:cursor-wait disabled:opacity-70`}
+        disabled={pending || cooling || !email}
+        aria-busy={pending}
+        aria-describedby={status ? statusId : undefined}
+        className={`${authSecondaryButtonClass} gap-2 disabled:cursor-wait disabled:opacity-70`}
       >
-        {pending ? "Sending…" : "Resend confirmation email"}
+        {pending ? <LightSpinner /> : null}
+        <span>{label}</span>
       </button>
-      {state.ok && state.message ? (
-        <p role="status" className="mt-3 text-sm text-zinc-300">
-          {state.message}
-        </p>
-      ) : null}
-      {!state.ok ? (
-        <p role="alert" className="auth-form-error mt-3 rounded-lg border px-3 py-3 text-sm">
-          {state.message}
+      {status ? (
+        <p
+          id={statusId}
+          role={phase.kind === "sent" ? "status" : "alert"}
+          aria-live={phase.kind === "sent" ? "polite" : "assertive"}
+          className={
+            phase.kind === "sent"
+              ? "mt-3 text-sm text-zinc-300"
+              : "auth-form-error mt-3 rounded-lg border px-3 py-3 text-sm"
+          }
+        >
+          {status}
         </p>
       ) : null}
     </div>
@@ -306,6 +362,15 @@ function Spinner() {
   return (
     <span
       className="size-4 animate-spin rounded-full border-2 border-zinc-950/25 border-t-zinc-950"
+      aria-hidden="true"
+    />
+  );
+}
+
+function LightSpinner() {
+  return (
+    <span
+      className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
       aria-hidden="true"
     />
   );

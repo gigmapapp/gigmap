@@ -39,7 +39,10 @@ export function splitAuthError(error: AuthActionFailure | null): {
   form: AuthNotice | null;
 } {
   if (!error) return { fields: {}, form: null };
-  if (error.field && (error.code === "validation" || error.code === "weak_password")) {
+  if (error.code === "weak_password") {
+    return { fields: { password: messageForAuthCode("weak_password") }, form: null };
+  }
+  if (error.code === "validation" && error.field) {
     return { fields: { [error.field]: error.message }, form: null };
   }
   return { fields: {}, form: presentAuthError(error) };

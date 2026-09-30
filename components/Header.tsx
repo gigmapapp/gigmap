@@ -56,7 +56,11 @@ export default function Header({ account }: { account: HeaderAccount }) {
         </nav>
         <div className="hidden items-center gap-1 text-sm md:flex">
           {account ? (
-            <SignedInLinks href={accountHref} label={accountLabel} />
+            <SignedInLinks
+              href={accountHref}
+              label={accountLabel}
+              editHref={performer ? "/account?edit=1" : undefined}
+            />
           ) : (
             <SignedOutLinks />
           )}
@@ -93,7 +97,13 @@ export default function Header({ account }: { account: HeaderAccount }) {
           </Link>
           <div className="my-2 border-t border-zinc-800" />
           {account ? (
-            <SignedInLinks href={accountHref} label={accountLabel} onNavigate={() => setOpen(false)} stacked />
+            <SignedInLinks
+              href={accountHref}
+              label={accountLabel}
+              editHref={performer ? "/account?edit=1" : undefined}
+              onNavigate={() => setOpen(false)}
+              stacked
+            />
           ) : (
             <SignedOutLinks onNavigate={() => setOpen(false)} stacked />
           )}
@@ -145,17 +155,22 @@ function SignedOutLinks({
 function SignedInLinks({
   href,
   label,
+  editHref,
   stacked = false,
   onNavigate,
 }: {
   href: string;
   label: string;
+  editHref?: string;
   stacked?: boolean;
   onNavigate?: () => void;
 }) {
   const linkClass = stacked
     ? "flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-3 text-zinc-200 hover:bg-zinc-800"
     : "inline-flex min-h-11 max-w-48 items-center gap-2 rounded-lg px-3 text-sm text-zinc-200 hover:bg-zinc-800 hover:text-white";
+  const editClass = stacked
+    ? "flex min-h-11 items-center rounded-lg px-3 text-zinc-200 hover:bg-zinc-800"
+    : "inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white";
   const signOutClass = stacked
     ? "flex min-h-11 w-full items-center rounded-lg px-3 text-left text-zinc-300 hover:bg-zinc-800 disabled:opacity-70"
     : "inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white disabled:opacity-70";
@@ -166,6 +181,11 @@ function SignedInLinks({
         <AccountMark label={label} />
         <span className="truncate">{label}</span>
       </Link>
+      {editHref ? (
+        <Link href={editHref} onClick={onNavigate} className={editClass}>
+          Edit profile
+        </Link>
+      ) : null}
       <form action={signOutAction}>
         <SignOutButton className={signOutClass} />
       </form>

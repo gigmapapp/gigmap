@@ -39,13 +39,18 @@ export default async function AccountPage({
 
   const genres = performer.genres.length > 0 ? performer.genres.join(", ") : "No genres yet";
 
-  return (
-    <AuthFrame eyebrow="Account" title={performer.name} description={user.email ?? "Signed in"}>
-      {editing ? (
+  if (editing) {
+    return (
+      <AuthFrame
+        eyebrow="Account"
+        title="Edit profile"
+        description="Update the name, city, and bio on your performer page."
+      >
         <ProfileForm
           action={updateProfileAction}
           next="/account"
           submitLabel="Save changes"
+          cancelHref="/account"
           defaults={{
             name: performer.name,
             category: performer.category,
@@ -54,8 +59,13 @@ export default async function AccountPage({
             genres: performer.genres.join(", "),
           }}
         />
-      ) : (
-        <dl className="space-y-4">
+      </AuthFrame>
+    );
+  }
+
+  return (
+    <AuthFrame eyebrow="Account" title={performer.name} description={user.email ?? "Signed in"}>
+      <dl className="space-y-4">
         <div>
           <dt className="text-sm text-zinc-500">Category</dt>
           <dd className="mt-1.5">
@@ -76,19 +86,12 @@ export default async function AccountPage({
             {performer.bio || "No bio yet."}
           </dd>
         </div>
-        </dl>
-      )}
+      </dl>
       <div className="mt-6 flex flex-col gap-3">
-        {editing ? (
-          <Link href="/account" className={authSecondaryButtonClass}>
-            Cancel
-          </Link>
-        ) : (
-          <Link href="/account?edit=1" className={authSecondaryButtonClass}>
-            Edit profile
-          </Link>
-        )}
-        <Link href={`/performers/${performer.id}`} className={authButtonClass}>
+        <Link href="/account?edit=1" className={authButtonClass}>
+          Edit profile
+        </Link>
+        <Link href={`/performers/${performer.id}`} className={authSecondaryButtonClass}>
           View profile
         </Link>
         <Link href="/gigs/new" className={authSecondaryButtonClass}>
