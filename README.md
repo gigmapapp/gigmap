@@ -67,7 +67,7 @@ Then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the se
 
 Sign in at `/sign-in`. After email confirmation, `/account` creates the one performer profile for that user. Posting a gig, uploading clips, and opening `/bookings` require that profile. Fans can browse, and they can request a booking, without an account.
 
-The ten seeded performers are demo profiles. The Book button is closed on them, and the server refuses those requests, because nobody could read the inbox. That switch is `REFUSE_BOOKINGS_FOR_UNCLAIMED_PERFORMERS` in `lib/auth/access.ts`.
+The ten seeded performers are demo profiles (`user_id` null). They are labeled Demo, the Book button is hidden, and the server refuses those requests, because nobody could read the inbox. That rule is `REFUSE_BOOKINGS_FOR_UNCLAIMED_PERFORMERS` in `lib/auth/access.ts`. Claiming a seed profile is out of scope.
 
 Without Supabase env vars the app still uses the local JSON store, but accounts do not. Owner actions explain that on the sign-in page. Auth email links use `NEXT_PUBLIC_SITE_URL` when it is set, and the request host otherwise.
 

@@ -76,7 +76,7 @@ Hosted migration history will not match these filenames. `apply_migration` recor
 If the clips migration fails on the hosted project, leave it failed and create the bucket in the dashboard: Storage → New bucket, name `clips`, public, 10 MB, MIME types `video/mp4`, `video/webm`, `video/quicktime`. Then add a SELECT policy named `clips_public_read` for `anon` and `authenticated` with `using (bucket_id = 'clips')`. Do not run `ALTER TABLE storage.objects`. Do not add an insert policy for anon.
 
 - Public read of `performers`, `videos`, and `gigs` for `anon` and `authenticated`.
-- `performers.user_id` null means an unclaimed demo profile. The ten seed rows stay null. They are public and not editable. `claimed` on the app type is `user_id is not null`. There is no extra column.
+- `performers.user_id` null means an unclaimed demo profile. The ten seed rows stay null. They are public, labeled Demo, and not editable. The Book button is hidden, and the booking action refuses them. `claimed` on the app type is `user_id is not null`. There is no extra column. Claiming a seed profile is out of scope.
 - Authenticated users may insert, update, and delete only their own performer, and gigs or videos whose performer they own. Policies compare `(select auth.uid())`.
 - `booking_requests`: authenticated may select rows for a performer they own. Nobody else can read them. Fans still create requests through the server action, which uses the service role after it rejects unclaimed performers. Anon has no insert.
 - Owner writes (profile, gigs, clips, the booking inbox) use the user-scoped server client so RLS applies. The service role is limited to public reads, booking inserts, signed upload URLs, and seeding. A signed upload URL is minted only after a service-role read shows `user_id` matches the signed-in user. Object keys are `{performerId}/{uuid}.{ext}`. There is still no anon insert policy on `storage.objects`.
@@ -85,4 +85,4 @@ Seed data is `lib/seed/austin.ts`. `supabase/seed.sql` is rendered from it with 
 
 ## Still out of scope
 
-Map tiles stay MapLibre + OSM. No payments, reviews, inbox threads, or admin tools. One profile per user. The auth screens are intentionally plain so they can be restyled without moving the session code.
+Map tiles stay MapLibre + OSM. No payments, reviews, inbox threads, or admin tools. One profile per user. No flow for claiming a seed profile. The auth screens are intentionally plain so they can be restyled without moving the session code.

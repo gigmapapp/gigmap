@@ -1,9 +1,10 @@
 import { CATEGORIES, type Category, type CreatePerformerInput } from "@/lib/types";
 
 /**
- * Unclaimed seed profiles have no owner, so a booking request stored for them
- * would be unreadable. Product has not confirmed this should stay closed.
- * Flip to false to accept requests for demo profiles again.
+ * Confirmed: performers with no owner are demo profiles. The Book button is
+ * hidden and the booking action refuses them, because nobody could read the
+ * request. Claiming a seed profile is out of scope. This constant is the
+ * single switch for that rule.
  */
 export const REFUSE_BOOKINGS_FOR_UNCLAIMED_PERFORMERS = true;
 
