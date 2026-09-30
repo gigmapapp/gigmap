@@ -14,7 +14,7 @@ import {
   DARK_MAP_STYLE,
   MYSTIC_CENTER,
 } from "@/lib/map-style";
-import { categoryLabel, formatGigWhen } from "@/lib/format";
+import { categoryLabel, formatGigWhen, zoneForGig } from "@/lib/format";
 import { gigsWithinRadius } from "@/lib/nearby";
 import { requestVisitorLocation, type VisitorLocationResult } from "@/lib/visitor-location";
 import type { Category, Gig, Performer } from "@/lib/types";
@@ -406,7 +406,7 @@ function popupContent(gig: MappedGig) {
 
   const when = document.createElement("p");
   when.className = "gig-popup-when";
-  when.textContent = formatGigWhen(gig.datetime, gig.timezone);
+  when.textContent = formatGigWhen(gig.datetime, zoneForGig(gig));
 
   const link = document.createElement("a");
   link.className = "gig-popup-link";

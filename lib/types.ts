@@ -34,7 +34,9 @@ export interface Gig {
   datetime: string;
   /**
    * IANA zone for this gig's wall clock, when the API sends one.
-   * Missing values display in America/New_York. The post form does not send it.
+   * When it is missing, display derives a zone from lat/lng.
+   * America/New_York is only used when the pin does not resolve.
+   * The post form does not send this field.
    */
   timezone?: string | null;
   location: GeoLocation;

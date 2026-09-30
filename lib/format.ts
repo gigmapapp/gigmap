@@ -16,6 +16,8 @@ export {
 /** Alias of VENUE_TIME_ZONE. The value is America/New_York, the launch default. */
 export { VENUE_TIME_ZONE as AUSTIN_TZ } from "@/lib/venue-time";
 
+export { zoneForGig } from "@/lib/gig-zone";
+
 export function categoryLabel(category: Category) {
   if (category === "dj") return "DJ";
   return category[0].toUpperCase() + category.slice(1);
