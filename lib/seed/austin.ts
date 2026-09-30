@@ -1,5 +1,6 @@
 import type { Category, Database, GeoLocation, Performer, Video } from "@/lib/types";
-import { austinDateTime } from "./time";
+import { venueOffsetIso } from "@/lib/venue-instant";
+import { lookupVenueTimeZone } from "@/lib/venue-zone";
 
 type SeedPerformer = Omit<Performer, "createdAt">;
 
@@ -203,16 +204,22 @@ export function seedDatabase(now = new Date()): Database {
   const createdAt = now.toISOString();
   return {
     performers: SEED_PERFORMERS.map((performer) => ({ ...performer, createdAt })),
-    gigs: SEED_GIGS.map((row) => ({
-      id: row.id,
-      performerId: row.performerId,
-      title: row.title,
-      description: row.description,
-      category: row.category,
-      datetime: austinDateTime(row.dayOffset, row.hour, row.minute, now),
-      location: row.location,
-      createdAt,
-    })),
+    gigs: SEED_GIGS.map((row) => {
+      const timezone = lookupVenueTimeZone(row.location.lat, row.location.lng);
+      return {
+        id: row.id,
+        performerId: row.performerId,
+        title: row.title,
+        description: row.description,
+        category: row.category,
+        datetime: venueOffsetIso(row.dayOffset, row.hour, row.minute, now, timezone),
+        timezone,
+        location: row.location,
+        sourceUrl: null,
+        sourceKind: null,
+        createdAt,
+      };
+    }),
     bookings: [],
   };
 }

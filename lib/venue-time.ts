@@ -1,6 +1,7 @@
 /**
- * Venue timezone for the Austin MVP. There is no per-gig zone column;
- * pass an IANA id into these helpers when one is added.
+ * Fallback zone when a caller has no gig yet. Austin pins are America/Chicago.
+ * Pass the gig's IANA id as the trailing argument. Leaving it off stays on
+ * Chicago, so existing call sites do not shift by an hour.
  * Chicago is UTC−05:00 in summer (CDT) and UTC−06:00 in winter (CST).
  */
 export const VENUE_TIME_ZONE = "America/Chicago";
@@ -85,11 +86,17 @@ export function isUpcoming(iso: string, now = new Date()) {
 }
 
 /**
- * Discovery date filter. A selected day matches the venue-local date.
- * With no selection, the gig is on today's venue date or later.
+ * Discovery date filter. A selected day matches the venue-local date in
+ * `timeZone`. With no selection, the gig is on today's date in that zone
+ * or later.
  */
-export function gigMatchesVenueDate(iso: string, selectedDate: string, now = new Date()) {
-  const gigDay = localDateKey(iso);
+export function gigMatchesVenueDate(
+  iso: string,
+  selectedDate: string,
+  now = new Date(),
+  timeZone = VENUE_TIME_ZONE,
+) {
+  const gigDay = localDateKey(iso, timeZone);
   if (selectedDate) return gigDay === selectedDate;
-  return gigDay >= localDateKey(now.toISOString());
+  return gigDay >= localDateKey(now.toISOString(), timeZone);
 }

@@ -41,14 +41,14 @@ export default function Discovery({
   const dateChips = useMemo(() => {
     const keys = new Set<string>();
     for (const gig of mapped) {
-      keys.add(localDateKey(gig.datetime));
+      keys.add(localDateKey(gig.datetime, gig.timezone));
     }
     return [...keys].sort().slice(0, 6);
   }, [mapped]);
 
   const visible = useMemo(() => {
     return mapped.filter((gig) => {
-      const dateOk = gigMatchesVenueDate(gig.datetime, date);
+      const dateOk = gigMatchesVenueDate(gig.datetime, date, new Date(), gig.timezone);
       const categoryOk = category === "all" || gig.category === category;
       return dateOk && categoryOk;
     });
@@ -158,7 +158,7 @@ export default function Discovery({
                 >
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <CategoryBadge category={gig.category} />
-                    <span className="text-xs text-zinc-400">{formatGigWhen(gig.datetime)}</span>
+                    <span className="text-xs text-zinc-400">{formatGigWhen(gig.datetime, gig.timezone)}</span>
                   </div>
                   <div className="font-medium text-white">{gig.title}</div>
                   <div className="mt-1 text-sm text-zinc-400">{gig.location.label}</div>

@@ -35,6 +35,12 @@ test("seed gigs run from just after now through about six weeks", () => {
   assert.equal(db.bookings.length, 0);
   assert.equal(db.performers.reduce((count, performer) => count + performer.videos.length, 0), 18);
 
+  for (const gig of db.gigs) {
+    assert.equal(gig.timezone, "America/Chicago");
+    assert.equal(gig.sourceUrl, null);
+    assert.equal(gig.sourceKind, null);
+  }
+
   const times = db.gigs.map((gig) => new Date(gig.datetime).getTime()).sort((a, b) => a - b);
   assert.ok(times[0]! > now.getTime());
   const spanDays = (times[times.length - 1]! - times[0]!) / 86_400_000;

@@ -3,7 +3,8 @@
 -- (supabase db reset) the legacy drop and the rls_auto_enable revoke are
 -- no-ops, and the clips bucket migration creates the storage.buckets row named clips.
 -- This file then fills the v1 tables.
--- Gig times are America/Chicago wall-clock times, from tomorrow through about six weeks after this runs.
+-- Gig times are venue wall-clock times (Austin pins resolve to America/Chicago), from tomorrow through about six weeks after this runs.
+-- timezone is that IANA name. source_url and source_kind are null (not a public listing).
 -- Generated from lib/seed/austin.ts. Edit the seed data there, then re-render this file
 -- with: npx tsx scripts/render-seed-sql.ts
 
@@ -54,21 +55,21 @@ on conflict (id) do update set
   created_at = excluded.created_at;
 
 insert into public.gigs (
-  id, performer_id, title, description, category, datetime, lat, lng, label, created_at
+  id, performer_id, title, description, category, datetime, lat, lng, label, timezone, source_url, source_kind, created_at
 )
 values
-  ('gig-antones-maya', 'maya-chen', 'Late set at Antone''s', 'Solo looping set in the front room. Come early if you want a seat along the bar.', 'solo', ((timezone('America/Chicago', now()))::date + 1 + time '21:30') at time zone 'America/Chicago', 30.2661, -97.7396, 'Antone''s Nightclub, 305 E 5th St', now()),
-  ('gig-stubbs-rio', 'nightbirds', 'Patio dance night', 'Rio & the Nightbirds bring the horns outside. Food trucks stay open late.', 'band', ((timezone('America/Chicago', now()))::date + 2 + time '20:00') at time zone 'America/Chicago', 30.2685, -97.7362, 'Stubb''s BBQ, 801 Red River St', now()),
-  ('gig-mohawk-velvet', 'velvet-static', 'Indoor / indoor', 'Full band, fog, and the Mohawk indoor PA. Support TBA.', 'band', ((timezone('America/Chicago', now()))::date + 4 + time '22:00') at time zone 'America/Chicago', 30.27, -97.736, 'Mohawk Austin, 912 Red River St', now()),
-  ('gig-empire-nova', 'dj-nova', 'Disco edits until close', 'Nova on the booth from 11 to 2. No guest list, just show up.', 'dj', ((timezone('America/Chicago', now()))::date + 11 + time '23:00') at time zone 'America/Chicago', 30.2674, -97.7366, 'Empire Control Room, 606 E 7th St', now()),
-  ('gig-continental-broken', 'broken-strings', 'Continental Club residency', 'Monthly loud night. Earplugs at the merch table.', 'band', ((timezone('America/Chicago', now()))::date + 12 + time '21:00') at time zone 'America/Chicago', 30.2478, -97.7505, 'Continental Club, 1315 S Congress Ave', now()),
-  ('gig-cboy-elijah', 'elijah-brooks', 'Standards after dinner', 'Trio format — guitar, upright, brushes. Table service stays open.', 'solo', ((timezone('America/Chicago', now()))::date + 14 + time '19:30') at time zone 'America/Chicago', 30.245, -97.7512, 'C-Boy''s Heart & Soul, 2008 S Congress Ave', now()),
-  ('gig-saxon-harper', 'harper-quinn', 'Sunday songwriter hour', 'New songs, old stories, and the Saxon sound system being kind.', 'solo', ((timezone('America/Chicago', now()))::date + 24 + time '18:00') at time zone 'America/Chicago', 30.2553, -97.7633, 'The Saxon Pub, 1320 S Lamar Blvd', now()),
-  ('gig-whitehorse-copper', 'copper-notes', 'Two-step Tuesday', 'Dance lessons at 7, The Copper Notes at 8. Boots recommended.', 'band', ((timezone('America/Chicago', now()))::date + 26 + time '20:00') at time zone 'America/Chicago', 30.2625, -97.7258, 'The White Horse, 500 Comal St', now()),
-  ('gig-parish-bassline', 'bassline-society', 'Club night: crates out', 'Hip-hop and bounce until last call. 21+.', 'dj', ((timezone('America/Chicago', now()))::date + 31 + time '22:30') at time zone 'America/Chicago', 30.2672, -97.74, 'Parish, 214 E 6th St', now()),
-  ('gig-hotelvegas-maya', 'maya-chen', 'East Side twilight', 'Outdoor stage if the weather holds, inside if it doesn''t.', 'solo', ((timezone('America/Chicago', now()))::date + 32 + time '19:00') at time zone 'America/Chicago', 30.2622, -97.7278, 'Hotel Vegas, 1502 E 6th St', now()),
-  ('gig-cheerup-luna', 'luna-park', 'After hours at Cheer Up', 'Minimal techno in the backyard. Starts late, ends later.', 'dj', ((timezone('America/Chicago', now()))::date + 41 + time '00:30') at time zone 'America/Chicago', 30.2694, -97.7365, 'Cheer Up Charlies, 900 Red River St', now()),
-  ('gig-acl-velvet', 'velvet-static', 'Moody Theater warmup', 'Special sit-down set before a touring bill. Limited GA.', 'band', ((timezone('America/Chicago', now()))::date + 42 + time '20:00') at time zone 'America/Chicago', 30.2653, -97.7472, 'ACL Live at the Moody Theater, 310 W 2nd St', now())
+  ('gig-antones-maya', 'maya-chen', 'Late set at Antone''s', 'Solo looping set in the front room. Come early if you want a seat along the bar.', 'solo', ((timezone('America/Chicago', now()))::date + 1 + time '21:30') at time zone 'America/Chicago', 30.2661, -97.7396, 'Antone''s Nightclub, 305 E 5th St', 'America/Chicago', null, null, now()),
+  ('gig-stubbs-rio', 'nightbirds', 'Patio dance night', 'Rio & the Nightbirds bring the horns outside. Food trucks stay open late.', 'band', ((timezone('America/Chicago', now()))::date + 2 + time '20:00') at time zone 'America/Chicago', 30.2685, -97.7362, 'Stubb''s BBQ, 801 Red River St', 'America/Chicago', null, null, now()),
+  ('gig-mohawk-velvet', 'velvet-static', 'Indoor / indoor', 'Full band, fog, and the Mohawk indoor PA. Support TBA.', 'band', ((timezone('America/Chicago', now()))::date + 4 + time '22:00') at time zone 'America/Chicago', 30.27, -97.736, 'Mohawk Austin, 912 Red River St', 'America/Chicago', null, null, now()),
+  ('gig-empire-nova', 'dj-nova', 'Disco edits until close', 'Nova on the booth from 11 to 2. No guest list, just show up.', 'dj', ((timezone('America/Chicago', now()))::date + 11 + time '23:00') at time zone 'America/Chicago', 30.2674, -97.7366, 'Empire Control Room, 606 E 7th St', 'America/Chicago', null, null, now()),
+  ('gig-continental-broken', 'broken-strings', 'Continental Club residency', 'Monthly loud night. Earplugs at the merch table.', 'band', ((timezone('America/Chicago', now()))::date + 12 + time '21:00') at time zone 'America/Chicago', 30.2478, -97.7505, 'Continental Club, 1315 S Congress Ave', 'America/Chicago', null, null, now()),
+  ('gig-cboy-elijah', 'elijah-brooks', 'Standards after dinner', 'Trio format — guitar, upright, brushes. Table service stays open.', 'solo', ((timezone('America/Chicago', now()))::date + 14 + time '19:30') at time zone 'America/Chicago', 30.245, -97.7512, 'C-Boy''s Heart & Soul, 2008 S Congress Ave', 'America/Chicago', null, null, now()),
+  ('gig-saxon-harper', 'harper-quinn', 'Sunday songwriter hour', 'New songs, old stories, and the Saxon sound system being kind.', 'solo', ((timezone('America/Chicago', now()))::date + 24 + time '18:00') at time zone 'America/Chicago', 30.2553, -97.7633, 'The Saxon Pub, 1320 S Lamar Blvd', 'America/Chicago', null, null, now()),
+  ('gig-whitehorse-copper', 'copper-notes', 'Two-step Tuesday', 'Dance lessons at 7, The Copper Notes at 8. Boots recommended.', 'band', ((timezone('America/Chicago', now()))::date + 26 + time '20:00') at time zone 'America/Chicago', 30.2625, -97.7258, 'The White Horse, 500 Comal St', 'America/Chicago', null, null, now()),
+  ('gig-parish-bassline', 'bassline-society', 'Club night: crates out', 'Hip-hop and bounce until last call. 21+.', 'dj', ((timezone('America/Chicago', now()))::date + 31 + time '22:30') at time zone 'America/Chicago', 30.2672, -97.74, 'Parish, 214 E 6th St', 'America/Chicago', null, null, now()),
+  ('gig-hotelvegas-maya', 'maya-chen', 'East Side twilight', 'Outdoor stage if the weather holds, inside if it doesn''t.', 'solo', ((timezone('America/Chicago', now()))::date + 32 + time '19:00') at time zone 'America/Chicago', 30.2622, -97.7278, 'Hotel Vegas, 1502 E 6th St', 'America/Chicago', null, null, now()),
+  ('gig-cheerup-luna', 'luna-park', 'After hours at Cheer Up', 'Minimal techno in the backyard. Starts late, ends later.', 'dj', ((timezone('America/Chicago', now()))::date + 41 + time '00:30') at time zone 'America/Chicago', 30.2694, -97.7365, 'Cheer Up Charlies, 900 Red River St', 'America/Chicago', null, null, now()),
+  ('gig-acl-velvet', 'velvet-static', 'Moody Theater warmup', 'Special sit-down set before a touring bill. Limited GA.', 'band', ((timezone('America/Chicago', now()))::date + 42 + time '20:00') at time zone 'America/Chicago', 30.2653, -97.7472, 'ACL Live at the Moody Theater, 310 W 2nd St', 'America/Chicago', null, null, now())
 on conflict (id) do update set
   performer_id = excluded.performer_id,
   title = excluded.title,
@@ -77,4 +78,5 @@ on conflict (id) do update set
   datetime = excluded.datetime,
   lat = excluded.lat,
   lng = excluded.lng,
-  label = excluded.label;
+  label = excluded.label,
+  timezone = excluded.timezone;

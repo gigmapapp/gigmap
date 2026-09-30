@@ -320,7 +320,7 @@ function popupContent(gig: MappedGig) {
 
   const when = document.createElement("p");
   when.className = "gig-popup-when";
-  when.textContent = formatGigWhen(gig.datetime);
+  when.textContent = formatGigWhen(gig.datetime, gig.timezone);
 
   const link = document.createElement("a");
   link.className = "gig-popup-link";

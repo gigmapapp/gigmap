@@ -76,7 +76,7 @@ export default async function PerformerPage({
               >
                 <div className="font-medium text-white">{gig.title}</div>
                 <div className="mt-1 text-sm text-zinc-400">
-                  {formatGigWhen(gig.datetime)} · {gig.location.label}
+                  {formatGigWhen(gig.datetime, gig.timezone)} · {gig.location.label}
                 </div>
               </Link>
             ))

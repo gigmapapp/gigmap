@@ -16,8 +16,8 @@ export default async function GigPage({ params }: PageProps<"/gigs/[id]">) {
     <main className="mx-auto w-full max-w-2xl px-4 py-10">
       <CategoryBadge category={gig.category} />
       <h1 className="mt-3 font-display text-4xl text-white">{gig.title}</h1>
-      <p className="mt-3 text-zinc-300">{formatGigDay(gig.datetime)}</p>
-      <p className="text-zinc-400">{formatGigWhen(gig.datetime)}</p>
+      <p className="mt-3 text-zinc-300">{formatGigDay(gig.datetime, gig.timezone)}</p>
+      <p className="text-zinc-400">{formatGigWhen(gig.datetime, gig.timezone)}</p>
       <p className="mt-4 text-lg text-white">{gig.location.label}</p>
       <p className="mt-1 text-xs text-zinc-500">
         {gig.location.lat.toFixed(5)}, {gig.location.lng.toFixed(5)}

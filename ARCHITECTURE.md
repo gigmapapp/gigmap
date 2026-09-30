@@ -61,8 +61,11 @@ Schema and RLS live in `supabase/migrations/`. The `clips` bucket is its own fil
 1. `20260929140000_drop_legacy_empty_tables.sql` drops empty legacy `profiles`, `gigs`, and `bookings` (different columns from v1). It aborts if any of those legacy tables has a row, and it is a no-op when they are absent. It does not use `CASCADE` and does not modify `auth.users`. Already applied on the hosted project.
 2. `20260929150000_create_gigmap_tables.sql` creates the v1 tables, including a new `public.gigs`. It does not reference `storage`.
 3. `20260929155000_create_clips_bucket.sql` inserts the public `clips` bucket (10 MB, MP4 / WebM / MOV) and `clips_public_read` on `storage.objects`.
-4. `20260929160000_revoke_anon_table_writes.sql` leaves public read on performers, videos, and gigs, and removes anon, authenticated, and public insert/update/delete privileges and policies on those tables and on `booking_requests`.
+4. `20260929160000_revoke_anon_table_writes.sql` leaves public read on performers, videos, and gigs, and removes anon, authenticated, and public insert/update/delete privileges and policies on those tables and on `booking_requests`. **Never re-run this file after `20260930120600_performer_auth_ownership.sql` (draft PR #10) is applied.** That later migration adds owner write policies, and this revoke drops them.
 5. `20260929170000_revoke_rls_auto_enable.sql` revokes `EXECUTE` on `public.rls_auto_enable()` when that function already exists. It does not create, drop, or edit the function.
+6. `20260930180000_gigs_add_timezone.sql` adds nullable `gigs.timezone` (IANA name) plus a format check and a trigger that rejects names Postgres does not recognize. It does not set `NOT NULL`.
+7. `20260930181000_gigs_timezone_not_null.sql` sets `NOT NULL`. On a database that already has gigs, run `npm run backfill:timezones` after step 6 and before this file. The file aborts if any zone is still null. On an empty database it only sets the constraint.
+8. `20260930182000_gigs_public_listing.sql` adds nullable `gigs.source_url` and `gigs.source_kind`. `public_info` requires an https `source_url`. Null `source_kind` means a legacy owner row. This is not derived from `performers.user_id`.
 
 `supabase start` then `supabase db reset` applies that filename order and then `supabase/seed.sql`. Local Storage already has RLS on `storage.objects`, and this repo never alters that table.
 
@@ -74,7 +77,20 @@ If the clips migration fails on the hosted project, leave it failed and create t
 - All table writes use the service role. `booking_requests` has no select or write grant for anon. `BookingRepository.list` requires a performer id, and `/bookings` passes only the stub-session performer.
 - Clip uploads: the server mints a signed upload URL with the service role after the stub-session check. The browser PUTs the file with the anon key and that token. The public object URL is stored on `videos`. There is no anon insert policy on `storage.objects`, and no `clips_service_insert` policy. The service role bypasses RLS, and the signed PUT writes as superuser, so that insert policy is unused. If minting a signed URL later fails an INSERT check, add `clips_service_insert` for `service_role` from the SQL editor. The statement is commented in the clips migration.
 
-Seed data is `lib/seed/austin.ts`. `supabase/seed.sql` is rendered from it with gig times relative to `now()` in America/Chicago. `npm run seed:supabase` upserts the same rows with the service role and does not touch booking requests.
+Seed data is still `lib/seed/austin.ts`. `supabase/seed.sql` is rendered from it. Each gig's wall clock is interpreted in the IANA zone looked up from that pin; every current Austin pin is America/Chicago. `timezone` is stored on the row. `source_url` and `source_kind` stay null (the Austin demo is not a public listing). `npm run seed:supabase` upserts the same rows with the service role and does not touch booking requests.
+
+`lib/seed/mystic-csv.ts` turns `lib/seed/fixtures/mystic-gigs.csv` into public listings (`source_kind = public_info`, each row's `source_url`). It does not replace the Austin seed. `start_time_et` in that sheet is venue wall time; the zone still comes from lat/lng.
+
+### Production order for the timezone column
+
+Do not re-apply steps 1–5 if they are already on the hosted project. In particular, never re-run `20260929160000_revoke_anon_table_writes.sql` after the PR #10 ownership migration.
+
+1. Apply `20260930180000_gigs_add_timezone.sql` only.
+2. `npm run backfill:timezones` (add `--dry-run` to print the plan). Needs `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+3. Apply `20260930181000_gigs_timezone_not_null.sql`. If step 2 was skipped and rows exist, this aborts and leaves the column nullable.
+4. Apply `20260930182000_gigs_public_listing.sql`. It does not depend on the backfill. `supabase db push` stops on the first failure, so a combined push that hits the NOT NULL guard will not apply this file until the backfill has run and the NOT NULL migration succeeds.
+
+`supabase db reset` applies every file, then `supabase/seed.sql`. No backfill script: the table is empty when NOT NULL is set, and the seed writes a zone per gig.
 
 ## Still temporary
 

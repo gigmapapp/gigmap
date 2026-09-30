@@ -25,14 +25,27 @@ export interface GeoLocation {
   label: string;
 }
 
+/** `owner` is a performer post. `public_info` is an unclaimed copy of a public listing. */
+export type GigSourceKind = "owner" | "public_info";
+
 export interface Gig {
   id: string;
   performerId: string;
   title: string;
   description: string;
   category: Category;
+  /** UTC instant. Wall clock is `timezone`. */
   datetime: string;
+  /** IANA zone of the venue. The server sets this from lat/lng. */
+  timezone: string;
   location: GeoLocation;
+  /** Public page this listing was copied from. Null on owner posts. */
+  sourceUrl: string | null;
+  /**
+   * `public_info` is listed from a public source and is not a claim.
+   * `owner` is a performer post. Null is a legacy row and means owner.
+   */
+  sourceKind: GigSourceKind | null;
   createdAt: string;
 }
 

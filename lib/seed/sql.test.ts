@@ -14,4 +14,6 @@ test("supabase/seed.sql matches the Austin seed", () => {
   }
   assert.doesNotMatch(file, /insert into public\.booking_requests/i);
   assert.match(file, /America\/Chicago/);
+  assert.match(file, /timezone, source_url, source_kind/);
+  assert.doesNotMatch(file, /foxwoods\.com|public_info/);
 });
