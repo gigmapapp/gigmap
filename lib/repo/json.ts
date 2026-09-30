@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { seedDatabase } from "@/lib/seed/austin";
+import { seedDatabase } from "@/lib/seed/database";
 import type {
   BookingRequest,
   CreateBookingInput,

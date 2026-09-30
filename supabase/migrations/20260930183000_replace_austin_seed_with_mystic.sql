@@ -1,12 +1,86 @@
--- Mystic public listings for Gig Map. Safe to re-run: these ids are upserted.
--- Does not delete the retired Austin sample. That delete is
--- supabase/migrations/20260930183000_replace_austin_seed_with_mystic.sql.
--- Does not write booking_requests or videos. CSV notes are not stored.
--- Each datetime is date + start_time_et in the IANA zone looked up from lat/lng.
--- user_id is omitted. When that column exists (PR #10), the default NULL leaves
--- the profile unclaimed, and this upsert does not clear a later claim.
+-- Replace the Austin sample with the Mystic public listings.
+-- Apply after 20260930182000_gigs_public_listing.sql so source_url and
+-- source_kind exist, and after 20260930181000_gigs_timezone_not_null.sql.
+--
+-- Apply PR #10 (20260930120600_performer_auth_ownership.sql) before this file
+-- when that migration is in use. The claim guard below reads performers.user_id
+-- only when the column exists. If this file runs first, nobody can have claimed
+-- a profile yet, and PR #10 later adds user_id NULL.
+--
+-- Never re-run 20260929160000_revoke_anon_table_writes.sql after the PR #10
+-- ownership migration. That revoke drops the owner write policies.
+--
+-- Deletes only the performer, video, and gig ids listed below, plus the live
+-- Milestone gig 1139b90f-1953-4ace-bc83-5296df2a2f5d (performer bassline-society, Connecticut).
+-- Aborts, and deletes nothing, when:
+--   * one of those performers has a non-null user_id (claimed)
+--   * booking_requests reference one of them (requests are not deleted;
+--     the table is empty today, and a request is not sample data)
+--   * a video or gig for one of them is outside the id lists (owner-created;
+--     deleting the performer would cascade it)
+-- Dependent rows are deleted in FK order: videos, gigs, then performers.
+-- Does not touch storage.objects. Clips are scripts/remove-austin-clips.ts.
+--
+-- Then upserts the 8 listings. ON CONFLICT updates public fields and does not
+-- set user_id, so a later claim survives a re-run. CSV notes are not stored.
+-- No videos rows are inserted. Safe to re-run.
 -- Generated from lib/seed/fixtures/mystic-seed-final.csv.
 -- Re-render with: npx tsx scripts/render-seed-sql.ts
+
+do $$
+declare
+  performer_ids text[] := array['maya-chen', 'broken-strings', 'dj-nova', 'elijah-brooks', 'velvet-static', 'luna-park', 'nightbirds', 'harper-quinn', 'bassline-society', 'copper-notes']::text[];
+  video_ids text[] := array['maya-v1', 'maya-v2', 'maya-v3', 'broken-v1', 'broken-v2', 'nova-v1', 'nova-v2', 'elijah-v1', 'velvet-v1', 'velvet-v2', 'luna-v1', 'rio-v1', 'rio-v2', 'harper-v1', 'harper-v2', 'bass-v1', 'copper-v1', 'copper-v2']::text[];
+  gig_ids text[] := array['gig-antones-maya', 'gig-stubbs-rio', 'gig-mohawk-velvet', 'gig-empire-nova', 'gig-continental-broken', 'gig-cboy-elijah', 'gig-saxon-harper', 'gig-whitehorse-copper', 'gig-parish-bassline', 'gig-hotelvegas-maya', 'gig-cheerup-luna', 'gig-acl-velvet', '1139b90f-1953-4ace-bc83-5296df2a2f5d']::text[];
+  claimed integer;
+  bookings integer;
+  extra_videos integer;
+  extra_gigs integer;
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'performers'
+      and column_name = 'user_id'
+  ) then
+    execute
+      'select count(*) from public.performers where id = any ($1) and user_id is not null'
+      into claimed
+      using performer_ids;
+    if claimed > 0 then
+      raise exception 'Refusing to delete Austin seed performers that have been claimed (non-null user_id). Nothing was deleted.';
+    end if;
+  end if;
+
+  select count(*) into bookings
+  from public.booking_requests
+  where performer_id = any (performer_ids);
+  if bookings > 0 then
+    raise exception 'Refusing to delete Austin seed performers that have booking_requests. Those requests were not deleted. Nothing was deleted.';
+  end if;
+
+  select count(*) into extra_videos
+  from public.videos
+  where performer_id = any (performer_ids)
+    and id <> all (video_ids);
+  if extra_videos > 0 then
+    raise exception 'Refusing to delete Austin seed performers that have videos outside the seed id list. Nothing was deleted.';
+  end if;
+
+  select count(*) into extra_gigs
+  from public.gigs
+  where performer_id = any (performer_ids)
+    and id <> all (gig_ids);
+  if extra_gigs > 0 then
+    raise exception 'Refusing to delete Austin seed performers that have gigs outside the seed id list. Nothing was deleted.';
+  end if;
+
+  delete from public.videos where id = any (video_ids);
+  delete from public.gigs where id = any (gig_ids);
+  delete from public.performers where id = any (performer_ids);
+end
+$$;
 
 insert into public.performers (id, name, category, bio, city, genres, created_at)
 values

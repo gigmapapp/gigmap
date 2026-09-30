@@ -4,12 +4,14 @@ import { parseVenueDateTimeLocal } from "@/lib/venue-instant";
 import { lookupVenueTimeZone } from "@/lib/venue-zone";
 
 /**
- * Turn the Mystic-area public-listing CSV into seed-shaped performers and gigs.
- * This does not write the Austin seed, `supabase/seed.sql`, or the database.
+ * Turn the Mystic public-listing CSV into seed-shaped performers and gigs.
  *
- * `start_time_et` is the venue's wall clock. The name says ET because the
- * current sheet is Connecticut and Rhode Island. The zone stored on the gig
- * is still looked up from lat/lng.
+ * `start_time_et` is the venue wall clock. The header says ET because the
+ * sheet is Connecticut and Rhode Island. The zone stored on the gig is still
+ * looked up from lat/lng.
+ *
+ * `bio` is copied as-is onto the performer. `notes` is editorial and is not
+ * stored: it must not show up as a gig description or anywhere else public.
  */
 
 const COLUMNS = [
@@ -42,7 +44,8 @@ export type PublicListingGig = {
   id: string;
   performerId: string;
   title: string;
-  description: string;
+  /** Always empty. CSV notes are not public. */
+  description: "";
   category: Category;
   /** UTC instant of `start_time_et` interpreted in the lat/lng zone. */
   datetime: string;
@@ -90,6 +93,8 @@ export function publicListingsFromCsv(csv: string): PublicListingSeed {
     if (!/^https:\/\/\S+$/.test(sourceUrl)) {
       throw new Error(`source_url must be an https URL for ${name}.`);
     }
+    // Editorial notes stay off the public row. Do not assign them to description.
+    void record.notes;
 
     const performerId = slugify(name);
     if (!performerId) throw new Error(`Could not build an id for ${name}.`);
@@ -118,7 +123,7 @@ export function publicListingsFromCsv(csv: string): PublicListingSeed {
       id: gigId,
       performerId,
       title: name,
-      description: record.notes,
+      description: "",
       category,
       datetime: parseVenueDateTimeLocal(`${date}T${start}`, timezone),
       timezone,

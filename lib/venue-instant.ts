@@ -28,7 +28,7 @@ export function startOfLocalDay(date = new Date(), timeZone = VENUE_TIME_ZONE): 
 
 /**
  * ISO string whose wall clock and numeric offset match the venue zone.
- * Seed data uses this so the instant is explicit without a fixed offset.
+ * The numeric offset is included so the instant does not depend on the host zone.
  */
 export function venueOffsetIso(
   daysFromToday: number,

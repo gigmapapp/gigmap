@@ -13,6 +13,7 @@ const migrationFiles = [
   "20260930180000_gigs_add_timezone.sql",
   "20260930181000_gigs_timezone_not_null.sql",
   "20260930182000_gigs_public_listing.sql",
+  "20260930183000_replace_austin_seed_with_mystic.sql",
 ];
 
 function readMigration(name: string): string {

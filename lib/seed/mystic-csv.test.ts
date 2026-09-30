@@ -1,16 +1,13 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { SEED_GIGS } from "./austin";
+import { mysticSeed } from "./database";
 import { publicListingsFromCsv } from "./mystic-csv";
 import { toVenueDateTimeLocal } from "../venue-time";
 import { lookupVenueTimeZone } from "../venue-zone";
 
 const here = fileURLToPath(import.meta.url);
-const fixturePath = path.join(path.dirname(here), "fixtures", "mystic-gigs.csv");
 
 if (process.env.MYSTIC_CSV_TZ_CHILD === "1") {
   runChecks();
@@ -31,52 +28,78 @@ function runChecks() {
   const host = Intl.DateTimeFormat().resolvedOptions().timeZone;
   assert.equal(host, process.env.TZ, `expected host zone ${process.env.TZ}, got ${host}`);
 
-  const csv = readFileSync(fixturePath, "utf8");
-  const seed = publicListingsFromCsv(csv);
-  assert.equal(seed.gigs.length, 15);
-  assert.equal(seed.performers.length, 15);
-  assert.equal(SEED_GIGS.length, 12);
-  assert.equal(new Set(seed.gigs.map((gig) => gig.id)).size, 15);
-  assert.equal(new Set(seed.performers.map((performer) => performer.id)).size, 15);
+  const seed = mysticSeed();
+  assert.equal(seed.performers.length, 8);
+  assert.equal(seed.gigs.length, 8);
+  assert.equal(new Set(seed.performers.map((performer) => performer.id)).size, 8);
+  assert.equal(new Set(seed.gigs.map((gig) => gig.id)).size, 8);
+  assert.deepEqual(
+    seed.performers.map((performer) => performer.id).sort(),
+    [
+      "a-j-croce",
+      "a-vibe-the-encore-2000s-party",
+      "dj-blade-mon",
+      "hubby-jenkins",
+      "monophonics",
+      "ramblin-dan-stevens",
+      "the-cartells",
+      "violet-theory",
+    ],
+  );
+
+  const dumped = JSON.stringify(seed);
+  assert.doesNotMatch(dumped, /straight-line|time approximate|Category guessed|Wailing City/);
 
   for (const gig of seed.gigs) {
     assert.equal(gig.sourceKind, "public_info");
     assert.match(gig.sourceUrl, /^https:\/\/\S+$/);
-    assert.equal(gig.timezone, lookupVenueTimeZone(gig.location.lat, gig.location.lng));
+    assert.equal(gig.description, "");
     assert.equal(gig.timezone, "America/New_York");
+    assert.equal(gig.timezone, lookupVenueTimeZone(gig.location.lat, gig.location.lng));
+    assert.match(gig.id, /^[a-z0-9]+(-[a-z0-9]+)*$/);
+    assert.ok(gig.id.length <= 80);
     const performer = seed.performers.find((item) => item.id === gig.performerId);
     assert.ok(performer);
     assert.equal(performer.videos.length, 0);
+    assert.deepEqual(performer.genres, []);
     assert.equal(gig.title, performer.name);
+    assert.equal(gig.category, performer.category);
+    assert.match(performer.id, /^[a-z0-9]+(-[a-z0-9]+)*$/);
   }
 
-  const kc = seed.gigs.find((gig) => gig.id === "kc-and-the-sunshine-band-2026-10-02");
-  assert.ok(kc);
-  assert.equal(kc.category, "band");
-  assert.equal(kc.datetime, "2026-10-02T23:30:00.000Z");
-  assert.equal(toVenueDateTimeLocal(kc.datetime, kc.timezone), "2026-10-02T19:30");
-  assert.equal(kc.sourceUrl, "https://www.foxwoods.com/event/kc-sunshine-band");
-  assert.match(kc.location.label, /Foxwoods/);
-  assert.match(kc.description, /Ticketed/);
-  const kcPerformer = seed.performers.find((performer) => performer.id === kc.performerId);
-  assert.equal(kcPerformer?.city, "Mashantucket, CT");
-  assert.match(kcPerformer?.bio ?? "", /Get Down Tonight/);
+  const monophonics = seed.gigs.find((gig) => gig.id === "monophonics-2026-10-03");
+  assert.ok(monophonics);
+  assert.equal(monophonics.datetime, "2026-10-04T00:00:00.000Z");
+  assert.equal(toVenueDateTimeLocal(monophonics.datetime, monophonics.timezone), "2026-10-03T20:00");
+  assert.match(monophonics.location.label, /Knick Music Lab/);
+  assert.match(monophonics.location.label, /Westerly, RI/);
+  assert.equal(
+    seed.performers.find((performer) => performer.id === "monophonics")?.bio,
+    "Psychedelic soul band (per United Theatre event page).",
+  );
+  assert.equal(seed.performers.find((performer) => performer.id === "monophonics")?.city, "Westerly, RI");
 
-  const mystic = seed.gigs.find((gig) => gig.id === "dj-blade-mon-2026-10-23");
-  assert.ok(mystic);
-  assert.equal(mystic.category, "dj");
-  assert.equal(mystic.timezone, "America/New_York");
-  assert.equal(mystic.location.lat, 41.351009);
-  assert.equal(mystic.location.lng, -71.97215);
+  const hubby = seed.gigs.find((gig) => gig.id === "hubby-jenkins-2026-11-14");
+  assert.ok(hubby);
+  assert.equal(hubby.datetime, "2026-11-15T01:00:00.000Z");
+  assert.equal(toVenueDateTimeLocal(hubby.datetime, hubby.timezone), "2026-11-14T20:00");
 
-  const afterFallback = seed.gigs.find((gig) => gig.id === "hubby-jenkins-2026-11-14");
-  assert.ok(afterFallback);
-  assert.equal(afterFallback.datetime, "2026-11-15T01:00:00.000Z");
-  assert.equal(toVenueDateTimeLocal(afterFallback.datetime, afterFallback.timezone), "2026-11-14T20:00");
+  const cartells = seed.gigs.find((gig) => gig.id === "the-cartells-2026-10-03");
+  assert.ok(cartells);
+  assert.equal(cartells.datetime, "2026-10-03T22:00:00.000Z");
+  assert.equal(cartells.category, "band");
 
-  const westerly = seed.performers.find((performer) => performer.id === "monophonics");
-  assert.equal(westerly?.city, "Westerly, RI");
-  assert.equal(westerly?.category, "band");
+  const vibe = seed.performers.find((performer) => performer.name.includes("VIBE"));
+  assert.equal(vibe?.id, "a-vibe-the-encore-2000s-party");
+  assert.equal(vibe?.category, "dj");
+  assert.equal(vibe?.city, "New London, CT");
+  const vibeGig = seed.gigs.find((gig) => gig.performerId === vibe?.id);
+  assert.equal(vibeGig?.datetime, "2026-10-04T01:00:00.000Z");
+  assert.match(vibeGig?.location.label ?? "", /Mambo Bar/);
+
+  const croce = seed.performers.find((performer) => performer.id === "a-j-croce");
+  assert.match(croce?.bio ?? "", /Croce's songs/);
+  assert.equal(croce?.category, "solo");
 
   const austin = publicListingsFromCsv(
     [
@@ -84,15 +107,10 @@ function runChecks() {
       'Test Act,Solo,A bio,Antone\'s,"305 E 5th St, Austin, TX 78701",30.2672,-97.7431,2026-11-01,21:00,https://example.com/austin,Listed from a page',
     ].join("\n"),
   );
-  assert.equal(austin.gigs.length, 1);
-  const austinGig = austin.gigs[0]!;
-  assert.equal(austinGig.timezone, "America/Chicago");
-  assert.equal(austinGig.datetime, "2026-11-02T03:00:00.000Z");
-  assert.notEqual(austinGig.datetime, "2026-11-02T02:00:00.000Z");
-  assert.equal(toVenueDateTimeLocal(austinGig.datetime, austinGig.timezone), "2026-11-01T21:00");
-  assert.equal(austinGig.sourceKind, "public_info");
-  assert.equal(austin.performers[0]?.city, "Austin, TX");
-  assert.equal(austin.performers[0]?.category, "solo");
+  assert.equal(austin.gigs[0]?.timezone, "America/Chicago");
+  assert.equal(austin.gigs[0]?.datetime, "2026-11-02T03:00:00.000Z");
+  assert.equal(austin.gigs[0]?.description, "");
+  assert.doesNotMatch(JSON.stringify(austin), /Listed from a page/);
 
   assert.throws(
     () =>

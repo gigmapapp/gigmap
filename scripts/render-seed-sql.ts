@@ -1,7 +1,13 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
-import { renderSeedSql } from "../lib/seed/sql";
+import { renderSeedSql, renderSeedSwapSql } from "../lib/seed/sql";
 
-const target = path.join(process.cwd(), "supabase", "seed.sql");
-writeFileSync(target, renderSeedSql(), "utf8");
-console.log(`Wrote ${target}`);
+const seedPath = path.join(process.cwd(), "supabase", "seed.sql");
+const swapPath = path.join(
+  process.cwd(),
+  "supabase/migrations/20260930183000_replace_austin_seed_with_mystic.sql",
+);
+writeFileSync(seedPath, renderSeedSql(), "utf8");
+writeFileSync(swapPath, renderSeedSwapSql(), "utf8");
+console.log(`Wrote ${seedPath}`);
+console.log(`Wrote ${swapPath}`);
