@@ -67,27 +67,43 @@ export default function Discovery({
         <div className="relative h-[40vh] min-h-[220px] w-full min-w-0 md:absolute md:inset-0 md:h-auto md:min-h-0">
           <GigMap gigs={visible} selectedId={selectedId} onSelect={setSelectedId} />
           <div className="pointer-events-none absolute inset-x-0 top-0 hidden p-3 sm:p-4 md:block">
-            <div className="pointer-events-none mx-auto max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950/85 p-3 shadow-xl backdrop-blur">
+            <div className="pointer-events-none mx-auto w-full min-w-0 max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950/85 p-3 shadow-xl backdrop-blur">
               <p className="font-display text-lg tracking-tight text-white">
                 Find live music near you.
               </p>
               <p className="mb-3 text-xs text-zinc-400">
                 Austin · dates in Central Time · OpenStreetMap tiles
               </p>
-              <div className="pointer-events-auto flex flex-col gap-2 sm:flex-row">
-                <label className="flex-1 text-xs text-zinc-400">
+              <div className="pointer-events-auto flex flex-wrap gap-1.5">
+                {FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => setCategory(filter.id)}
+                    className={`rounded-full px-3 py-1 text-xs ${
+                      category === filter.id
+                        ? "bg-accent text-zinc-950"
+                        : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+              <div className="pointer-events-auto mt-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+                <label className="block min-w-0 text-xs text-zinc-400">
                   Date
                   <input
                     type="date"
                     value={date}
                     onChange={(event) => setDate(event.target.value)}
-                    className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+                    className="filter-date-input mt-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
                   />
                 </label>
                 <button
                   type="button"
                   onClick={() => setDate("")}
-                  className="rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 sm:self-end"
+                  className="shrink-0 rounded-lg border border-zinc-700 px-3 py-2 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
                 >
                   Upcoming
                 </button>
@@ -105,22 +121,6 @@ export default function Discovery({
                     }`}
                   >
                     {chip}
-                  </button>
-                ))}
-              </div>
-              <div className="pointer-events-auto mt-2 flex flex-wrap gap-1.5">
-                {FILTERS.map((filter) => (
-                  <button
-                    key={filter.id}
-                    type="button"
-                    onClick={() => setCategory(filter.id)}
-                    className={`rounded-full px-3 py-1 text-xs ${
-                      category === filter.id
-                        ? "bg-accent text-zinc-950"
-                        : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                    }`}
-                  >
-                    {filter.label}
                   </button>
                 ))}
               </div>
@@ -210,25 +210,6 @@ function MobileFilterBar({
   return (
     <div className="w-full min-w-0 shrink-0 overflow-hidden border-b border-zinc-800 bg-zinc-950 md:hidden">
       <p className="truncate px-3 pt-2 text-sm text-zinc-300">Find live music near you</p>
-      <div className="flex items-center gap-2 px-3 pt-2">
-        <label className="min-w-0 flex-1">
-          <span className="sr-only">Date</span>
-          <input
-            type="date"
-            value={date}
-            aria-label="Date"
-            onChange={(event) => onDate(event.target.value)}
-            className="h-11 w-full min-w-0 max-w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-white"
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => onDate("")}
-          className="h-11 shrink-0 rounded-lg border border-zinc-700 px-3 text-sm text-zinc-200 hover:bg-zinc-800"
-        >
-          Upcoming
-        </button>
-      </div>
       <div className="flex gap-2 px-3 pt-2">
         {FILTERS.map((filter) => (
           <button
@@ -244,6 +225,25 @@ function MobileFilterBar({
             {filter.label}
           </button>
         ))}
+      </div>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 pt-2">
+        <label className="block min-w-0">
+          <span className="sr-only">Date</span>
+          <input
+            type="date"
+            value={date}
+            aria-label="Date"
+            onChange={(event) => onDate(event.target.value)}
+            className="filter-date-input h-11 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-white"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => onDate("")}
+          className="h-11 shrink-0 rounded-lg border border-zinc-700 px-3 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
+        >
+          Upcoming
+        </button>
       </div>
       {dateChips.length > 0 ? (
         <div className="max-w-full overflow-x-auto px-3 pt-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
