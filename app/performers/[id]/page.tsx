@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AddVideoForm from "@/components/AddVideoForm";
+import BookPerformerLink from "@/components/BookPerformerLink";
 import CategoryBadge from "@/components/CategoryBadge";
+import DemoBadge from "@/components/DemoBadge";
 import VideoEmbed from "@/components/VideoEmbed";
-import { getSessionPerformer } from "@/lib/auth";
+import { getSessionPerformer } from "@/lib/auth/session";
 import { formatGigWhen, isUpcoming } from "@/lib/format";
 import { clipUploadMode, gigs, performers } from "@/lib/repo";
 
@@ -26,18 +28,16 @@ export default async function PerformerPage({
     <main className="mx-auto w-full max-w-4xl px-4 py-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <CategoryBadge category={performer.category} />
+          <div className="flex flex-wrap items-center gap-2">
+            <CategoryBadge category={performer.category} />
+            {performer.claimed ? null : <DemoBadge />}
+          </div>
           <h1 className="mt-3 font-display text-4xl text-white">{performer.name}</h1>
           <p className="mt-2 text-sm text-zinc-400">
             {performer.city} · {performer.genres.join(" · ")}
           </p>
         </div>
-        <Link
-          href={`/performers/${performer.id}/book`}
-          className="rounded-lg bg-accent px-4 py-2 text-center text-sm font-medium text-zinc-950 hover:bg-accent-hover"
-        >
-          Request to book
-        </Link>
+        <BookPerformerLink performer={performer} />
       </div>
       <p className="mt-6 max-w-2xl text-zinc-300">{performer.bio}</p>
 

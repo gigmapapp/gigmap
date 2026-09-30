@@ -1,5 +1,7 @@
 import "server-only";
-import { CLIPS_BUCKET } from "@/lib/clips";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { bookingTargetError } from "@/lib/auth/access";
+import { CLIPS_BUCKET, clipObjectPath } from "@/lib/clips";
 import { requireBookingPerformerId } from "@/lib/repo/booking-scope";
 import type {
   BookingRepository,
@@ -7,6 +9,7 @@ import type {
   PerformerRepository,
 } from "@/lib/repo/interface";
 import { slugify } from "@/lib/slug";
+import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { getServiceClient } from "@/lib/supabase/server";
 import type {
   BookingRequest,
@@ -20,7 +23,7 @@ import type {
   Video,
 } from "@/lib/types";
 
-const PERFORMER_COLUMNS = "id, name, category, bio, city, genres, created_at";
+const PERFORMER_COLUMNS = "id, name, category, bio, city, genres, created_at, user_id";
 const VIDEO_COLUMNS = "id, performer_id, title, source_type, url, created_at";
 const GIG_COLUMNS = "id, performer_id, title, description, category, datetime, lat, lng, label, created_at";
 const BOOKING_COLUMNS =
@@ -34,6 +37,7 @@ type PerformerRow = {
   city: string;
   genres: string[] | null;
   created_at: string;
+  user_id: string | null;
 };
 
 type VideoRow = {
@@ -71,10 +75,24 @@ type BookingRow = {
   created_at: string;
 };
 
-function fail(error: { message: string; code?: string }, fallback: string): never {
+function fail(error: { message: string; code?: string; details?: string }, fallback: string): never {
   console.error(fallback, error.code ?? "", error.message);
   if (error.code === "23503") throw new Error("Performer not found");
+  if (error.code === "42501") throw new Error("You can only change your own profile.");
+  const duplicate = `${error.message} ${error.details ?? ""}`;
+  if (error.code === "23505" && /user_id/i.test(duplicate)) {
+    throw new Error("You already have a performer profile.");
+  }
   throw new Error(fallback);
+}
+
+/** Signed-in client. Writes through this client so RLS, not the service role, decides ownership. */
+async function userDb(): Promise<{ client: SupabaseClient; userId: string }> {
+  const client = await createAuthServerClient();
+  const { data, error } = await client.auth.getClaims();
+  const userId = data?.claims.sub;
+  if (error || !userId) throw new Error("Sign in to continue.");
+  return { client, userId };
 }
 
 function toVideo(row: VideoRow): Video {
@@ -96,6 +114,7 @@ function toPerformer(row: PerformerRow, videos: Video[]): Performer {
     genres: row.genres ?? [],
     videos,
     createdAt: row.created_at,
+    claimed: row.user_id !== null,
   };
 }
 
@@ -173,7 +192,22 @@ export const supabasePerformers: PerformerRepository = {
   async get(id) {
     return performerById(id);
   },
+  async getByUserId(userId) {
+    if (!userId) return null;
+    const { data, error } = await getServiceClient()
+      .from("performers")
+      .select(PERFORMER_COLUMNS)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) fail(error, "Could not load performer.");
+    if (!data) return null;
+    const row = data as PerformerRow;
+    const videos = await videosFor([row.id]);
+    return toPerformer(row, videos.get(row.id) ?? []);
+  },
   async create(input: CreatePerformerInput) {
+    const { client, userId } = await userDb();
+    if (input.userId !== userId) throw new Error("You can only create your own profile.");
     const base = slugify(input.name) || "performer";
     const payload = {
       name: input.name.trim(),
@@ -181,21 +215,26 @@ export const supabasePerformers: PerformerRepository = {
       bio: input.bio.trim(),
       city: input.city.trim() || "Austin, TX",
       genres: input.genres.map((genre) => genre.trim()).filter(Boolean),
+      user_id: userId,
     };
     for (let n = 1; n < 50; n += 1) {
       const id = n === 1 ? base : `${base}-${n}`;
-      const { data, error } = await getServiceClient()
+      const { data, error } = await client
         .from("performers")
         .insert({ id, ...payload })
         .select(PERFORMER_COLUMNS)
         .maybeSingle();
       if (!error && data) return toPerformer(data as PerformerRow, []);
+      if (error?.code === "23505" && /user_id/i.test(`${error.message} ${error.details ?? ""}`)) {
+        fail(error, "You already have a performer profile.");
+      }
       if (error?.code !== "23505") fail(error ?? { message: "insert failed" }, "Could not create performer.");
     }
     throw new Error("Could not create performer.");
   },
   async addVideo(performerId, input: CreateVideoInput) {
-    const { error } = await getServiceClient()
+    const { client } = await userDb();
+    const { error } = await client
       .from("videos")
       .insert({
         id: crypto.randomUUID(),
@@ -241,7 +280,8 @@ export const supabaseGigs: GigRepository = {
       lng: input.location.lng,
       label: input.location.label.trim(),
     };
-    const { data, error } = await getServiceClient()
+    const { client } = await userDb();
+    const { data, error } = await client
       .from("gigs")
       .insert(row)
       .select(GIG_COLUMNS)
@@ -254,7 +294,15 @@ export const supabaseGigs: GigRepository = {
 export const supabaseBookings: BookingRepository = {
   async list(filter) {
     const performerId = requireBookingPerformerId(filter.performerId);
-    const { data, error } = await getServiceClient()
+    const { client, userId } = await userDb();
+    const owned = await client
+      .from("performers")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (owned.error) fail(owned.error, "Could not load booking requests.");
+    if (!owned.data || owned.data.id !== performerId) return [];
+    const { data, error } = await client
       .from("booking_requests")
       .select(BOOKING_COLUMNS)
       .eq("performer_id", performerId)
@@ -263,6 +311,9 @@ export const supabaseBookings: BookingRepository = {
     return ((data ?? []) as BookingRow[]).map(toBooking);
   },
   async create(input: CreateBookingInput) {
+    const performer = await performerById(input.performerId);
+    const refusal = bookingTargetError(performer);
+    if (refusal) throw new Error(refusal);
     const row = {
       id: crypto.randomUUID(),
       performer_id: input.performerId,
@@ -287,8 +338,19 @@ export const supabaseBookings: BookingRepository = {
 export async function createClipUploadTarget(input: {
   performerId: string;
   extension: string;
+  ownerUserId: string;
 }): Promise<{ path: string; token: string; publicUrl: string }> {
-  const path = `${input.performerId}/${crypto.randomUUID()}.${input.extension}`;
+  if (!input.ownerUserId) throw new Error("Sign in to upload a clip.");
+  const { data, error } = await getServiceClient()
+    .from("performers")
+    .select("id, user_id")
+    .eq("id", input.performerId)
+    .maybeSingle();
+  if (error) fail(error, "Could not load performer.");
+  if (!data || data.user_id !== input.ownerUserId) {
+    throw new Error("You can only upload clips for your own profile.");
+  }
+  const path = clipObjectPath(input.performerId, input.extension);
   const supabase = getServiceClient();
   const signed = await supabase.storage.from(CLIPS_BUCKET).createSignedUploadUrl(path);
   if (signed.error || !signed.data) {

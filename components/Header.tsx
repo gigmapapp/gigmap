@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { clearSessionAction } from "@/app/actions/session";
+import { signOutAction } from "@/app/actions/auth";
 import Logo from "@/components/Logo";
-import type { Performer } from "@/lib/types";
+
+export type HeaderAccount = {
+  performer: { id: string; name: string } | null;
+} | null;
 
 const links = [
   { href: "/", label: "Map" },
@@ -12,8 +15,9 @@ const links = [
   { href: "/bookings", label: "Bookings" },
 ];
 
-export default function Header({ performer }: { performer: Performer | null }) {
+export default function Header({ account }: { account: HeaderAccount }) {
   const [open, setOpen] = useState(false);
+  const performer = account?.performer ?? null;
 
   return (
     <header className="sticky top-0 z-30 shrink-0 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
@@ -37,30 +41,29 @@ export default function Header({ performer }: { performer: Performer | null }) {
           </Link>
         </nav>
         <div className="hidden items-center gap-2 text-sm md:flex">
-          {performer ? (
+          {account ? (
             <>
               <Link
-                href={`/performers/${performer.id}`}
+                href={performer ? `/performers/${performer.id}` : "/account"}
                 className="max-w-40 truncate text-zinc-300 hover:text-white"
               >
-                {performer.name}
+                {performer ? performer.name : "Finish profile"}
               </Link>
-              <form action={clearSessionAction}>
-                <input type="hidden" name="next" value="/" />
+              <form action={signOutAction}>
                 <button
                   type="submit"
                   className="rounded-lg px-3 py-2 text-zinc-400 hover:bg-zinc-800 hover:text-white"
                 >
-                  Clear
+                  Sign out
                 </button>
               </form>
             </>
           ) : (
             <Link
-              href="/session"
+              href="/sign-in"
               className="rounded-lg bg-zinc-800 px-3 py-2 text-zinc-100 hover:bg-zinc-700"
             >
-              Pick performer
+              Sign in
             </Link>
           )}
         </div>
@@ -100,13 +103,30 @@ export default function Header({ performer }: { performer: Performer | null }) {
           >
             Post a gig
           </Link>
-          <Link
-            href={performer ? `/performers/${performer.id}` : "/session"}
-            onClick={() => setOpen(false)}
-            className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-800"
-          >
-            {performer ? `Acting as ${performer.name}` : "Pick performer"}
-          </Link>
+          {account ? (
+            <>
+              <Link
+                href={performer ? `/performers/${performer.id}` : "/account"}
+                onClick={() => setOpen(false)}
+                className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-800"
+              >
+                {performer ? performer.name : "Finish profile"}
+              </Link>
+              <form action={signOutAction}>
+                <button type="submit" className="block w-full rounded-lg px-3 py-2 text-left text-zinc-300 hover:bg-zinc-800">
+                  Sign out
+                </button>
+              </form>
+            </>
+          ) : (
+            <Link
+              href="/sign-in"
+              onClick={() => setOpen(false)}
+              className="block rounded-lg px-3 py-2 text-zinc-300 hover:bg-zinc-800"
+            >
+              Sign in
+            </Link>
+          )}
         </div>
       ) : null}
     </header>

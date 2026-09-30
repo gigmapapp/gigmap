@@ -1,4 +1,5 @@
 -- Austin seed for Gig Map. Safe to re-run: seeded ids are upserted, booking_requests are not modified.
+-- performers.user_id is omitted so these rows stay unclaimed (NULL). A re-run does not clear user_id.
 -- Apply supabase/migrations in filename order first. On a fresh database
 -- (supabase db reset) the legacy drop and the rls_auto_enable revoke are
 -- no-ops, and the clips bucket migration creates the storage.buckets row named clips.

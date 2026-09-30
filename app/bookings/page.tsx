@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSessionPerformer } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth/session";
 import { bookings, performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,8 @@ export default async function BookingsPage({
 }: PageProps<"/bookings">) {
   const query = await searchParams;
   const created = typeof query.created === "string" ? query.created : null;
-  const session = await getSessionPerformer();
+  const user = await getSessionUser();
+  const session = user ? await performers.getByUserId(user.id) : null;
   const [rows, performerRows] = await Promise.all([
     session ? bookings.list({ performerId: session.id }) : Promise.resolve([]),
     performers.list(),
@@ -20,8 +21,8 @@ export default async function BookingsPage({
     <main className="mx-auto w-full max-w-2xl px-4 py-10">
       <h1 className="font-display text-3xl text-white">Booking requests</h1>
       <p className="mt-2 text-sm text-zinc-400">
-        Only the performer a request was sent to can read it, and only while acting as that
-        performer. Names and emails are not public. No payments or accept/decline workflow in v1.
+        Only the signed-in performer a request was sent to can read it. Names and emails are not
+        public. No payments or accept/decline workflow in v1.
       </p>
       {created ? (
         <p className="mt-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent">
@@ -29,12 +30,19 @@ export default async function BookingsPage({
         </p>
       ) : null}
       <div className="mt-8 space-y-3">
-        {!session ? (
+        {!user ? (
           <p className="text-sm text-zinc-500">
-            <Link href="/session?next=/bookings" className="text-accent hover:text-white">
-              Act as a performer
+            <Link href="/sign-in?next=/bookings" className="text-accent hover:text-white">
+              Sign in
             </Link>{" "}
-            to see requests sent to them.
+            to see requests sent to your profile.
+          </p>
+        ) : !session ? (
+          <p className="text-sm text-zinc-500">
+            <Link href="/account?next=/bookings" className="text-accent hover:text-white">
+              Create your profile
+            </Link>{" "}
+            before booking requests have somewhere to go.
           </p>
         ) : rows.length === 0 ? (
           <p className="text-sm text-zinc-500">No requests for you yet.</p>

@@ -1,21 +1,17 @@
 import "server-only";
+import { isAuthConfigured, supabaseAnonKey, supabaseUrl } from "@/lib/supabase/public-env";
 
-export function supabaseUrl(): string | undefined {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  return url || undefined;
-}
-
-export function supabaseAnonKey(): string | undefined {
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-  return key || undefined;
-}
+export { isAuthConfigured, supabaseAnonKey, supabaseUrl };
 
 export function supabaseServiceRoleKey(): string | undefined {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   return key || undefined;
 }
 
-/** Database adapter switches on when the server can reach the project. */
+/**
+ * Database adapter switches on when the server can reach the project with the
+ * service role. Owner writes still go through the signed-in user's client.
+ */
 export function isSupabaseConfigured(): boolean {
   return Boolean(supabaseUrl() && supabaseServiceRoleKey());
 }

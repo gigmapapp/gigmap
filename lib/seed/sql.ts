@@ -19,7 +19,8 @@ function sqlGigTime(dayOffset: number, hour: number, minute: number): string {
 /**
  * Idempotent Austin seed. Gig datetimes are Chicago wall-clock times relative to
  * whenever this script runs, so the map stays in the future. Booking requests are
- * left untouched.
+ * left untouched. performers.user_id is omitted so seed rows stay unclaimed and a
+ * re-run does not clear a user_id that was set by hand.
  */
 export function renderSeedSql(): string {
   const performerRows = SEED_PERFORMERS.map(
@@ -42,6 +43,7 @@ export function renderSeedSql(): string {
   ).join(",\n");
 
   return `-- Austin seed for Gig Map. Safe to re-run: seeded ids are upserted, booking_requests are not modified.
+-- performers.user_id is omitted so these rows stay unclaimed (NULL). A re-run does not clear user_id.
 -- Apply supabase/migrations in filename order first. On a fresh database
 -- (supabase db reset) the legacy drop and the rls_auto_enable revoke are
 -- no-ops, and the clips bucket migration creates the storage.buckets row named clips.

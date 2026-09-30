@@ -10,7 +10,7 @@ components/     Client islands (map, forms)
 lib/types.ts    Shared domain types
 lib/repo/       Repository interfaces + JSON adapters
 lib/seed/       Austin seed used when `.data/db.json` is missing
-lib/auth.ts     Temporary cookie session
+lib/auth/      Supabase Auth session, route guards, and pure auth checks
 .data/          Local database + video uploads (not committed)
 ```
 
@@ -46,11 +46,15 @@ See `lib/repo/interface.ts`:
 
 `lib/repo/index.ts` binds those interfaces to the JSON adapters. Changing backends is a new adapter plus a one-line swap.
 
-## Temporary auth
+## Auth
 
-`gigmap_performer` is an HTTP-only cookie holding a performer id. `getSessionPerformer()` / `requirePerformer()` resolve it through the performer repository. UI copy labels this as stub auth.
+Email and password through Supabase Auth, with confirmation and password reset. Sessions are cookies via `@supabase/ssr`. There is no magic link and no `gigmap_performer` cookie. `proxy.ts` refreshes the session with `getClaims()` and expires any leftover stub cookie. Server code authorizes with `getClaims()` (`lib/auth/session.ts`). It does not trust `getSession()`.
 
-No passwords, email confirmation, or RLS exist in v1.
+`getSessionPerformer()` / `requirePerformer()` load the signed-in user's profile (`performers.user_id`). No user redirects to `/sign-in`. A user with no profile redirects to `/account`. Posting a gig, adding clips, and reading `/bookings` all require that profile and act only on it.
+
+Sign-in, sign-up, password reset, and the account screen are functional placeholders. Presentation lives under `components/auth/`. Actions live in `app/actions/auth.ts` and `app/actions/account.ts`.
+
+JSON mode has no accounts. Without `SUPABASE_SERVICE_ROLE_KEY` the app still reads and writes `.data/db.json`, but sign-in cannot create a session, so owner actions send you to `/sign-in`. A performer row is claimable in that file only by setting `userId` by hand, which is a dev-only way to exercise booking against the JSON store. Real accounts require Supabase.
 
 ## Supabase
 
@@ -63,6 +67,7 @@ Schema and RLS live in `supabase/migrations/`. The `clips` bucket is its own fil
 3. `20260929155000_create_clips_bucket.sql` inserts the public `clips` bucket (10 MB, MP4 / WebM / MOV) and `clips_public_read` on `storage.objects`.
 4. `20260929160000_revoke_anon_table_writes.sql` leaves public read on performers, videos, and gigs, and removes anon, authenticated, and public insert/update/delete privileges and policies on those tables and on `booking_requests`.
 5. `20260929170000_revoke_rls_auto_enable.sql` revokes `EXECUTE` on `public.rls_auto_enable()` when that function already exists. It does not create, drop, or edit the function.
+6. `20260930120600_performer_auth_ownership.sql` adds nullable unique `performers.user_id` referencing `auth.users`, owner write policies for authenticated users, and owner select on `booking_requests`. Anon stays read-only on the public tables and cannot read bookings. It does not alter `storage.objects`. Do not re-run file 4 after this one: that file drops every write policy, including these owner policies. If you do, apply file 6 again.
 
 `supabase start` then `supabase db reset` applies that filename order and then `supabase/seed.sql`. Local Storage already has RLS on `storage.objects`, and this repo never alters that table.
 
@@ -71,11 +76,13 @@ Hosted migration history will not match these filenames. `apply_migration` recor
 If the clips migration fails on the hosted project, leave it failed and create the bucket in the dashboard: Storage → New bucket, name `clips`, public, 10 MB, MIME types `video/mp4`, `video/webm`, `video/quicktime`. Then add a SELECT policy named `clips_public_read` for `anon` and `authenticated` with `using (bucket_id = 'clips')`. Do not run `ALTER TABLE storage.objects`. Do not add an insert policy for anon.
 
 - Public read of `performers`, `videos`, and `gigs` for `anon` and `authenticated`.
-- All table writes use the service role. `booking_requests` has no select or write grant for anon. `BookingRepository.list` requires a performer id, and `/bookings` passes only the stub-session performer.
-- Clip uploads: the server mints a signed upload URL with the service role after the stub-session check. The browser PUTs the file with the anon key and that token. The public object URL is stored on `videos`. There is no anon insert policy on `storage.objects`, and no `clips_service_insert` policy. The service role bypasses RLS, and the signed PUT writes as superuser, so that insert policy is unused. If minting a signed URL later fails an INSERT check, add `clips_service_insert` for `service_role` from the SQL editor. The statement is commented in the clips migration.
+- `performers.user_id` null means an unclaimed demo profile. The ten seed rows stay null. They are public and not editable. `claimed` on the app type is `user_id is not null`. There is no extra column.
+- Authenticated users may insert, update, and delete only their own performer, and gigs or videos whose performer they own. Policies compare `(select auth.uid())`.
+- `booking_requests`: authenticated may select rows for a performer they own. Nobody else can read them. Fans still create requests through the server action, which uses the service role after it rejects unclaimed performers. Anon has no insert.
+- Owner writes (profile, gigs, clips, the booking inbox) use the user-scoped server client so RLS applies. The service role is limited to public reads, booking inserts, signed upload URLs, and seeding. A signed upload URL is minted only after a service-role read shows `user_id` matches the signed-in user. Object keys are `{performerId}/{uuid}.{ext}`. There is still no anon insert policy on `storage.objects`.
 
 Seed data is `lib/seed/austin.ts`. `supabase/seed.sql` is rendered from it with gig times relative to `now()` in America/Chicago. `npm run seed:supabase` upserts the same rows with the service role and does not touch booking requests.
 
-## Still temporary
+## Still out of scope
 
-Replace the cookie picker with Supabase Auth before treating inserts as user-owned. Add `user_id` on `performers` (one profile per user, or a join table if a user can manage a band) and tighten RLS so a session can insert gigs and videos only for their performer. Map tiles stay MapLibre + OSM. No payments, reviews, inbox threads, or admin tools.
+Map tiles stay MapLibre + OSM. No payments, reviews, inbox threads, or admin tools. One profile per user. The auth screens are intentionally plain so they can be restyled without moving the session code.

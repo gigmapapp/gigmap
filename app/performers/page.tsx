@@ -1,5 +1,6 @@
 import Link from "next/link";
 import CategoryBadge from "@/components/CategoryBadge";
+import DemoBadge from "@/components/DemoBadge";
 import { performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +19,10 @@ export default async function PerformersPage() {
           </p>
         </div>
         <Link
-          href="/performers/new"
+          href="/account"
           className="rounded-lg bg-zinc-800 px-4 py-2 text-sm text-white hover:bg-zinc-700"
         >
-          New profile
+          Your profile
         </Link>
       </div>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -33,7 +34,10 @@ export default async function PerformersPage() {
           >
             <div className="flex items-start justify-between gap-3">
               <h2 className="font-display text-xl text-white">{performer.name}</h2>
-              <CategoryBadge category={performer.category} />
+              <span className="flex items-center gap-2">
+                {performer.claimed ? null : <DemoBadge />}
+                <CategoryBadge category={performer.category} />
+              </span>
             </div>
             <p className="mt-2 line-clamp-2 text-sm text-zinc-400">{performer.bio}</p>
             <p className="mt-3 text-xs text-zinc-500">

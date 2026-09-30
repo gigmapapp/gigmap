@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { bookingTargetError } from "@/lib/auth/access";
 import {
   bookingFieldsFromForm,
   hasBookingErrors,
   validateBookingFields,
   type BookingFieldErrors,
 } from "@/lib/booking-validation";
-import { bookings } from "@/lib/repo";
+import { bookings, performers } from "@/lib/repo";
 
 export type BookingActionState = {
   ok: false;
@@ -28,6 +29,12 @@ export async function createBookingAction(formData: FormData): Promise<BookingAc
   const fieldErrors = validateBookingFields(fields);
   if (hasBookingErrors(fieldErrors)) {
     return { ok: false, fieldErrors };
+  }
+
+  const performer = await performers.get(performerId);
+  const refusal = bookingTargetError(performer);
+  if (refusal) {
+    return { ok: false, fieldErrors: {}, formError: refusal };
   }
 
   const booking = await bookings.create({

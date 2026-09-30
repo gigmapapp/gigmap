@@ -27,6 +27,7 @@ function repositories(): Repositories {
 export const performers: PerformerRepository = {
   list: () => repositories().performers.list(),
   get: (id) => repositories().performers.get(id),
+  getByUserId: (userId) => repositories().performers.getByUserId(userId),
   create: (input: CreatePerformerInput) => repositories().performers.create(input),
   addVideo: (performerId, input: CreateVideoInput) => repositories().performers.addVideo(performerId, input),
 };

@@ -30,6 +30,7 @@ test("seed gigs run from just after now through about six weeks", () => {
   const db = seedDatabase(now);
   assert.equal(SEED_PERFORMERS.length, 10);
   assert.equal(db.performers.length, 10);
+  assert.ok(db.performers.every((performer) => performer.claimed === false));
   assert.equal(SEED_GIGS.length, 12);
   assert.equal(db.gigs.length, 12);
   assert.equal(db.bookings.length, 0);

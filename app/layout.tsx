@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Manrope, Syne } from "next/font/google";
 import Header from "@/components/Header";
-import SessionBanner from "@/components/SessionBanner";
-import { getSessionPerformer } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth/session";
+import { performers } from "@/lib/repo";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -24,7 +24,8 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const performer = await getSessionPerformer();
+  const user = await getSessionUser();
+  const performer = user ? await performers.getByUserId(user.id) : null;
 
   return (
     <html
@@ -32,8 +33,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${manrope.variable} ${syne.variable} h-full antialiased`}
     >
       <body className="flex h-dvh min-h-0 w-full min-w-0 flex-col overflow-hidden bg-canvas text-foreground">
-        <SessionBanner performer={performer} />
-        <Header performer={performer} />
+        <Header
+          account={
+            user
+              ? { performer: performer ? { id: performer.id, name: performer.name } : null }
+              : null
+          }
+        />
         {/* Definite height so the home map fills the viewport instead of
             stretching to the gig list and parking pins below the fold. */}
         <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto">{children}</div>

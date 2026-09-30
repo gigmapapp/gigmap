@@ -10,6 +10,7 @@ const migrationFiles = [
   "20260929155000_create_clips_bucket.sql",
   "20260929160000_revoke_anon_table_writes.sql",
   "20260929170000_revoke_rls_auto_enable.sql",
+  "20260930120600_performer_auth_ownership.sql",
 ];
 
 function readMigration(name: string): string {
@@ -97,6 +98,26 @@ test("rls_auto_enable revoke is a no-op when the function is absent", () => {
 test("table migration does not take ownership of storage objects", () => {
   const sql = statements(migration);
   assert.doesNotMatch(sql, /storage\.objects|storage\.buckets|alter table storage/i);
+});
+
+test("auth ownership migration keeps anon read-only and keys policies off auth.uid()", () => {
+  const raw = readMigration("20260930120600_performer_auth_ownership.sql");
+  const sql = statements(raw);
+  assert.match(raw, /user_id uuid/);
+  assert.match(sql, /references auth\.users \(id\) on delete set null/i);
+  assert.match(sql, /create unique index if not exists performers_user_id_key/i);
+  assert.match(sql, /grant select on table public\.booking_requests to authenticated/);
+  assert.match(sql, /booking_requests_owner_select/);
+  assert.match(sql, /performers_owner_insert/);
+  assert.match(sql, /videos_owner_delete/);
+  assert.match(sql, /gigs_owner_update/);
+  assert.doesNotMatch(sql, /auth\.uid\(\)(?!\))/);
+  assert.match(sql, /\(select auth\.uid\(\)\)/);
+  assert.doesNotMatch(sql, /grant insert[^;]*to anon/i);
+  assert.doesNotMatch(sql, /for insert\s+to anon/i);
+  assert.doesNotMatch(sql, /to anon,\s*authenticated\s+with check/i);
+  assert.doesNotMatch(sql, /storage\.objects|alter table storage|security definer/i);
+  assert.doesNotMatch(sql, /user_metadata/);
 });
 
 test("clip bucket migration is idempotent and does not alter storage.objects", () => {

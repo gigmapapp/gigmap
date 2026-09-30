@@ -11,6 +11,8 @@ import type {
 export interface PerformerRepository {
   list(): Promise<Performer[]>;
   get(id: string): Promise<Performer | null>;
+  /** Profile owned by this auth user, if they have finished onboarding. */
+  getByUserId(userId: string): Promise<Performer | null>;
   create(input: CreatePerformerInput): Promise<Performer>;
   addVideo(performerId: string, input: CreateVideoInput): Promise<Performer>;
 }

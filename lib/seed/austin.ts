@@ -1,7 +1,7 @@
 import type { Category, Database, GeoLocation, Performer, Video } from "@/lib/types";
 import { austinDateTime } from "./time";
 
-type SeedPerformer = Omit<Performer, "createdAt">;
+type SeedPerformer = Omit<Performer, "createdAt" | "claimed">;
 
 export type SeedGig = {
   id: string;
@@ -202,7 +202,11 @@ function gig(
 export function seedDatabase(now = new Date()): Database {
   const createdAt = now.toISOString();
   return {
-    performers: SEED_PERFORMERS.map((performer) => ({ ...performer, createdAt })),
+    performers: SEED_PERFORMERS.map((performer) => ({
+      ...performer,
+      claimed: false,
+      createdAt,
+    })),
     gigs: SEED_GIGS.map((row) => ({
       id: row.id,
       performerId: row.performerId,

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import BookPerformerLink from "@/components/BookPerformerLink";
 import CategoryBadge from "@/components/CategoryBadge";
+import DemoBadge from "@/components/DemoBadge";
 import { formatGigDay, formatGigWhen } from "@/lib/format";
 import { gigs, performers } from "@/lib/repo";
 
@@ -35,6 +37,11 @@ export default async function GigPage({ params }: PageProps<"/gigs/[id]">) {
           >
             {performer.name}
           </Link>
+          {performer.claimed ? null : (
+            <div className="mt-2">
+              <DemoBadge />
+            </div>
+          )}
           <p className="mt-2 text-sm text-zinc-400">{performer.bio}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
@@ -43,12 +50,7 @@ export default async function GigPage({ params }: PageProps<"/gigs/[id]">) {
             >
               Profile & clips
             </Link>
-            <Link
-              href={`/performers/${performer.id}/book`}
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-accent-hover"
-            >
-              Request to book
-            </Link>
+            <BookPerformerLink performer={performer} />
           </div>
         </section>
       ) : null}

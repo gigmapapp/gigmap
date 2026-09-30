@@ -13,7 +13,7 @@ This repository is the v1 vertical slice: Next.js 16 App Router, React 19, Tailw
 - Discovery map of upcoming gigs with a date filter
 - “Request to book” for private events (contact, event details, preferred date/location, message)
 - Booking requests persisted locally
-- Stub auth (cookie: pick a performer) — clearly marked temporary
+- Email and password accounts (Supabase Auth) with confirmation, password reset, and sign out
 
 ## What’s out of v1
 
@@ -59,14 +59,17 @@ rm -rf .data/db.json .data/uploads
 3. `supabase/migrations/20260929155000_create_clips_bucket.sql` inserts the public `clips` bucket and a public read policy. It does not `ALTER` `storage.objects`. If this file fails, the tables from step 2 stay; use the dashboard fallback in `ARCHITECTURE.md`.
 4. `supabase/migrations/20260929160000_revoke_anon_table_writes.sql` removes anon, authenticated, and public insert/update/delete access. Public read of performers, videos, and gigs stays.
 5. `supabase/migrations/20260929170000_revoke_rls_auto_enable.sql` revokes `EXECUTE` on `public.rls_auto_enable()` when that function is already there. It does nothing on a fresh database.
+6. `supabase/migrations/20260930120600_performer_auth_ownership.sql` adds `performers.user_id` and owner-only write policies. Seed rows stay unclaimed (`user_id` null). Do not re-run step 4 after this file without applying this file again. See `ARCHITECTURE.md`.
 
-Then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the server env vars set. See `ARCHITECTURE.md` for the full steps, including hosted migration-history versions. Neither path writes booking requests. `supabase db reset` runs the migrations in that order; the drop and the function revoke are no-ops locally, then the seed loads v1 gigs.
+Then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the server env vars set. See `ARCHITECTURE.md` for the full steps, including hosted migration-history versions and the Auth dashboard settings this app expects. Neither path writes booking requests or sets `user_id`. `supabase db reset` runs the migrations in that order; the drop and the function revoke are no-ops locally, then the seed loads v1 gigs.
 
-## Stub auth
+## Accounts
 
-There are no real accounts. Open **Pick performer** (`/session`) and act as a seeded artist (or create a new profile). That sets an HTTP-only cookie so you can post gigs and add clips. Fans can browse and send booking requests without picking anyone.
+Sign in at `/sign-in`. After email confirmation, `/account` creates the one performer profile for that user. Posting a gig, uploading clips, and opening `/bookings` require that profile. Fans can browse, and they can request a booking, without an account.
 
-This is temporary scaffolding. See `ARCHITECTURE.md` for how it maps onto Supabase Auth later.
+The ten seeded performers are demo profiles. The Book button is closed on them, and the server refuses those requests, because nobody could read the inbox. That switch is `REFUSE_BOOKINGS_FOR_UNCLAIMED_PERFORMERS` in `lib/auth/access.ts`.
+
+Without Supabase env vars the app still uses the local JSON store, but accounts do not. Owner actions explain that on the sign-in page. Auth email links use `NEXT_PUBLIC_SITE_URL` when it is set, and the request host otherwise.
 
 ## App routes
 
@@ -76,10 +79,12 @@ This is temporary scaffolding. See `ARCHITECTURE.md` for how it maps onto Supaba
 | `/performers` | Roster |
 | `/performers/[id]` | Profile and clips |
 | `/performers/[id]/book` | Request to book |
-| `/gigs/new` | Post a gig (needs stub session) |
+| `/gigs/new` | Post a gig (signed-in profile) |
 | `/gigs/[id]` | Gig detail |
-| `/bookings` | Stored booking requests |
-| `/session` | Temporary “act as performer” |
+| `/bookings` | Booking requests for the signed-in profile |
+| `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password` | Account screens |
+| `/account` | Profile onboarding, or the signed-in profile |
+| `/auth/confirm`, `/auth/callback` | Email link handlers |
 
 ## Persistence
 
@@ -87,4 +92,4 @@ Pages talk to `lib/repo`. That module uses Supabase when `NEXT_PUBLIC_SUPABASE_U
 
 Clip files in Supabase mode upload from the browser to the public `clips` bucket (10 MB cap) using a short-lived signed URL. They do not pass through the Next.js server. Local JSON mode still writes `.data/uploads/` and serves them from `/api/uploads/[filename]`.
 
-Booking requests are visible only to the stub-session performer they were sent to. The anon key cannot read or write that table, or write the other tables. Table writes use the server service role.
+Booking requests are visible only to the signed-in owner of that performer. The anon key cannot read or write that table. Owner edits run as the signed-in user so row level security applies. Booking inserts and signed clip URLs still use the service role, after the server checks the target.
