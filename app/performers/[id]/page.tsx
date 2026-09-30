@@ -4,6 +4,7 @@ import AddVideoForm from "@/components/AddVideoForm";
 import BookPerformerLink from "@/components/BookPerformerLink";
 import CategoryBadge from "@/components/CategoryBadge";
 import DemoBadge from "@/components/DemoBadge";
+import GigSource from "@/components/GigSource";
 import VideoEmbed from "@/components/VideoEmbed";
 import { getSessionPerformer } from "@/lib/auth/session";
 import { formatGigWhen, isUpcoming, zoneForGig } from "@/lib/format";
@@ -23,28 +24,36 @@ export default async function PerformerPage({
   const upcoming = (await gigs.list()).filter(
     (gig) => gig.performerId === performer.id && isUpcoming(gig.datetime),
   );
+  const place = [performer.city, ...performer.genres].map((part) => part.trim()).filter(Boolean);
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <CategoryBadge category={performer.category} />
             {performer.claimed ? null : <DemoBadge />}
           </div>
-          <h1 className="mt-3 font-display text-4xl text-white">{performer.name}</h1>
-          <p className="mt-2 text-sm text-zinc-400">
-            {performer.city} · {performer.genres.join(" · ")}
-          </p>
+          <h1 className="mt-3 font-display text-4xl break-words text-white">{performer.name}</h1>
+          {place.length > 0 ? (
+            <p className="mt-2 text-sm break-words text-zinc-400">{place.join(" · ")}</p>
+          ) : null}
         </div>
         <BookPerformerLink performer={performer} />
       </div>
-      <p className="mt-6 max-w-2xl text-zinc-300">{performer.bio}</p>
+      {performer.bio.trim() ? (
+        <p className="mt-6 max-w-2xl text-zinc-300">{performer.bio}</p>
+      ) : null}
 
       <section className="mt-10">
         <h2 className="font-display text-2xl text-white">Clips</h2>
         {performer.videos.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-500">No clips yet.</p>
+          <div className="mt-4 rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/40 px-4 py-8 text-center">
+            <p className="text-sm font-medium text-zinc-200">No clips yet</p>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-zinc-500">
+              Videos will show up here when this performer adds them.
+            </p>
+          </div>
         ) : (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {performer.videos.map((video) => (
@@ -69,16 +78,18 @@ export default async function PerformerPage({
             <p className="text-sm text-zinc-500">Nothing on the calendar yet.</p>
           ) : (
             upcoming.map((gig) => (
-              <Link
+              <article
                 key={gig.id}
-                href={`/gigs/${gig.id}`}
-                className="block rounded-xl border border-zinc-800 bg-zinc-900/70 p-4 hover:border-accent/40"
+                className="min-w-0 rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 py-3 hover:border-accent/40"
               >
-                <div className="font-medium text-white">{gig.title}</div>
-                <div className="mt-1 text-sm text-zinc-400">
-                  {formatGigWhen(gig.datetime, zoneForGig(gig))} · {gig.location.label}
-                </div>
-              </Link>
+                <Link href={`/gigs/${gig.id}`} className="block min-h-11 rounded-lg py-1">
+                  <div className="font-medium break-words text-white">{gig.title}</div>
+                  <div className="mt-1 text-sm break-words text-zinc-400">
+                    {formatGigWhen(gig.datetime, zoneForGig(gig))} · {gig.location.label}
+                  </div>
+                </Link>
+                <GigSource sourceUrl={gig.sourceUrl} sourceKind={gig.sourceKind} className="mt-1" />
+              </article>
             ))
           )}
         </div>
