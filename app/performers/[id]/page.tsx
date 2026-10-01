@@ -4,7 +4,7 @@ import AddVideoForm from "@/components/AddVideoForm";
 import CategoryBadge from "@/components/CategoryBadge";
 import VideoEmbed from "@/components/VideoEmbed";
 import { getSessionPerformer } from "@/lib/auth";
-import { formatGigWhen, isUpcoming } from "@/lib/format";
+import { formatGigWhen, isUpcoming, zoneForGig } from "@/lib/format";
 import { clipUploadMode, gigs, performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -76,7 +76,7 @@ export default async function PerformerPage({
               >
                 <div className="font-medium text-white">{gig.title}</div>
                 <div className="mt-1 text-sm text-zinc-400">
-                  {formatGigWhen(gig.datetime)} · {gig.location.label}
+                  {formatGigWhen(gig.datetime, zoneForGig(gig))} · {gig.location.label}
                 </div>
               </Link>
             ))
