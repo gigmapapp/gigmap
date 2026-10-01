@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import {
+  ALREADY_REGISTERED_MESSAGE,
+  SIGN_UP_CHECK_EMAIL_HINT,
   forgotFieldErrors,
   presentAuthError,
   profileFieldErrors,
@@ -115,6 +118,25 @@ test("forms reject the same cases the account actions reject", () => {
   assert.match(profile.bio ?? "", /500/);
   assert.match(profile.city ?? "", /city is required/i);
   assert.match(profile.genres ?? "", /8/);
+});
+
+test("repeated signup and the check-email screen use the generic copy", () => {
+  assert.equal(
+    ALREADY_REGISTERED_MESSAGE,
+    "Looks like you already have an account. Sign in or reset your password",
+  );
+  assert.equal(
+    SIGN_UP_CHECK_EMAIL_HINT,
+    "Didn't get it? Check spam, or you may already have an account",
+  );
+  const formSource = readFileSync(new URL("./SignUpForm.tsx", import.meta.url), "utf8");
+  assert.match(formSource, /ALREADY_REGISTERED_MESSAGE/);
+  assert.match(formSource, /SIGN_UP_CHECK_EMAIL_HINT/);
+  assert.match(formSource, /href="\/sign-in"/);
+  assert.match(formSource, /href="\/forgot-password"/);
+  assert.match(formSource, /Sign in/);
+  assert.match(formSource, /Forgot password/);
+  assert.doesNotMatch(formSource, /identities/);
 });
 
 function form(values: Record<string, string>) {

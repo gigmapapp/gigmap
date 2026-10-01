@@ -25,6 +25,8 @@ export type AuthActionFailure = {
 export type AuthActionSuccess = {
   ok: true;
   message?: string;
+  /** Supabase repeated signup: 200, empty identities, and no confirmation email. */
+  alreadyRegistered?: boolean;
 };
 
 export type AuthActionResult = AuthActionFailure | AuthActionSuccess;
@@ -80,6 +82,16 @@ export function messageForAuthCode(code: AuthErrorCode, fallback?: string): stri
     case "unknown":
       return fallback || "Something went wrong. Try again.";
   }
+}
+
+/**
+ * Supabase returns a user with an empty identities array for an email that
+ * is already registered, and it does not send a confirmation email.
+ */
+export function isRepeatedSignupUser(
+  user: { identities?: readonly unknown[] | null } | null | undefined,
+): boolean {
+  return Boolean(user && user.identities?.length === 0);
 }
 
 export function authFailure(code: AuthErrorCode, message: string, field?: string): AuthActionFailure {

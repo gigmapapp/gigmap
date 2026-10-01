@@ -236,12 +236,32 @@ select {
   }
 }
 
-/* Date inputs have a large intrinsic min-width. Unlayered so it beats the
-   control's automatic minimum size and stays inside the filter grid column. */
+/* Date inputs have a large intrinsic min-width on iOS Safari. Unlayered so
+   these beat the control's automatic minimum size and stay inside the filter
+   grid column instead of painting over the Upcoming button. */
 .filter-date-input {
   display: block;
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-min-logical-width: 0;
+  color: #fafafa;
+  line-height: 1.25;
+}
+
+.filter-date-input::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: 1.5em;
+}
+
+.filter-date-input::-webkit-datetime-edit,
+.filter-date-input::-webkit-datetime-edit-fields-wrapper {
+  min-width: 0;
+  padding: 0;
+  color: #fafafa;
 }

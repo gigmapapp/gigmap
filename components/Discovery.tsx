@@ -97,13 +97,13 @@ export default function Discovery({
                     type="date"
                     value={date}
                     onChange={(event) => setDate(event.target.value)}
-                    className="filter-date-input mt-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+                    className="filter-date-input mt-1 box-border h-11 min-h-11 w-full min-w-0 appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-white [-webkit-appearance:none]"
                   />
                 </label>
                 <button
                   type="button"
                   onClick={() => setDate("")}
-                  className="shrink-0 rounded-lg border border-zinc-700 px-3 py-2 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
+                  className="h-11 min-h-11 shrink-0 rounded-lg border border-zinc-700 px-3 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
                 >
                   Upcoming
                 </button>
@@ -234,13 +234,13 @@ function MobileFilterBar({
             value={date}
             aria-label="Date"
             onChange={(event) => onDate(event.target.value)}
-            className="filter-date-input h-11 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-white"
+            className="filter-date-input box-border h-11 min-h-11 w-full min-w-0 appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-white [-webkit-appearance:none]"
           />
         </label>
         <button
           type="button"
           onClick={() => onDate("")}
-          className="h-11 shrink-0 rounded-lg border border-zinc-700 px-3 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
+          className="h-11 min-h-11 shrink-0 rounded-lg border border-zinc-700 px-3 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
         >
           Upcoming
         </button>

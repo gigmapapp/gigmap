@@ -84,6 +84,9 @@ export async function signUpAction(
   });
   if (error) return authErrorFromProvider(error);
   if (data.session) redirect("/account");
+  if (data.user && data.user.identities?.length === 0) {
+    return { ok: true, alreadyRegistered: true };
+  }
   return {
     ok: true,
     message: "Check your email for a confirmation link, then come back to finish your profile.",

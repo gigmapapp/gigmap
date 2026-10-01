@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   GeolocateControl,
   LngLatBounds,
@@ -16,7 +16,13 @@ import {
 } from "@/lib/map-style";
 import { categoryLabel, formatGigWhen, zoneForGig } from "@/lib/format";
 import { gigsWithinRadius } from "@/lib/nearby";
-import { requestVisitorLocation, type VisitorLocationResult } from "@/lib/visitor-location";
+import {
+  FAR_FROM_GIGS_HINT,
+  locateVisitorForVisit,
+  visitorSessionMemory,
+  type GeoFlagStore,
+  type VisitorVisitOutcome,
+} from "@/lib/visitor-location";
 import type { Category, Gig, Performer } from "@/lib/types";
 
 type MapCenter = { lat: number; lng: number };
@@ -43,7 +49,8 @@ export default function GigMap({
   const fittedRef = useRef<{ key: string; height: number } | null>(null);
   const centerRef = useRef<MapCenter>(MYSTIC);
   const loadedRef = useRef(false);
-  const visitorRef = useRef<VisitorLocationResult | null>(null);
+  const visitorRef = useRef<VisitorVisitOutcome | null>(null);
+  const [farHint, setFarHint] = useState(false);
 
   useEffect(() => {
     gigsRef.current = gigs;
@@ -86,16 +93,23 @@ export default function GigMap({
       syncMarkers(map, gigsRef.current, selectedRef.current, onSelectRef, markersRef);
     };
     const applyVisitor = () => {
-      const result = visitorRef.current;
-      if (!result || result.status !== "granted") return;
-      centerRef.current = { lat: result.lat, lng: result.lng };
+      const outcome = visitorRef.current;
+      if (!outcome || outcome.showFarHint) return;
+      const next = { lat: outcome.camera.lat, lng: outcome.camera.lng };
+      if (sameCenter(next, MYSTIC)) return;
+      centerRef.current = next;
       fitAroundCenter(map, gigsRef.current, centerRef.current, fittedRef, true);
     };
-    void requestVisitorLocation(
-      typeof navigator === "undefined" ? null : navigator.geolocation,
-    ).then((result) => {
+    void automaticVisitOnce({
+      permissions: typeof navigator === "undefined" ? null : navigator.permissions,
+      geolocation: typeof navigator === "undefined" ? null : navigator.geolocation,
+      storage: sessionStore(),
+      memory: visitorSessionMemory(),
+      gigs: () => gigsRef.current,
+    }).then((outcome) => {
       if (cancelled) return;
-      visitorRef.current = result;
+      visitorRef.current = outcome;
+      if (outcome.showFarHint) setFarHint(true);
       if (loadedRef.current) applyVisitor();
     });
     map.on("load", () => {
@@ -107,7 +121,7 @@ export default function GigMap({
       map.resize();
       sync();
       fitAroundCenter(map, gigsRef.current, centerRef.current, fittedRef, false);
-      if (visitorRef.current?.status === "granted") {
+      if (visitorRef.current) {
         requestAnimationFrame(() => {
           if (!cancelled) applyVisitor();
         });
@@ -179,7 +193,49 @@ export default function GigMap({
     }
   }, [gigs, selectedId]);
 
-  return <div ref={containerRef} className="h-full min-h-0 w-full" />;
+  return (
+    <div className="relative h-full min-h-0 w-full">
+      <div ref={containerRef} className="h-full min-h-0 w-full" />
+      {farHint ? (
+        <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex max-w-full items-center gap-2">
+          <p
+            role="status"
+            aria-live="polite"
+            className="min-w-0 flex-1 break-words rounded-lg border border-zinc-700 bg-zinc-950/95 px-3 py-2 text-xs leading-snug text-zinc-100 shadow-lg"
+          >
+            {FAR_FROM_GIGS_HINT}
+          </p>
+          <button
+            type="button"
+            className="pointer-events-auto inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-950 text-lg text-zinc-200 hover:bg-zinc-800"
+            aria-label="Dismiss"
+            onClick={() => setFarHint(false)}
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** One automatic locate per document, so a strict-mode remount does not ask twice. */
+let automaticVisit: Promise<VisitorVisitOutcome> | null = null;
+
+function automaticVisitOnce(
+  input: Parameters<typeof locateVisitorForVisit>[0],
+): Promise<VisitorVisitOutcome> {
+  if (!automaticVisit) automaticVisit = locateVisitorForVisit(input);
+  return automaticVisit;
+}
+
+function sessionStore(): GeoFlagStore | null {
+  try {
+    if (typeof sessionStorage === "undefined") return null;
+    return sessionStorage;
+  } catch {
+    return null;
+  }
 }
 
 /**
