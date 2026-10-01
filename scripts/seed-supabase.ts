@@ -17,6 +17,7 @@ const supabase = createClient(url, key, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
 
+// user_id is omitted so seed rows stay unclaimed and a re-run does not clear one set by hand.
 const { error: performerError } = await supabase.from("performers").upsert(
   db.performers.map((performer) => ({
     id: performer.id,

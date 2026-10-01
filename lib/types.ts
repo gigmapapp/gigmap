@@ -17,6 +17,11 @@ export interface Performer {
   genres: string[];
   videos: Video[];
   createdAt: string;
+  /**
+   * True when performers.user_id is set. Seed rows stay false: public demo
+   * profiles that nobody can edit or receive bookings for.
+   */
+  claimed: boolean;
 }
 
 export interface GeoLocation {
@@ -79,6 +84,8 @@ export interface CreatePerformerInput {
   bio: string;
   city: string;
   genres: string[];
+  /** Auth user id. The Supabase adapter checks this against the session. */
+  userId: string;
 }
 
 export interface CreateGigInput {

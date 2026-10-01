@@ -13,6 +13,8 @@ import {
 } from "@/lib/booking-validation";
 import type { Performer } from "@/lib/types";
 
+type BookingTarget = Pick<Performer, "id" | "name">;
+
 const FIELD_ORDER: BookingField[] = [
   "contactName",
   "contactEmail",
@@ -21,7 +23,7 @@ const FIELD_ORDER: BookingField[] = [
   "preferredLocation",
 ];
 
-export default function BookingForm({ performer }: { performer: Performer }) {
+export default function BookingForm({ performer }: { performer: BookingTarget }) {
   const formId = useId();
   const [fieldErrors, setFieldErrors] = useState<BookingFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);

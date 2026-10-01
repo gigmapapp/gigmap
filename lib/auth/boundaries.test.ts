@@ -1,0 +1,80 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import test from "node:test";
+
+const root = process.cwd();
+
+function source(relativePath: string) {
+  return readFileSync(path.join(root, relativePath), "utf8");
+}
+
+test("server authorization uses getClaims and not the stub cookie", () => {
+  const session = source("lib/auth/session.ts");
+  const proxy = source("lib/supabase/proxy.ts");
+  const exchange = source("lib/auth/exchange.ts");
+  const browser = source("lib/supabase/browser.ts");
+  const combined = [session, proxy, exchange, browser, source("app/actions/auth.ts")].join("\n");
+
+  assert.match(session, /getClaims\(/);
+  assert.match(proxy, /getClaims\(/);
+  assert.doesNotMatch(combined, /getSession\(/);
+  assert.doesNotMatch(combined, /user_metadata/);
+  assert.match(proxy, /LEGACY_STUB_COOKIE/);
+  assert.doesNotMatch(combined, /cookies\(\)\.set\(\s*LEGACY_STUB_COOKIE|store\.set\(\s*LEGACY_STUB_COOKIE/);
+  assert.match(browser, /createBrowserClient/);
+  assert.doesNotMatch(browser, /SERVICE_ROLE|serviceRole/);
+});
+
+test("owner writes use the user client and bookings stay on the service role", () => {
+  const repo = source("lib/repo/supabase.ts");
+  const bookings = source("app/actions/bookings.ts");
+  const videos = source("app/actions/videos.ts");
+
+  assert.match(repo, /createAuthServerClient/);
+  assert.match(repo, /getClaims\(/);
+  assert.match(bookings, /bookingTargetError/);
+  assert.match(videos, /ownerUserId/);
+  assert.match(repo, /ownerUserId/);
+  assert.match(repo, /clipObjectPath/);
+  assert.doesNotMatch(repo, /getSession\(/);
+
+  const createClip = repo.slice(repo.indexOf("export async function createClipUploadTarget"));
+  assert.match(createClip, /getServiceClient\(\)/);
+  assert.match(createClip, /user_id !== input\.ownerUserId/);
+
+  const bookingCreate = repo.slice(repo.indexOf("async create(input: CreateBookingInput)"));
+  assert.match(bookingCreate, /bookingTargetError/);
+  assert.match(bookingCreate, /getServiceClient\(\)/);
+
+  const profileUpdate = repo.slice(repo.indexOf("async update(performerId"), repo.indexOf("async addVideo"));
+  assert.match(profileUpdate, /userDb\(/);
+  assert.match(profileUpdate, /\.eq\("user_id", userId\)/);
+  assert.doesNotMatch(profileUpdate, /user_id:/);
+  assert.doesNotMatch(profileUpdate, /\bid:/);
+
+  const auth = source("app/actions/auth.ts");
+  assert.match(auth, /emailRedirectTo: await authCallbackUrl\("\/account"\)/);
+  assert.match(auth, /redirectTo: await authCallbackUrl\("\/reset-password"\)/);
+  const callback = source("app/auth/callback/route.ts");
+  assert.match(callback, /exchangeCodeForSession\(code\)/);
+  assert.doesNotMatch(callback, /verifyOtp|token_hash/);
+  const confirm = source("app/auth/confirm/route.ts");
+  assert.match(confirm, /establishSessionFromUrl/);
+  assert.match(source("lib/auth/exchange.ts"), /token_hash/);
+  assert.match(source("lib/auth/exchange.ts"), /verifyOtp/);
+  const readme = source("README.md");
+  const architecture = source("ARCHITECTURE.md");
+  assert.match(readme, /\{\{ \.ConfirmationURL \}\}/);
+  assert.match(readme, /\/auth\/callback\*\*/);
+  assert.match(architecture, /\{\{ \.ConfirmationURL \}\}/);
+  assert.match(architecture, /\/auth\/callback\*\*/);
+
+  const account = source("app/actions/account.ts");
+  assert.match(account, /export async function updateProfileAction/);
+  assert.match(account, /profileSaveFailure/);
+  assert.match(account, /profileAlreadyExistsFailure/);
+  assert.match(account, /performers\.update\(/);
+  assert.doesNotMatch(account, /throw new Error/);
+  assert.doesNotMatch(account, /if \(existing\) redirect/);
+});

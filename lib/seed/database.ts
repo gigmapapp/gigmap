@@ -15,7 +15,11 @@ export function seedDatabase(now = new Date()): Database {
   const createdAt = now.toISOString();
   const seed = mysticSeed();
   return {
-    performers: seed.performers.map((performer) => ({ ...performer, createdAt })),
+    performers: seed.performers.map((performer) => ({
+      ...performer,
+      createdAt,
+      claimed: false,
+    })),
     gigs: seed.gigs.map((gig) => ({ ...gig, createdAt })),
     bookings: [],
   };

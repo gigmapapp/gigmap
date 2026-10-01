@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePerformer } from "@/lib/auth";
+import { requirePerformer, requireUser } from "@/lib/auth/session";
 import { clipExtension, MAX_CLIP_BYTES } from "@/lib/clips";
 import { performers, isSupabaseConfigured } from "@/lib/repo";
 import { createClipUploadTarget } from "@/lib/repo/supabase";
@@ -10,7 +10,7 @@ import { saveVideoUpload } from "@/lib/uploads";
 async function assertOwnPerformer(performerId: string) {
   const session = await requirePerformer(`/performers/${performerId}`);
   if (session.id !== performerId) {
-    throw new Error("You can only add clips to the performer you are acting as.");
+    throw new Error("You can only add clips to your own profile.");
   }
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(performerId)) {
     throw new Error("Unknown performer");
@@ -25,6 +25,7 @@ export async function createClipUploadAction(input: {
 }): Promise<{ path: string; token: string; publicUrl: string }> {
   const performerId = input.performerId;
   await assertOwnPerformer(performerId);
+  const user = await requireUser(`/performers/${performerId}`);
   if (!isSupabaseConfigured()) {
     throw new Error("Direct clip upload requires Supabase.");
   }
@@ -37,7 +38,7 @@ export async function createClipUploadAction(input: {
   }
   const performer = await performers.get(performerId);
   if (!performer) throw new Error("Performer not found");
-  return createClipUploadTarget({ performerId, extension });
+  return createClipUploadTarget({ performerId, extension, ownerUserId: user.id });
 }
 
 export async function addVideoAction(formData: FormData) {

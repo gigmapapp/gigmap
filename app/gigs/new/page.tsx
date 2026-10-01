@@ -1,5 +1,5 @@
 import PostGigForm from "@/components/PostGigForm";
-import { requirePerformer } from "@/lib/auth";
+import { requirePerformer } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 

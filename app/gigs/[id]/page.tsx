@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import BookPerformerLink from "@/components/BookPerformerLink";
 import CategoryBadge from "@/components/CategoryBadge";
+import DemoBadge from "@/components/DemoBadge";
+import GigSource from "@/components/GigSource";
 import { formatGigDay, formatGigWhen, zoneForGig } from "@/lib/format";
 import { gigs, performers } from "@/lib/repo";
 
@@ -11,20 +14,20 @@ export default async function GigPage({ params }: PageProps<"/gigs/[id]">) {
   const gig = await gigs.get(id);
   if (!gig) notFound();
   const performer = await performers.get(gig.performerId);
+  const description = gig.description.trim();
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-10">
       <CategoryBadge category={gig.category} />
-      <h1 className="mt-3 font-display text-4xl text-white">{gig.title}</h1>
+      <h1 className="mt-3 font-display text-4xl break-words text-white">{gig.title}</h1>
       <p className="mt-3 text-zinc-300">{formatGigDay(gig.datetime, zoneForGig(gig))}</p>
       <p className="text-zinc-400">{formatGigWhen(gig.datetime, zoneForGig(gig))}</p>
-      <p className="mt-4 text-lg text-white">{gig.location.label}</p>
+      <p className="mt-4 break-words text-lg text-white">{gig.location.label}</p>
       <p className="mt-1 text-xs text-zinc-500">
         {gig.location.lat.toFixed(5)}, {gig.location.lng.toFixed(5)}
       </p>
-      {gig.description ? (
-        <p className="mt-6 text-zinc-300">{gig.description}</p>
-      ) : null}
+      <GigSource sourceUrl={gig.sourceUrl} sourceKind={gig.sourceKind} className="mt-4" />
+      {description ? <p className="mt-6 break-words text-zinc-300">{description}</p> : null}
 
       {performer ? (
         <section className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5">
@@ -35,20 +38,22 @@ export default async function GigPage({ params }: PageProps<"/gigs/[id]">) {
           >
             {performer.name}
           </Link>
-          <p className="mt-2 text-sm text-zinc-400">{performer.bio}</p>
+          {performer.claimed ? null : (
+            <div className="mt-2">
+              <DemoBadge />
+            </div>
+          )}
+          {performer.bio.trim() ? (
+            <p className="mt-2 text-sm text-zinc-400">{performer.bio}</p>
+          ) : null}
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
               href={`/performers/${performer.id}`}
-              className="rounded-lg bg-zinc-800 px-4 py-2 text-sm text-white hover:bg-zinc-700"
+              className="inline-flex min-h-11 items-center rounded-lg bg-zinc-800 px-4 py-2 text-sm text-white hover:bg-zinc-700"
             >
               Profile & clips
             </Link>
-            <Link
-              href={`/performers/${performer.id}/book`}
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-accent-hover"
-            >
-              Request to book
-            </Link>
+            <BookPerformerLink performer={performer} />
           </div>
         </section>
       ) : null}

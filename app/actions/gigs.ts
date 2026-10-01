@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requirePerformer } from "@/lib/auth";
+import { requirePerformer } from "@/lib/auth/session";
 import { gigs } from "@/lib/repo";
 import { CATEGORIES, type Category } from "@/lib/types";
 import { parseVenueDateTimeLocal } from "@/lib/venue-instant";
