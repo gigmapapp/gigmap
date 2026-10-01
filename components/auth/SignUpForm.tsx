@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { startTransition, useActionState, useState, type FormEvent } from "react";
 import {
   AuthAnnouncer,
@@ -9,8 +10,12 @@ import {
   ResendConfirmation,
   useAuthFeedback,
 } from "@/components/auth/AuthControls";
-import { AuthInbox } from "@/components/auth/AuthFrame";
-import { signUpFieldErrors } from "@/components/auth/messages";
+import { AuthInbox, authTextLinkClass } from "@/components/auth/AuthFrame";
+import {
+  ALREADY_REGISTERED_MESSAGE,
+  SIGN_UP_CHECK_EMAIL_HINT,
+  signUpFieldErrors,
+} from "@/components/auth/messages";
 import type { AuthActionResult } from "@/lib/auth/result";
 
 const FIELDS = ["email", "password", "confirm"] as const;
@@ -40,10 +45,39 @@ export default function SignUpForm({
     });
   }
 
+  if (state.ok && state.alreadyRegistered) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-4 text-sm leading-relaxed break-words text-zinc-100"
+      >
+        <p>{ALREADY_REGISTERED_MESSAGE}</p>
+        <div className="mt-2 flex flex-col items-start">
+          <Link href="/sign-in" className={authTextLinkClass}>
+            Sign in
+          </Link>
+          <Link href="/forgot-password" className={authTextLinkClass}>
+            Forgot password
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (state.ok && state.message) {
     return (
       <div>
         <AuthInbox title="Check your email" email={sentTo} body={state.message} />
+        <p className="mt-3 text-sm leading-relaxed break-words text-zinc-400">{SIGN_UP_CHECK_EMAIL_HINT}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-x-4">
+          <Link href="/sign-in" className={authTextLinkClass}>
+            Sign in
+          </Link>
+          <Link href="/forgot-password" className={authTextLinkClass}>
+            Forgot password
+          </Link>
+        </div>
         {sentTo ? <ResendConfirmation email={sentTo} /> : null}
       </div>
     );

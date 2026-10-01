@@ -93,17 +93,12 @@ export default function Discovery({
               <div className="pointer-events-auto mt-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
                 <label className="block min-w-0 text-xs text-zinc-400">
                   Date
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(event) => setDate(event.target.value)}
-                    className="filter-date-input mt-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
-                  />
+                  <FilterDateInput date={date} onDate={setDate} className="mt-1" />
                 </label>
                 <button
                   type="button"
                   onClick={() => setDate("")}
-                  className="shrink-0 rounded-lg border border-zinc-700 px-3 py-2 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
+                  className="h-11 min-h-11 shrink-0 rounded-lg border border-zinc-700 px-3 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
                 >
                   Upcoming
                 </button>
@@ -194,6 +189,48 @@ function shortDateChip(isoDate: string) {
   return `${weekday} ${dayPart}`;
 }
 
+function FilterDateInput({
+  date,
+  onDate,
+  className = "",
+}: {
+  date: string;
+  onDate: (date: string) => void;
+  className?: string;
+}) {
+  const empty = date === "";
+  return (
+    <span className={`relative block min-w-0 ${className}`}>
+      <input
+        type="date"
+        value={date}
+        aria-label="Filter by date"
+        data-empty={empty ? "true" : undefined}
+        onChange={(event) => onDate(event.target.value)}
+        className="filter-date-input box-border h-11 min-h-11 w-full min-w-0 appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm [-webkit-appearance:none]"
+      />
+      {empty ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 flex min-w-0 items-center gap-2 overflow-hidden px-3 text-sm text-zinc-500"
+        >
+          <CalendarIcon />
+          Any date
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3.5 10h17M8 3.5v3M16 3.5v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function MobileFilterBar({
   date,
   dateChips,
@@ -228,19 +265,12 @@ function MobileFilterBar({
       </div>
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 pt-2">
         <label className="block min-w-0">
-          <span className="sr-only">Date</span>
-          <input
-            type="date"
-            value={date}
-            aria-label="Date"
-            onChange={(event) => onDate(event.target.value)}
-            className="filter-date-input h-11 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-white"
-          />
+          <FilterDateInput date={date} onDate={onDate} />
         </label>
         <button
           type="button"
           onClick={() => onDate("")}
-          className="h-11 shrink-0 rounded-lg border border-zinc-700 px-3 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
+          className="h-11 min-h-11 shrink-0 rounded-lg border border-zinc-700 px-3 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
         >
           Upcoming
         </button>

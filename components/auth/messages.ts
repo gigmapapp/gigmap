@@ -6,6 +6,12 @@ import {
   type AuthErrorCode,
 } from "../../lib/auth/result";
 
+export const ALREADY_REGISTERED_MESSAGE =
+  "Looks like you already have an account. Sign in or reset your password";
+
+export const SIGN_UP_CHECK_EMAIL_HINT =
+  "Didn't get it? Check spam, or you may already have an account";
+
 export type AuthFieldErrors = Record<string, string>;
 
 export type AuthNotice = {
