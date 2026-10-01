@@ -197,6 +197,54 @@ select {
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 32%, transparent);
 }
 
+/* Numbered group of nearby gigs. Individual pins stay on .gig-marker. */
+.gig-cluster {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid #09090b;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #09090b;
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.gig-cluster-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.gig-cluster-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 2px;
+  border: 0;
+  border-top: 1px solid #3f3f46;
+  background: transparent;
+  color: #fafafa;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gig-cluster-item:hover {
+  color: var(--accent);
+}
+
 /* Unlayered so these beat the global `* { border-color }` rule. */
 .booking-field {
   border-color: #3f3f46;
@@ -240,24 +288,33 @@ select {
    these beat the control's automatic minimum size and stay inside the filter
    grid column instead of painting over the Upcoming button. */
 .filter-date-input {
-  display: block;
+  display: flex;
+  align-items: center;
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   height: 44px;
   min-height: 44px;
+  padding: 0 12px;
   appearance: none;
   -webkit-appearance: none;
   -webkit-min-logical-width: 0;
   color: #fafafa;
   -webkit-text-fill-color: #fafafa;
-  line-height: 1.25;
+  line-height: 44px;
 }
 
+/* WebKit draws the picked date in the top of a fixed-height input unless the
+   inner value shares the field's line box. `margin: 0` clears the UA offset. */
 .filter-date-input::-webkit-date-and-time-value {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  height: 44px;
+  min-height: 44px;
+  line-height: 44px;
   text-align: left;
-  min-height: 1.5em;
 }
 
 .filter-date-input::-webkit-datetime-edit,
@@ -269,6 +326,8 @@ select {
 .filter-date-input::-webkit-date-and-time-value {
   min-width: 0;
   padding: 0;
+  margin: 0;
+  line-height: 44px;
   color: #fafafa;
   -webkit-text-fill-color: #fafafa;
 }
