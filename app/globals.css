@@ -251,6 +251,7 @@ select {
   -webkit-appearance: none;
   -webkit-min-logical-width: 0;
   color: #fafafa;
+  -webkit-text-fill-color: #fafafa;
   line-height: 1.25;
 }
 
@@ -260,8 +261,27 @@ select {
 }
 
 .filter-date-input::-webkit-datetime-edit,
-.filter-date-input::-webkit-datetime-edit-fields-wrapper {
+.filter-date-input::-webkit-datetime-edit-fields-wrapper,
+.filter-date-input::-webkit-datetime-edit-text,
+.filter-date-input::-webkit-datetime-edit-month-field,
+.filter-date-input::-webkit-datetime-edit-day-field,
+.filter-date-input::-webkit-datetime-edit-year-field,
+.filter-date-input::-webkit-date-and-time-value {
   min-width: 0;
   padding: 0;
   color: #fafafa;
+  -webkit-text-fill-color: #fafafa;
+}
+
+/* Hide WebKit's empty mm/dd/yyyy so the "Any date" overlay is the only label. */
+.filter-date-input[data-empty="true"],
+.filter-date-input[data-empty="true"]::-webkit-datetime-edit,
+.filter-date-input[data-empty="true"]::-webkit-datetime-edit-fields-wrapper,
+.filter-date-input[data-empty="true"]::-webkit-datetime-edit-text,
+.filter-date-input[data-empty="true"]::-webkit-datetime-edit-month-field,
+.filter-date-input[data-empty="true"]::-webkit-datetime-edit-day-field,
+.filter-date-input[data-empty="true"]::-webkit-datetime-edit-year-field,
+.filter-date-input[data-empty="true"]::-webkit-date-and-time-value {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
