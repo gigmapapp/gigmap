@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  GeoJSONSource,
   GeolocateControl,
   LngLatBounds,
   Map as MapLibreMap,
   Marker,
   NavigationControl,
   Popup,
+  setWorkerUrl,
 } from "maplibre-gl";
 import {
   CATEGORY_MARKER,
@@ -16,6 +18,14 @@ import {
 } from "@/lib/map-style";
 import { categoryLabel, formatGigWhen, zoneForGig } from "@/lib/format";
 import { gigsWithinRadius } from "@/lib/nearby";
+import {
+  CLUSTER_MAX_ZOOM,
+  CLUSTER_RADIUS_PX,
+  maplibreWorkerUrl,
+  mapViewPadding,
+  pinsShareCoordinates,
+  venuePinOffsets,
+} from "@/lib/map-pins";
 import {
   FAR_FROM_GIGS_HINT,
   locateVisitorForVisit,
@@ -28,6 +38,16 @@ import type { Category, Gig, Performer } from "@/lib/types";
 type MapCenter = { lat: number; lng: number };
 
 const MYSTIC: MapCenter = { lat: MYSTIC_CENTER.lat, lng: MYSTIC_CENTER.lng };
+const GIG_SOURCE_ID = "gigs";
+
+/**
+ * Selectors QA can rely on:
+ * - `.gig-marker` is one gig (category color on `--gig-marker`)
+ * - `.gig-cluster` is a numbered group of nearby gigs
+ */
+if (typeof window !== "undefined") {
+  setWorkerUrl(maplibreWorkerUrl(window.location.origin));
+}
 
 export type MappedGig = Gig & { performer: Performer | null };
 
@@ -43,6 +63,7 @@ export default function GigMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Map<string, Marker>>(new Map());
+  const clustersRef = useRef<Map<string, Marker>>(new Map());
   const gigsRef = useRef(gigs);
   const selectedRef = useRef(selectedId);
   const onSelectRef = useRef(onSelect);
@@ -50,6 +71,9 @@ export default function GigMap({
   const centerRef = useRef<MapCenter>(MYSTIC);
   const loadedRef = useRef(false);
   const visitorRef = useRef<VisitorVisitOutcome | null>(null);
+  const sourceKeyRef = useRef("");
+  const renderGenRef = useRef(0);
+  const overlayRef = useRef<Popup | null>(null);
   const [farHint, setFarHint] = useState(false);
 
   useEffect(() => {
@@ -60,8 +84,10 @@ export default function GigMap({
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    const container = containerRef.current;
+    const initialPad = mapViewPadding(container.clientWidth || 390, container.clientHeight || 320);
     const map = new MapLibreMap({
-      container: containerRef.current,
+      container,
       style: DARK_MAP_STYLE,
       center: [MYSTIC.lng, MYSTIC.lat],
       zoom: MYSTIC_CENTER.zoom,
@@ -70,7 +96,7 @@ export default function GigMap({
     map.addControl(
       new GeolocateControl({
         positionOptions: { enableHighAccuracy: false, timeout: 5_000, maximumAge: 0 },
-        fitBoundsOptions: { maxZoom: MYSTIC_CENTER.zoom, duration: 800 },
+        fitBoundsOptions: { maxZoom: MYSTIC_CENTER.zoom, duration: 800, padding: initialPad },
         trackUserLocation: false,
         showAccuracyCircle: false,
         showUserLocation: true,
@@ -86,12 +112,30 @@ export default function GigMap({
       }
       revealPopup(map);
     });
+    const render = () => {
+      void renderGigMarkers(map, {
+        gigs: gigsRef.current,
+        selectedId: selectedRef.current,
+        onSelectRef,
+        markersRef,
+        clustersRef,
+        renderGenRef,
+        overlayRef,
+      });
+    };
+    const publish = () => {
+      publishGigSource(map, gigsRef.current, sourceKeyRef);
+      render();
+    };
+    map.on("idle", render);
+    map.on("moveend", render);
+    map.on("sourcedata", (event) => {
+      if (event.sourceId === GIG_SOURCE_ID && event.isSourceLoaded) render();
+    });
     mapRef.current = map;
     const markers = markersRef.current;
+    const clusters = clustersRef.current;
     let cancelled = false;
-    const sync = () => {
-      syncMarkers(map, gigsRef.current, selectedRef.current, onSelectRef, markersRef);
-    };
     const applyVisitor = () => {
       const outcome = visitorRef.current;
       if (!outcome || outcome.showFarHint) return;
@@ -119,7 +163,7 @@ export default function GigMap({
       // and pin positions share the final canvas. The first frame stays on
       // Mystic; a granted fix flies on the next frame.
       map.resize();
-      sync();
+      publish();
       fitAroundCenter(map, gigsRef.current, centerRef.current, fittedRef, false);
       if (visitorRef.current) {
         requestAnimationFrame(() => {
@@ -129,12 +173,17 @@ export default function GigMap({
     });
     return () => {
       cancelled = true;
+      renderGenRef.current += 1;
       nearMeObserver.disconnect();
+      overlayRef.current?.remove();
+      overlayRef.current = null;
       map.remove();
       mapRef.current = null;
       markers.clear();
+      clusters.clear();
       fittedRef.current = null;
       loadedRef.current = false;
+      sourceKeyRef.current = "";
       centerRef.current = MYSTIC;
       visitorRef.current = null;
     };
@@ -142,8 +191,17 @@ export default function GigMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
-    syncMarkers(map, gigs, selectedRef.current, onSelectRef, markersRef);
+    if (!map || !loadedRef.current) return;
+    publishGigSource(map, gigs, sourceKeyRef);
+    void renderGigMarkers(map, {
+      gigs,
+      selectedId: selectedRef.current,
+      onSelectRef,
+      markersRef,
+      clustersRef,
+      renderGenRef,
+      overlayRef,
+    });
 
     let cancelled = false;
     const fit = () => {
@@ -168,22 +226,14 @@ export default function GigMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    for (const [id, marker] of markersRef.current) {
-      const element = marker.getElement();
-      const selected = id === selectedId;
-      element.dataset.selected = selected ? "true" : "false";
-      element.setAttribute("aria-expanded", selected ? "true" : "false");
-      const popup = marker.getPopup();
-      if (selected) {
-        if (popup && !popup.isOpen()) {
-          popup.setLngLat(marker.getLngLat());
-          popup.addTo(map);
-        }
-      } else if (popup?.isOpen()) {
-        popup.remove();
-      }
+    applyPinSelection(map, markersRef.current, selectedId);
+    const selected = gigs.find((gig) => gig.id === selectedId) ?? null;
+    if (selected && !markersRef.current.has(selected.id)) {
+      openOverlay(map, overlayRef, popupContent(selected), [selected.location.lng, selected.location.lat]);
+    } else if (!selected) {
+      overlayRef.current?.remove();
+      overlayRef.current = null;
     }
-    const selected = gigs.find((gig) => gig.id === selectedId);
     if (selected) {
       map.easeTo({
         center: [selected.location.lng, selected.location.lat],
@@ -197,7 +247,7 @@ export default function GigMap({
     <div className="relative h-full min-h-0 w-full">
       <div ref={containerRef} className="h-full min-h-0 w-full" />
       {farHint ? (
-        <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex max-w-full items-center gap-2">
+        <div className="gig-far-hint pointer-events-none absolute top-2 left-2 z-10 flex w-max max-w-[calc(100%-4.75rem)] items-center gap-2 md:top-auto md:bottom-12 md:left-3 md:max-w-sm">
           <p
             role="status"
             aria-live="polite"
@@ -258,22 +308,22 @@ function fitAroundCenter(
   const previous = fittedRef.current;
   if (previous?.key === key && previous.height >= 50 && el.clientHeight >= 50) return true;
   map.resize();
+  const padding = mapViewPadding(el.clientWidth, el.clientHeight);
   if (nearby.length > 0) {
     const bounds = new LngLatBounds();
     for (const gig of nearby) bounds.extend([gig.location.lng, gig.location.lat]);
-    const wide = el.clientWidth >= 768;
-    const maxPad = Math.max(16, el.clientHeight * 0.4);
-    const top = Math.min(wide ? Math.round(el.clientHeight * 0.3) : 24, maxPad);
-    const side = Math.min(wide ? 48 : 24, maxPad);
     map.fitBounds(bounds, {
-      padding: { top, right: side, bottom: side, left: side },
+      padding,
       maxZoom: 14,
       duration: animate ? 800 : 0,
     });
-  } else if (!sameCenter(map.getCenter(), center)) {
-    const camera = { center: [center.lng, center.lat] as [number, number], zoom: MYSTIC_CENTER.zoom };
-    if (animate) map.flyTo({ ...camera, duration: 800 });
-    else map.jumpTo(camera);
+  } else {
+    const point = new LngLatBounds([center.lng, center.lat], [center.lng, center.lat]);
+    map.fitBounds(point, {
+      padding,
+      maxZoom: MYSTIC_CENTER.zoom,
+      duration: animate ? 800 : 0,
+    });
   }
   fittedRef.current = { key, height: el.clientHeight };
   return true;
@@ -370,78 +420,379 @@ function popupShift(map: MapLibreMap): [number, number] | null {
   return [x, y];
 }
 
-function syncMarkers(
+type GigFeatureCollection = {
+  type: "FeatureCollection";
+  features: Array<{
+    type: "Feature";
+    properties: { id: string };
+    geometry: { type: "Point"; coordinates: [number, number] };
+  }>;
+};
+
+function gigsToGeoJSON(gigs: readonly MappedGig[]): GigFeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: gigs.map((gig) => ({
+      type: "Feature",
+      properties: { id: gig.id },
+      geometry: { type: "Point", coordinates: [gig.location.lng, gig.location.lat] },
+    })),
+  };
+}
+
+function publishGigSource(
+  map: MapLibreMap,
+  gigs: readonly MappedGig[],
+  sourceKeyRef: { current: string },
+) {
+  if (!map.isStyleLoaded()) return;
+  const key = gigs.map((gig) => gig.id).join("\n");
+  const data = gigsToGeoJSON(gigs);
+  const existing = map.getSource(GIG_SOURCE_ID) as GeoJSONSource | undefined;
+  if (existing) {
+    if (sourceKeyRef.current === key) return;
+    sourceKeyRef.current = key;
+    existing.setData(data);
+    return;
+  }
+  sourceKeyRef.current = key;
+  map.addSource(GIG_SOURCE_ID, {
+    type: "geojson",
+    data,
+    cluster: true,
+    clusterRadius: CLUSTER_RADIUS_PX,
+    clusterMaxZoom: CLUSTER_MAX_ZOOM,
+  });
+  // The layers are invisible. They give the clustered source tiles to query.
+  map.addLayer({
+    id: "gigs-cluster-hit",
+    type: "circle",
+    source: GIG_SOURCE_ID,
+    filter: ["has", "point_count"],
+    paint: { "circle-color": "#fc5a05", "circle-radius": 1, "circle-opacity": 0 },
+  });
+  map.addLayer({
+    id: "gigs-point-hit",
+    type: "circle",
+    source: GIG_SOURCE_ID,
+    filter: ["!", ["has", "point_count"]],
+    paint: { "circle-color": "#fc5a05", "circle-radius": 1, "circle-opacity": 0 },
+  });
+}
+
+type RenderRefs = {
+  gigs: readonly MappedGig[];
+  selectedId: string | null;
+  onSelectRef: { current: (id: string) => void };
+  markersRef: { current: Map<string, Marker> };
+  clustersRef: { current: Map<string, Marker> };
+  renderGenRef: { current: number };
+  overlayRef: { current: Popup | null };
+};
+
+async function renderGigMarkers(map: MapLibreMap, refs: RenderRefs) {
+  if (!map.getSource(GIG_SOURCE_ID) || !map.isSourceLoaded(GIG_SOURCE_ID)) return;
+  const gen = ++refs.renderGenRef.current;
+  const features = map.querySourceFeatures(GIG_SOURCE_ID);
+  const source = map.getSource(GIG_SOURCE_ID) as GeoJSONSource;
+  const byId = new Map(refs.gigs.map((gig) => [gig.id, gig]));
+  const offsets = venuePinOffsets(
+    refs.gigs.map((gig) => ({ id: gig.id, lng: gig.location.lng, lat: gig.location.lat })),
+  );
+
+  type ClusterHit = { clusterId: number; count: number; lng: number; lat: number; gigIds: string[] };
+  const clusters = new Map<number, ClusterHit>();
+  const pins = new Map<string, { lng: number; lat: number }>();
+
+  for (const feature of features) {
+    const geometry = feature.geometry;
+    if (geometry.type !== "Point") continue;
+    const [lng, lat] = geometry.coordinates;
+    const props = feature.properties ?? {};
+    const count = Number(props.point_count);
+    if (Number.isFinite(count) && count > 1) {
+      const clusterId = Number(props.cluster_id);
+      if (!Number.isFinite(clusterId) || clusters.has(clusterId)) continue;
+      clusters.set(clusterId, { clusterId, count, lng, lat, gigIds: [] });
+      continue;
+    }
+    const id = typeof props.id === "string" ? props.id : "";
+    if (!id || pins.has(id) || !byId.has(id)) continue;
+    pins.set(id, { lng, lat });
+  }
+
+  await Promise.all(
+    [...clusters.values()].map(async (cluster) => {
+      try {
+        const leaves = await source.getClusterLeaves(cluster.clusterId, cluster.count, 0);
+        cluster.gigIds = leaves
+          .map((leaf) => {
+            const id = leaf.properties?.id;
+            return typeof id === "string" ? id : "";
+          })
+          .filter((id) => byId.has(id));
+      } catch {
+        cluster.gigIds = [];
+      }
+    }),
+  );
+  if (gen !== refs.renderGenRef.current) return;
+
+  const keepPins = new Set(pins.keys());
+  for (const [id, marker] of refs.markersRef.current) {
+    if (!keepPins.has(id)) {
+      marker.remove();
+      refs.markersRef.current.delete(id);
+    }
+  }
+  for (const [id, position] of pins) {
+    const gig = byId.get(id);
+    if (!gig) continue;
+    const offset = offsets.get(id) ?? { x: 0, y: 0 };
+    const existing = refs.markersRef.current.get(id);
+    if (existing) {
+      existing.setOffset([offset.x, offset.y]);
+      existing.setLngLat([position.lng, position.lat]);
+      continue;
+    }
+    refs.markersRef.current.set(id, createPinMarker(map, gig, position, offset, refs));
+  }
+
+  const keepClusters = new Set([...clusters.keys()].map(String));
+  for (const [id, marker] of refs.clustersRef.current) {
+    if (!keepClusters.has(id)) {
+      marker.remove();
+      refs.clustersRef.current.delete(id);
+    }
+  }
+  for (const cluster of clusters.values()) {
+    const key = String(cluster.clusterId);
+    const existing = refs.clustersRef.current.get(key);
+    if (existing) {
+      existing.setLngLat([cluster.lng, cluster.lat]);
+      const el = existing.getElement();
+      el.textContent = String(cluster.count);
+      el.dataset.gigIds = cluster.gigIds.join(" ");
+      el.dataset.coincident = clusterIsCoincident(cluster.gigIds, byId) ? "true" : "false";
+      el.setAttribute("aria-label", clusterLabel(cluster.count));
+      continue;
+    }
+    refs.clustersRef.current.set(key, createClusterMarker(map, cluster, byId, refs));
+  }
+
+  applyPinSelection(map, refs.markersRef.current, refs.selectedId);
+}
+
+function clusterIsCoincident(ids: readonly string[], byId: Map<string, MappedGig>) {
+  const points = ids.flatMap((id) => {
+    const gig = byId.get(id);
+    return gig ? [{ lng: gig.location.lng, lat: gig.location.lat }] : [];
+  });
+  return points.length >= 2 && pinsShareCoordinates(points);
+}
+
+function clusterLabel(count: number) {
+  return `${count} gigs`;
+}
+
+function createPinMarker(
+  map: MapLibreMap,
+  gig: MappedGig,
+  position: { lng: number; lat: number },
+  offset: { x: number; y: number },
+  refs: RenderRefs,
+) {
+  const el = document.createElement("button");
+  el.type = "button";
+  el.className = "gig-marker";
+  el.style.setProperty("--gig-marker", CATEGORY_MARKER[gig.category] ?? "var(--accent)");
+  el.dataset.gigId = gig.id;
+  el.setAttribute("aria-label", `${gig.title}, ${gig.performer?.name ?? "Unknown"}`);
+  el.setAttribute("aria-expanded", "false");
+
+  const popup = new Popup({
+    offset: 22,
+    closeButton: true,
+    closeOnClick: false,
+    focusAfterOpen: false,
+    maxWidth: popupMaxWidth(map),
+    padding: { top: 12, right: 12, bottom: 12, left: 12 },
+  }).setDOMContent(popupContent(gig));
+
+  const activate = (event: Event) => {
+    event.stopPropagation();
+    refs.overlayRef.current?.remove();
+    refs.overlayRef.current = null;
+    refs.onSelectRef.current(gig.id);
+    popup.setLngLat([position.lng, position.lat]);
+    if (!popup.isOpen()) popup.addTo(map);
+  };
+  bindMapTap(el, activate);
+
+  const marker = new Marker({ element: el, anchor: "center", offset: [offset.x, offset.y] })
+    .setPopup(popup)
+    .setLngLat([position.lng, position.lat])
+    .addTo(map);
+  if (gig.id === refs.selectedId) popup.addTo(map);
+  return marker;
+}
+
+function createClusterMarker(
+  map: MapLibreMap,
+  cluster: { clusterId: number; count: number; lng: number; lat: number; gigIds: string[] },
+  byId: Map<string, MappedGig>,
+  refs: RenderRefs,
+) {
+  const el = document.createElement("button");
+  el.type = "button";
+  el.className = "gig-cluster";
+  el.textContent = String(cluster.count);
+  el.dataset.clusterId = String(cluster.clusterId);
+  el.dataset.gigIds = cluster.gigIds.join(" ");
+  el.dataset.coincident = clusterIsCoincident(cluster.gigIds, byId) ? "true" : "false";
+  el.setAttribute("aria-label", clusterLabel(cluster.count));
+  el.setAttribute("aria-expanded", "false");
+
+  const activate = (event: Event) => {
+    event.stopPropagation();
+    void activateCluster(map, cluster.clusterId, [cluster.lng, cluster.lat], el, byId, refs);
+  };
+  bindMapTap(el, activate);
+
+  return new Marker({ element: el, anchor: "center" })
+    .setLngLat([cluster.lng, cluster.lat])
+    .addTo(map);
+}
+
+async function activateCluster(
+  map: MapLibreMap,
+  clusterId: number,
+  lngLat: [number, number],
+  element: HTMLElement,
+  byId: Map<string, MappedGig>,
+  refs: RenderRefs,
+) {
+  const source = map.getSource(GIG_SOURCE_ID) as GeoJSONSource | undefined;
+  if (!source) return;
+  let gigIds = (element.dataset.gigIds ?? "").split(" ").filter(Boolean);
+  if (gigIds.length === 0) {
+    try {
+      const leaves = await source.getClusterLeaves(clusterId, 100, 0);
+      gigIds = leaves
+        .map((leaf) => (typeof leaf.properties?.id === "string" ? leaf.properties.id : ""))
+        .filter((id) => byId.has(id));
+    } catch {
+      gigIds = [];
+    }
+  }
+  const gigs = gigIds.flatMap((id) => {
+    const gig = byId.get(id);
+    return gig ? [gig] : [];
+  });
+  const coincident = pinsShareCoordinates(
+    gigs.map((gig) => ({ lng: gig.location.lng, lat: gig.location.lat })),
+  );
+  if (coincident && gigs.length >= 2) {
+    openClusterList(map, gigs, lngLat, element, refs);
+    return;
+  }
+  try {
+    const zoom = await source.getClusterExpansionZoom(clusterId);
+    if (!Number.isFinite(zoom) || zoom <= map.getZoom() + 0.01) {
+      openClusterList(map, gigs, lngLat, element, refs);
+      return;
+    }
+    element.setAttribute("aria-expanded", "false");
+    map.easeTo({ center: lngLat, zoom, duration: 450 });
+  } catch {
+    openClusterList(map, gigs, lngLat, element, refs);
+  }
+}
+
+function openClusterList(
   map: MapLibreMap,
   gigs: MappedGig[],
-  selectedId: string | null,
-  onSelectRef: { current: (id: string) => void },
-  markersRef: { current: Map<string, Marker> },
+  lngLat: [number, number],
+  element: HTMLElement,
+  refs: RenderRefs,
 ) {
-  const keep = new Set(gigs.map((gig) => gig.id));
-  for (const [id, marker] of markersRef.current) {
-    if (!keep.has(id)) {
-      marker.remove();
-      markersRef.current.delete(id);
-    }
-  }
-
-  for (const gig of gigs) {
-    if (markersRef.current.has(gig.id)) continue;
-    const el = document.createElement("button");
-    el.type = "button";
-    el.className = "gig-marker";
-    el.style.setProperty("--gig-marker", CATEGORY_MARKER[gig.category] ?? "var(--accent)");
-    el.dataset.gigId = gig.id;
-    el.setAttribute("aria-label", `${gig.title}, ${gig.performer?.name ?? "Unknown"}`);
-    el.setAttribute("aria-expanded", "false");
-
-    const popup = new Popup({
-      offset: 22,
-      closeButton: true,
-      closeOnClick: false,
-      // Focusing the link on open scrolls the page on touch devices and hides the popup.
-      focusAfterOpen: false,
-      maxWidth: popupMaxWidth(map),
-      // Inset used only when choosing an anchor, so a pin near the edge opens inward.
-      padding: { top: 12, right: 12, bottom: 12, left: 12 },
-    }).setDOMContent(popupContent(gig));
-
-    // MapLibre only opens a marker popup from the map click, inside togglePopup,
-    // which is also what assigns the popup's coordinates. TouchPanHandler
-    // preventDefault() on a moving touch cancels that click, so a tap never
-    // arrived. Keep the gesture on the pin and open the popup from here.
-    const activate = (event: Event) => {
+  element.setAttribute("aria-expanded", "true");
+  const root = document.createElement("div");
+  root.className = "gig-cluster-list";
+  const kicker = document.createElement("p");
+  kicker.className = "gig-popup-kicker";
+  kicker.textContent = clusterLabel(gigs.length);
+  root.append(kicker);
+  const ordered = [...gigs].sort((a, b) => a.datetime.localeCompare(b.datetime));
+  for (const gig of ordered) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "gig-cluster-item";
+    button.textContent = `${gig.performer?.name ?? "Unknown"} — ${gig.title}`;
+    button.addEventListener("click", (event) => {
       event.stopPropagation();
-      onSelectRef.current(gig.id);
-      popup.setLngLat([gig.location.lng, gig.location.lat]);
-      if (!popup.isOpen()) popup.addTo(map);
-    };
-    const keepGesture = (event: Event) => {
-      event.stopPropagation();
-    };
-    el.addEventListener("pointerdown", keepGesture);
-    el.addEventListener("mousedown", keepGesture);
-    el.addEventListener("touchstart", keepGesture, { passive: true });
-    el.addEventListener("touchend", (event) => {
-      if (event.changedTouches.length !== 1) return;
-      event.preventDefault();
-      activate(event);
+      refs.onSelectRef.current(gig.id);
     });
-    el.addEventListener("click", activate);
-
-    // setPopup before setLngLat. Marker.setLngLat only copies coordinates onto
-    // a popup that is already attached. The other order leaves the popup with
-    // no position, so addTo creates no DOM while isOpen() stays true.
-    const marker = new Marker({ element: el, anchor: "center" })
-      .setPopup(popup)
-      .setLngLat([gig.location.lng, gig.location.lat])
-      .addTo(map);
-
-    if (gig.id === selectedId) {
-      popup.addTo(map);
-    }
-    markersRef.current.set(gig.id, marker);
+    root.append(button);
   }
+  openOverlay(map, refs.overlayRef, root, lngLat);
+}
+
+function openOverlay(
+  map: MapLibreMap,
+  overlayRef: { current: Popup | null },
+  content: HTMLElement,
+  lngLat: [number, number],
+) {
+  overlayRef.current?.remove();
+  const popup = new Popup({
+    offset: 24,
+    closeButton: true,
+    closeOnClick: true,
+    focusAfterOpen: false,
+    maxWidth: popupMaxWidth(map),
+    padding: { top: 12, right: 12, bottom: 12, left: 12 },
+  })
+    .setDOMContent(content)
+    .setLngLat(lngLat)
+    .addTo(map);
+  overlayRef.current = popup;
+  popup.on("close", () => {
+    if (overlayRef.current === popup) overlayRef.current = null;
+  });
+}
+
+function applyPinSelection(map: MapLibreMap, markers: Map<string, Marker>, selectedId: string | null) {
+  for (const [id, marker] of markers) {
+    const element = marker.getElement();
+    const selected = id === selectedId;
+    element.dataset.selected = selected ? "true" : "false";
+    element.setAttribute("aria-expanded", selected ? "true" : "false");
+    const popup = marker.getPopup();
+    if (selected) {
+      if (popup && !popup.isOpen()) {
+        popup.setLngLat(marker.getLngLat());
+        popup.addTo(map);
+      }
+    } else if (popup?.isOpen()) {
+      popup.remove();
+    }
+  }
+}
+
+function bindMapTap(el: HTMLElement, activate: (event: Event) => void) {
+  const keepGesture = (event: Event) => {
+    event.stopPropagation();
+  };
+  el.addEventListener("pointerdown", keepGesture);
+  el.addEventListener("mousedown", keepGesture);
+  el.addEventListener("touchstart", keepGesture, { passive: true });
+  el.addEventListener("touchend", (event) => {
+    if (event.changedTouches.length !== 1) return;
+    event.preventDefault();
+    activate(event);
+  });
+  el.addEventListener("click", activate);
 }
 
 function popupContent(gig: MappedGig) {

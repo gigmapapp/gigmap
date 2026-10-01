@@ -1,4 +1,12 @@
+import { execFileSync } from "node:child_process";
+import path from "node:path";
 import type { NextConfig } from "next";
+
+// Turbopack and webpack both load this config, so the worker files exist
+// before either bundler serves `public/`.
+execFileSync(process.execPath, [path.join(process.cwd(), "scripts/copy-maplibre-worker.mjs")], {
+  stdio: "inherit",
+});
 
 const nextConfig: NextConfig = {
   experimental: {

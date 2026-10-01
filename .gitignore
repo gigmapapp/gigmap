@@ -45,6 +45,9 @@ next-env.d.ts
 .data/*
 !.data/.gitkeep
 
+# MapLibre worker copied from node_modules by scripts/copy-maplibre-worker.mjs
+/public/maplibre/
+
 # supabase CLI scratch
 supabase/.temp/
 supabase/.branches/
