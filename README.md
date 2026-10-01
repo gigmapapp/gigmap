@@ -39,12 +39,12 @@ No paid map keys are required. Without Supabase env vars the app keeps using the
 
 ## Seed data
 
-The Austin roster lives in `lib/seed/austin.ts`:
+The Mystic roster lives in `lib/seed/fixtures/mystic-seed-final.csv`:
 
-- 10 performers (solo, band, and DJ)
-- 12 gigs at real venues (Antone’s, Stubb’s, Mohawk, Continental Club, and more)
-- Clips mix YouTube URLs and direct MP4s
-- Gig dates are computed when the seed runs: tomorrow through about six weeks, America/Chicago
+- 8 performers and 8 gigs listed from public pages (`source_kind = public_info`, each with `source_url`)
+- No photos, videos, or clips
+- `start_time_et` is venue wall time. The zone is looked up from lat/lng (`America/New_York` for these pins, including Westerly, RI)
+- CSV notes are not stored and are not shown
 
 **Local JSON.** The first read creates `.data/db.json`. To reseed, delete the store and restart:
 
@@ -57,10 +57,23 @@ rm -rf .data/db.json .data/uploads
 1. `supabase/migrations/20260929140000_drop_legacy_empty_tables.sql` drops those three only when every matching table is empty. If any has a row, it aborts and drops nothing. On a fresh database it does nothing. Already applied on the hosted project.
 2. `supabase/migrations/20260929150000_create_gigmap_tables.sql` creates the v1 tables. It does not touch Storage.
 3. `supabase/migrations/20260929155000_create_clips_bucket.sql` inserts the public `clips` bucket and a public read policy. It does not `ALTER` `storage.objects`. If this file fails, the tables from step 2 stay; use the dashboard fallback in `ARCHITECTURE.md`.
-4. `supabase/migrations/20260929160000_revoke_anon_table_writes.sql` removes anon, authenticated, and public insert/update/delete access. Public read of performers, videos, and gigs stays.
+4. `supabase/migrations/20260929160000_revoke_anon_table_writes.sql` removes anon, authenticated, and public insert/update/delete access. Public read of performers, videos, and gigs stays. **Do not re-run this file after the PR #10 ownership migration** (`20260930120600_performer_auth_ownership.sql`). It would drop those owner write policies.
 5. `supabase/migrations/20260929170000_revoke_rls_auto_enable.sql` revokes `EXECUTE` on `public.rls_auto_enable()` when that function is already there. It does nothing on a fresh database.
+6. `supabase/migrations/20260930180000_gigs_add_timezone.sql` adds nullable `gigs.timezone`.
+7. `supabase/migrations/20260930180500_gigs_backfill_timezone.sql` fills every existing row in SQL and raises if any zone is still null. No service-role key. The hosted rows are the Austin seed ids (`America/Chicago`) and the Milestone gig (`America/New_York`). Any other null uses `America/New_York` when `lng > -87.5`, otherwise `America/Chicago`.
+8. `supabase/migrations/20260930181000_gigs_timezone_not_null.sql` sets `NOT NULL`. The previous file already asserted that no nulls remain.
+9. `supabase/migrations/20260930182000_gigs_public_listing.sql` adds nullable `source_url` and `source_kind`.
+10. On a database that still has the Austin sample, apply PR #10's ownership migration first if you use it, then `supabase/migrations/20260930183000_replace_austin_seed_with_mystic.sql`. It deletes those rows by id and inserts the Mystic listings. See `ARCHITECTURE.md`.
 
-Then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the server env vars set. See `ARCHITECTURE.md` for the full steps, including hosted migration-history versions. Neither path writes booking requests. `supabase db reset` runs the migrations in that order; the drop and the function revoke are no-ops locally, then the seed loads v1 gigs.
+`npm run backfill:timezones` is an optional dev tool. It is not a production step.
+
+Clip cleanup is optional and later. The release does not depend on it. The Austin seed videos are external sample URLs, not objects in `clips`. The only object path recorded under the 10 Austin prefixes is:
+
+- `maya-chen/6b602aa7-5527-45d0-bf40-651cfd01418c.mp4`
+
+The other prefixes (`broken-strings`, `dj-nova`, `elijah-brooks`, `velvet-static`, `luna-park`, `nightbirds`, `harper-quinn`, `bassline-society`, `copper-notes`) have no object paths in the seed or migrations. Nate can delete that one file in the dashboard (Storage → `clips`) whenever he wants. `npm run clips:remove-austin` (add `-- --apply` to delete) is the same optional cleanup and needs a service-role key.
+
+A fresh database gets the Mystic rows from that migration and from `supabase/seed.sql`. `npm run seed:supabase` upserts the same listings and does not delete Austin rows. Neither path writes booking requests. `supabase db reset` runs the migrations in filename order, then the seed.
 
 ## Stub auth
 

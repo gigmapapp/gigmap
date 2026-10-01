@@ -7,8 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test lib/seed/*.test.ts lib/repo/*.test.ts lib/booking-validation.test.ts lib/venue-time.test.ts lib/nearby.test.ts lib/visitor-location.test.ts lib/tz-at.test.ts lib/gig-zone.test.ts",
-    "seed:supabase": "tsx scripts/seed-supabase.ts"
+    "test": "tsx --test lib/seed/*.test.ts lib/repo/*.test.ts lib/booking-validation.test.ts lib/venue-time.test.ts lib/venue-zone.test.ts lib/nearby.test.ts lib/visitor-location.test.ts lib/tz-at.test.ts lib/gig-zone.test.ts",
+    "seed:supabase": "tsx scripts/seed-supabase.ts",
+    "backfill:timezones": "tsx scripts/backfill-gig-timezones.ts",
+    "clips:remove-austin": "tsx scripts/remove-austin-clips.ts"
   },
   "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",

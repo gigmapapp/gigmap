@@ -14,9 +14,8 @@ const DATE_TIME_LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/
  * - Gap, when clocks spring forward: move forward by the skipped hour.
  *
  * Omitted, null, or invalid `timeZone` uses the launch default (America/New_York).
- * Pass another IANA id for a different venue. The create-gig action still calls this
- * with the wall-clock string only, so posted times use that default until a per-gig
- * zone is supplied.
+ * Pass another IANA id for a different venue. The create-gig action passes the
+ * zone looked up from the pin, so a posted time is that venue's wall clock.
  */
 export function parseVenueDateTimeLocal(value: string, timeZone?: string | null): string {
   const zoned = zonedFromLocal(value, resolveTimeZone(timeZone));
@@ -32,7 +31,7 @@ export function startOfLocalDay(date = new Date(), timeZone?: string | null): Da
 
 /**
  * ISO string whose wall clock and numeric offset match the venue zone.
- * Seed data uses this so the instant is explicit without a fixed offset.
+ * The numeric offset is included so the instant does not depend on the host zone.
  */
 export function venueOffsetIso(
   daysFromToday: number,
