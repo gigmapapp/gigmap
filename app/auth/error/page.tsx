@@ -1,17 +1,27 @@
 import Link from "next/link";
+import AuthErrorHash from "@/components/auth/AuthErrorHash";
 import AuthFrame, { authButtonClass, authSecondaryButtonClass } from "@/components/auth/AuthFrame";
+import { authLinkFailureFromParams, presentAuthLinkError } from "@/lib/auth/link";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Link expired",
+  title: "Link did not work",
 };
 
-export default function AuthErrorPage() {
+export default async function AuthErrorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; error_code?: string; error_description?: string }>;
+}) {
+  const query = await searchParams;
+  const presented = presentAuthLinkError(
+    classifyPageCode(query.error_code, query.error, query.error_description),
+  );
+
   return (
-    <AuthFrame
-      eyebrow="Account"
-      title="That link did not work"
-      description="It may have expired, or it was opened after it had already been used. Request a new one and try again."
-    >
+    <AuthFrame eyebrow="Account" title={presented.title} description={presented.message}>
+      <AuthErrorHash />
       <div className="space-y-4">
         <div className="flex items-start gap-3 rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-4">
           <span
@@ -35,6 +45,18 @@ export default function AuthErrorPage() {
       </div>
     </AuthFrame>
   );
+}
+
+function classifyPageCode(
+  errorCode: string | undefined,
+  error: string | undefined,
+  errorDescription: string | undefined,
+): string | null {
+  const params = new URLSearchParams();
+  if (error) params.set("error", error);
+  if (errorCode) params.set("error_code", errorCode);
+  if (errorDescription) params.set("error_description", errorDescription);
+  return authLinkFailureFromParams(params)?.errorCode ?? null;
 }
 
 function ExpiredIcon() {

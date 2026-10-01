@@ -84,6 +84,17 @@ The eight Mystic listings are demo profiles (`user_id` null). They are labeled D
 
 Without Supabase env vars the app still uses the local JSON store, but accounts do not. Owner actions explain that on the sign-in page. Auth email links use `NEXT_PUBLIC_SITE_URL` when it is set, and the request host otherwise.
 
+The free plan has no custom SMTP, so leave the Auth email templates at their defaults (`{{ .ConfirmationURL }}`). Sign-up and resend set `emailRedirectTo` to `${siteUrl}/auth/callback?next=/account`. Password reset sets `redirectTo` to `${siteUrl}/auth/callback?next=/reset-password`. Supabase's verify link comes back to `/auth/callback` with a PKCE `code`, and that route exchanges it for a session. Recovery finishes on `/reset-password`. Open the link in the same browser that requested it. A different browser has no PKCE verifier, and `/auth/error` says so. Expired links (`otp_expired`) and the other `error` / `error_code` / `error_description` values, in the query or the hash, get the same friendly page. `/auth/confirm` remains for a later custom template that uses `token_hash`.
+
+Auth dashboard, and nothing else:
+
+- Site URL: `https://<production-host>` with no trailing slash.
+- Confirm email: on.
+- Templates: do not edit them.
+- Redirect URLs: `https://<production-host>/auth/callback**` and `http://localhost:3000/auth/callback**`.
+
+The allow list matches the whole redirect except the hash, including `?next=`. An exact `/auth/callback` entry does not match that query string. `**` does. A URL on the same scheme, host, and port as the Site URL is allowed even without an extra entry. See `ARCHITECTURE.md`.
+
 ## App routes
 
 | Route | Purpose |

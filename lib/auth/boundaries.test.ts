@@ -53,6 +53,23 @@ test("owner writes use the user client and bookings stay on the service role", (
   assert.doesNotMatch(profileUpdate, /user_id:/);
   assert.doesNotMatch(profileUpdate, /\bid:/);
 
+  const auth = source("app/actions/auth.ts");
+  assert.match(auth, /emailRedirectTo: await authCallbackUrl\("\/account"\)/);
+  assert.match(auth, /redirectTo: await authCallbackUrl\("\/reset-password"\)/);
+  const callback = source("app/auth/callback/route.ts");
+  assert.match(callback, /exchangeCodeForSession\(code\)/);
+  assert.doesNotMatch(callback, /verifyOtp|token_hash/);
+  const confirm = source("app/auth/confirm/route.ts");
+  assert.match(confirm, /establishSessionFromUrl/);
+  assert.match(source("lib/auth/exchange.ts"), /token_hash/);
+  assert.match(source("lib/auth/exchange.ts"), /verifyOtp/);
+  const readme = source("README.md");
+  const architecture = source("ARCHITECTURE.md");
+  assert.match(readme, /\{\{ \.ConfirmationURL \}\}/);
+  assert.match(readme, /\/auth\/callback\*\*/);
+  assert.match(architecture, /\{\{ \.ConfirmationURL \}\}/);
+  assert.match(architecture, /\/auth\/callback\*\*/);
+
   const account = source("app/actions/account.ts");
   assert.match(account, /export async function updateProfileAction/);
   assert.match(account, /profileSaveFailure/);

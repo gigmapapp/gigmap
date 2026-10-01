@@ -1,6 +1,6 @@
 import "server-only";
 import { headers } from "next/headers";
-import { safeNextPath } from "@/lib/auth/access";
+import { pkceCallbackUrl } from "@/lib/auth/link";
 
 /** Public origin for email links. NEXT_PUBLIC_SITE_URL wins when the request host is not the public site. */
 export async function getSiteUrl(): Promise<string> {
@@ -14,7 +14,5 @@ export async function getSiteUrl(): Promise<string> {
 }
 
 export async function authCallbackUrl(nextPath: string): Promise<string> {
-  const site = await getSiteUrl();
-  const next = safeNextPath(nextPath, "/account");
-  return `${site}/auth/callback?next=${encodeURIComponent(next)}`;
+  return pkceCallbackUrl(await getSiteUrl(), nextPath);
 }
