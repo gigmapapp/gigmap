@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Map, Marker, NavigationControl } from "maplibre-gl";
+import { Map, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
 import { ACCENT } from "@/lib/accent";
+import { maplibreWorkerUrl } from "@/lib/map-pins";
 import { MYSTIC_CENTER, loadVoyagerStyle, noteMapError, voyagerRasterStyle } from "@/lib/map-style";
+
+if (typeof window !== "undefined") {
+  setWorkerUrl(maplibreWorkerUrl(window.location.origin));
+}
 
 export default function LocationPicker({
   lat,
