@@ -3,10 +3,11 @@ import { signOutAction } from "@/app/actions/auth";
 import { createProfileAction, updateProfileAction } from "@/app/actions/account";
 import AuthFrame, { authButtonClass, authSecondaryButtonClass } from "@/components/auth/AuthFrame";
 import ProfileForm from "@/components/auth/ProfileForm";
+import BookingRequestCard from "@/components/BookingRequestCard";
 import CategoryBadge from "@/components/CategoryBadge";
 import { safeNextPath } from "@/lib/auth/access";
 import { requireUser } from "@/lib/auth/session";
-import { performers } from "@/lib/repo";
+import { bookings, performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,8 @@ export default async function AccountPage({
     );
   }
 
+  const incoming = await bookings.list({ performerId: performer.id, actorUserId: user.id });
+
   return (
     <AuthFrame eyebrow="Account" title={performer.name} description={user.email ?? "Signed in"}>
       <dl className="space-y-4">
@@ -87,6 +90,33 @@ export default async function AccountPage({
           </dd>
         </div>
       </dl>
+      <section className="mt-8 border-t border-zinc-800 pt-6" aria-labelledby="booking-inbox-heading">
+        <h2 id="booking-inbox-heading" className="font-display text-2xl text-white">
+          Requests for you
+        </h2>
+        <p className="mt-2 text-sm text-zinc-400">
+          Accept or decline a request while it is pending. A final answer stays final.
+        </p>
+        <div className="mt-4 space-y-3">
+          {incoming.length === 0 ? (
+            <p className="text-sm text-zinc-500">No requests yet.</p>
+          ) : (
+            incoming.map((booking) => (
+              <BookingRequestCard
+                key={booking.id}
+                id={booking.id}
+                status={booking.status}
+                mode="owner"
+                title={booking.contactName}
+                meta={`${booking.preferredDate} · ${booking.preferredLocation}`}
+                body={booking.eventDetails}
+                note={booking.message || undefined}
+                contact={booking.contactEmail}
+              />
+            ))
+          )}
+        </div>
+      </section>
       <div className="mt-6 flex flex-col gap-3">
         <Link href="/account?edit=1" className={authButtonClass}>
           Edit profile
@@ -101,7 +131,7 @@ export default async function AccountPage({
           href="/bookings"
           className="inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-base text-zinc-300 hover:bg-zinc-800 hover:text-white"
         >
-          Booking requests
+          Your requests
         </Link>
         <form action={signOutAction}>
           <button

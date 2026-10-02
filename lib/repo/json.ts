@@ -1,7 +1,13 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { bookingTargetError } from "@/lib/auth/access";
 import { updateOwnedPerformer, type ProfileUpdateColumns } from "@/lib/auth/profile-update";
+import {
+  incomingBookingRequests,
+  insertBookingRequest,
+  normalizeStoredBooking,
+  requesterBookingRequests,
+  transitionBookingRequest,
+} from "@/lib/bookings/records";
 import { seedDatabase } from "@/lib/seed/database";
 import type {
   BookingRequest,
@@ -79,7 +85,7 @@ function parseDb(raw: string): StoredDatabase {
         sourceKind: source.sourceKind,
       };
     }),
-    bookings: parsed.bookings,
+    bookings: parsed.bookings.map((row) => normalizeStoredBooking(row)),
   };
 }
 
@@ -255,34 +261,26 @@ export const jsonGigs: GigRepository = {
   },
 };
 
+function ownersOf(db: StoredDatabase) {
+  return db.performers.map((performer) => ({ id: performer.id, userId: performer.userId }));
+}
+
 export const jsonBookings: BookingRepository = {
   async list(filter) {
     const performerId = requireBookingPerformerId(filter.performerId);
     const db = await readDb();
-    const rows = db.bookings.filter((booking) => booking.performerId === performerId);
-    return [...rows].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    return incomingBookingRequests(ownersOf(db), db.bookings, performerId, filter.actorUserId);
+  },
+  async listByRequester(requesterId) {
+    const db = await readDb();
+    return requesterBookingRequests(db.bookings, requesterId);
   },
   async create(input: CreateBookingInput) {
-    return updateDb((db) => {
-      const performer = db.performers.find((item) => item.id === input.performerId);
-      const refusal = bookingTargetError(performer ? toPerformer(performer) : null);
-      if (refusal) throw new Error(refusal);
-      const booking: BookingRequest = {
-        id: crypto.randomUUID(),
-        performerId: input.performerId,
-        contactName: input.contactName.trim(),
-        contactEmail: input.contactEmail.trim(),
-        eventDetails: input.eventDetails.trim(),
-        preferredDate: input.preferredDate,
-        preferredLocation: input.preferredLocation.trim(),
-        message: input.message.trim(),
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      };
-      db.bookings.push(booking);
-      return booking;
-    });
+    return updateDb((db) => insertBookingRequest(ownersOf(db), db.bookings, input));
+  },
+  async setStatus(bookingId, actorUserId, status) {
+    return updateDb((db) =>
+      transitionBookingRequest(ownersOf(db), db.bookings, { bookingId, actorUserId, status }),
+    );
   },
 };

@@ -57,7 +57,7 @@ rm -rf .data/db.json .data/uploads
 1. `supabase/migrations/20260929140000_drop_legacy_empty_tables.sql` drops those three only when every matching table is empty. If any has a row, it aborts and drops nothing. On a fresh database it does nothing. Already applied on the hosted project.
 2. `supabase/migrations/20260929150000_create_gigmap_tables.sql` creates the v1 tables. It does not touch Storage.
 3. `supabase/migrations/20260929155000_create_clips_bucket.sql` inserts the public `clips` bucket and a public read policy. It does not `ALTER` `storage.objects`. If this file fails, the tables from step 2 stay; use the dashboard fallback in `ARCHITECTURE.md`.
-4. `supabase/migrations/20260929160000_revoke_anon_table_writes.sql` removes anon, authenticated, and public insert/update/delete access. Public read of performers, videos, and gigs stays. **Do not re-run this file after the PR #10 ownership migration** (`20260930120600_performer_auth_ownership.sql`). It would drop those owner write policies.
+4. `supabase/migrations/20260929160000_revoke_anon_table_writes.sql` removes anon, authenticated, and public insert/update/delete access. Public read of performers, videos, and gigs stays. **Do not re-run this file after the PR #10 ownership migration** (`20260930120600_performer_auth_ownership.sql`) or after `20261002130545_booking_request_status.sql`. It would drop those owner and booking policies.
 5. `supabase/migrations/20260929170000_revoke_rls_auto_enable.sql` revokes `EXECUTE` on `public.rls_auto_enable()` when that function is already there. It does nothing on a fresh database.
 6. `supabase/migrations/20260930120600_performer_auth_ownership.sql` adds `performers.user_id` and owner-only write policies. Seed rows stay unclaimed (`user_id` null). Do not re-run step 4 after this file without applying this file again. See `ARCHITECTURE.md`.
 7. `supabase/migrations/20260930180000_gigs_add_timezone.sql` adds nullable `gigs.timezone`.
@@ -65,6 +65,7 @@ rm -rf .data/db.json .data/uploads
 9. `supabase/migrations/20260930181000_gigs_timezone_not_null.sql` sets `NOT NULL`. The previous file already asserted that no nulls remain.
 10. `supabase/migrations/20260930182000_gigs_public_listing.sql` adds nullable `source_url` and `source_kind`.
 11. `supabase/migrations/20260930183000_replace_austin_seed_with_mystic.sql` deletes the Austin sample by id and inserts the Mystic listings. It refuses when one of those performers has a non-null `user_id`. See `ARCHITECTURE.md`.
+12. `supabase/migrations/20261002130545_booking_request_status.sql` adds requester, status, and status-changed columns, plus the accept, decline, and cancel rules. It does not delete existing requests. If steps 1–11 are already applied, this is the only new file. Do not re-run step 4.
 
 `npm run backfill:timezones` is an optional dev tool. It is not a production step.
 
@@ -78,7 +79,7 @@ Then either paste `supabase/seed.sql` or run `npm run seed:supabase` with the se
 
 ## Accounts
 
-Sign in at `/sign-in`. After email confirmation, `/account` creates the one performer profile for that user. Posting a gig, uploading clips, and opening `/bookings` require that profile. Fans can browse, and they can request a booking, without an account.
+Sign in at `/sign-in`. After email confirmation, `/account` creates the one performer profile for that user. Posting a gig and uploading clips require that profile. `/account` lists booking requests sent to it, and the owner can accept or decline a pending one. `/bookings` lists requests the signed-in user sent, and they can cancel a pending one. Fans can browse without an account. Sending a booking request requires sign-in.
 
 The eight Mystic listings are demo profiles (`user_id` null). They are labeled Demo, the Book button is hidden, and the server refuses those requests, because nobody could read the inbox. That rule is `REFUSE_BOOKINGS_FOR_UNCLAIMED_PERFORMERS` in `lib/auth/access.ts`. Claiming a seed profile is out of scope.
 

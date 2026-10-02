@@ -26,7 +26,7 @@ test("server authorization uses getClaims and not the stub cookie", () => {
   assert.doesNotMatch(browser, /SERVICE_ROLE|serviceRole/);
 });
 
-test("owner writes use the user client and bookings stay on the service role", () => {
+test("owner writes and booking changes use the user client", () => {
   const repo = source("lib/repo/supabase.ts");
   const bookings = source("app/actions/bookings.ts");
   const videos = source("app/actions/videos.ts");
@@ -43,9 +43,21 @@ test("owner writes use the user client and bookings stay on the service role", (
   assert.match(createClip, /getServiceClient\(\)/);
   assert.match(createClip, /user_id !== input\.ownerUserId/);
 
-  const bookingCreate = repo.slice(repo.indexOf("async create(input: CreateBookingInput)"));
+  const bookingCreate = repo.slice(
+    repo.indexOf("async create(input: CreateBookingInput)"),
+    repo.indexOf("async setStatus"),
+  );
   assert.match(bookingCreate, /bookingTargetError/);
-  assert.match(bookingCreate, /getServiceClient\(\)/);
+  assert.match(bookingCreate, /userDb\(/);
+  assert.match(bookingCreate, /requester_id: userId/);
+  assert.doesNotMatch(bookingCreate, /getServiceClient\(\)/);
+  const bookingStatus = repo.slice(
+    repo.indexOf("async setStatus"),
+    repo.indexOf("export async function createClipUploadTarget"),
+  );
+  assert.match(bookingStatus, /decideBookingTransition/);
+  assert.match(bookingStatus, /userDb\(/);
+  assert.doesNotMatch(bookingStatus, /getServiceClient\(\)/);
 
   const profileUpdate = repo.slice(repo.indexOf("async update(performerId"), repo.indexOf("async addVideo"));
   assert.match(profileUpdate, /userDb\(/);

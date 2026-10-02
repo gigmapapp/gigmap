@@ -2,6 +2,12 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { bookingTargetError } from "@/lib/auth/access";
 import { type ProfileUpdateColumns } from "@/lib/auth/profile-update";
+import {
+  BOOKING_MESSAGES,
+  BookingStatusError,
+  decideBookingTransition,
+  parseBookingStatus,
+} from "@/lib/bookings/status";
 import { CLIPS_BUCKET, clipObjectPath } from "@/lib/clips";
 import { requireBookingPerformerId } from "@/lib/repo/booking-scope";
 import type {
@@ -14,6 +20,7 @@ import { createAuthServerClient } from "@/lib/supabase/auth-server";
 import { getServiceClient } from "@/lib/supabase/server";
 import type {
   BookingRequest,
+  BookingStatus,
   Category,
   CreateBookingInput,
   CreateGigInput,
@@ -31,7 +38,7 @@ const VIDEO_COLUMNS = "id, performer_id, title, source_type, url, created_at";
 const GIG_COLUMNS =
   "id, performer_id, title, description, category, datetime, lat, lng, label, timezone, source_url, source_kind, created_at";
 const BOOKING_COLUMNS =
-  "id, performer_id, contact_name, contact_email, event_details, preferred_date, preferred_location, message, status, created_at";
+  "id, performer_id, requester_id, contact_name, contact_email, event_details, preferred_date, preferred_location, message, status, created_at, status_changed_at";
 
 type PerformerRow = {
   id: string;
@@ -72,14 +79,16 @@ type GigRow = {
 type BookingRow = {
   id: string;
   performer_id: string;
+  requester_id: string | null;
   contact_name: string;
   contact_email: string;
   event_details: string;
   preferred_date: string;
   preferred_location: string;
   message: string;
-  status: "pending";
+  status: BookingStatus;
   created_at: string;
+  status_changed_at: string;
 };
 
 function fail(error: { message: string; code?: string; details?: string }, fallback: string): never {
@@ -150,14 +159,16 @@ function toBooking(row: BookingRow): BookingRequest {
   return {
     id: row.id,
     performerId: row.performer_id,
+    requesterId: row.requester_id,
     contactName: row.contact_name,
     contactEmail: row.contact_email,
     eventDetails: row.event_details,
     preferredDate: row.preferred_date,
     preferredLocation: row.preferred_location,
     message: row.message,
-    status: row.status,
+    status: parseBookingStatus(row.status),
     createdAt: row.created_at,
+    statusChangedAt: row.status_changed_at,
   };
 }
 
@@ -331,7 +342,9 @@ export const supabaseGigs: GigRepository = {
 export const supabaseBookings: BookingRepository = {
   async list(filter) {
     const performerId = requireBookingPerformerId(filter.performerId);
+    if (!filter.actorUserId) return [];
     const { client, userId } = await userDb();
+    if (userId !== filter.actorUserId) return [];
     const owned = await client
       .from("performers")
       .select("id")
@@ -347,28 +360,93 @@ export const supabaseBookings: BookingRepository = {
     if (error) fail(error, "Could not load booking requests.");
     return ((data ?? []) as BookingRow[]).map(toBooking);
   },
+  async listByRequester(requesterId) {
+    if (!requesterId) return [];
+    const { client, userId } = await userDb();
+    if (userId !== requesterId) return [];
+    const { data, error } = await client
+      .from("booking_requests")
+      .select(BOOKING_COLUMNS)
+      .eq("requester_id", requesterId)
+      .order("created_at", { ascending: false });
+    if (error) fail(error, "Could not load booking requests.");
+    return ((data ?? []) as BookingRow[]).map(toBooking);
+  },
   async create(input: CreateBookingInput) {
-    const performer = await performerById(input.performerId);
-    const refusal = bookingTargetError(performer);
+    const { client, userId } = await userDb();
+    if (!input.requesterId || input.requesterId !== userId) {
+      throw new Error(BOOKING_MESSAGES.signIn);
+    }
+    const performer = await client
+      .from("performers")
+      .select("id, user_id")
+      .eq("id", input.performerId)
+      .maybeSingle();
+    if (performer.error) fail(performer.error, "Could not load performer.");
+    const refusal = bookingTargetError(
+      performer.data ? { claimed: performer.data.user_id !== null } : null,
+    );
     if (refusal) throw new Error(refusal);
     const row = {
       id: crypto.randomUUID(),
       performer_id: input.performerId,
+      requester_id: userId,
       contact_name: input.contactName.trim(),
       contact_email: input.contactEmail.trim(),
       event_details: input.eventDetails.trim(),
       preferred_date: input.preferredDate,
       preferred_location: input.preferredLocation.trim(),
       message: input.message.trim(),
-      status: "pending",
+      status: "pending" as const,
     };
-    const { data, error } = await getServiceClient()
+    const { data, error } = await client
       .from("booking_requests")
       .insert(row)
       .select(BOOKING_COLUMNS)
       .maybeSingle();
+    if (error?.code === "42501") throw new Error(BOOKING_MESSAGES.signIn);
     if (error || !data) fail(error ?? { message: "insert failed" }, "Could not save booking request.");
     return toBooking(data as BookingRow);
+  },
+  async setStatus(bookingId, actorUserId, status) {
+    const { client, userId } = await userDb();
+    if (!actorUserId || actorUserId !== userId) {
+      throw new BookingStatusError(BOOKING_MESSAGES.signInUpdate);
+    }
+    const existing = await client
+      .from("booking_requests")
+      .select(BOOKING_COLUMNS)
+      .eq("id", bookingId)
+      .maybeSingle();
+    if (existing.error) fail(existing.error, BOOKING_MESSAGES.updateFailed);
+    if (!existing.data) throw new BookingStatusError(BOOKING_MESSAGES.unavailable);
+    const before = toBooking(existing.data as BookingRow);
+    const performer = await client
+      .from("performers")
+      .select("user_id")
+      .eq("id", before.performerId)
+      .maybeSingle();
+    if (performer.error) fail(performer.error, BOOKING_MESSAGES.updateFailed);
+    const decision = decideBookingTransition({
+      actorUserId: userId,
+      ownerUserId: performer.data?.user_id ?? null,
+      requesterId: before.requesterId,
+      fromStatus: before.status,
+      toStatus: status,
+    });
+    if (!decision.ok) throw new BookingStatusError(decision.message);
+    const updated = await client
+      .from("booking_requests")
+      .update({ status })
+      .eq("id", bookingId)
+      .select(BOOKING_COLUMNS)
+      .maybeSingle();
+    if (updated.error) {
+      console.error("Booking status update rejected.", updated.error.code ?? "", updated.error.message);
+      throw new BookingStatusError(BOOKING_MESSAGES.unchanged);
+    }
+    if (!updated.data) throw new BookingStatusError(BOOKING_MESSAGES.unchanged);
+    return { before, after: toBooking(updated.data as BookingRow) };
   },
 };
 

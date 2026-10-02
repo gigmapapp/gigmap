@@ -4,6 +4,7 @@ import BookingForm from "@/components/BookingForm";
 import CategoryBadge from "@/components/CategoryBadge";
 import DemoBadge from "@/components/DemoBadge";
 import { bookingsOpenForPerformer } from "@/lib/auth/access";
+import { getSessionUser } from "@/lib/auth/session";
 import { performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,8 @@ export default async function BookPage({
   const { id } = await params;
   const performer = await performers.get(id);
   if (!performer) notFound();
+
+  const user = bookingsOpenForPerformer(performer) ? await getSessionUser() : null;
 
   if (!bookingsOpenForPerformer(performer)) {
     return (
@@ -61,11 +64,29 @@ export default async function BookPage({
         <CategoryBadge category={performer.category} />
       </div>
       <p className="mt-4 text-sm text-zinc-400">
-        No payments in v1 — this stores a booking request the performer can read when they
-        are signed in. You do not need an account to send it.
+        No payments in v1. A request is saved on your account so you can see when it is accepted,
+        declined, or cancelled.
       </p>
       <div className="mt-8">
-        <BookingForm performer={{ id: performer.id, name: performer.name }} />
+        {user ? (
+          <BookingForm
+            performer={{ id: performer.id, name: performer.name }}
+            defaultEmail={user.email ?? ""}
+          />
+        ) : (
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5">
+            <h2 className="font-display text-2xl text-white">Sign in to request a booking</h2>
+            <p className="mt-3 text-sm leading-relaxed text-zinc-300">
+              Booking requests are tied to your account. Sign in, then send this request.
+            </p>
+            <Link
+              href={`/sign-in?next=${encodeURIComponent(`/performers/${performer.id}/book`)}`}
+              className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-accent px-4 text-base font-medium text-zinc-950 hover:bg-accent-hover"
+            >
+              Sign in
+            </Link>
+          </div>
+        )}
       </div>
     </main>
   );

@@ -1,5 +1,6 @@
 import type { ProfileUpdateColumns } from "@/lib/auth/profile-update";
 import type {
+  BookingDecisionStatus,
   BookingRequest,
   CreateBookingInput,
   CreateGigInput,
@@ -37,10 +38,22 @@ export interface GigRepository {
 export interface BookingRepository {
   /**
    * Requests sent to one performer. `performerId` is required so an inbox
-   * cannot be listed globally. Contact name and email stay on these rows.
+   * cannot be listed globally. `actorUserId` must own that performer; otherwise
+   * the list is empty. Contact name and email stay on these rows.
    */
-  list(filter: { performerId: string }): Promise<BookingRequest[]>;
+  list(filter: { performerId: string; actorUserId: string }): Promise<BookingRequest[]>;
+  /** Requests this auth user sent. */
+  listByRequester(requesterId: string): Promise<BookingRequest[]>;
   create(input: CreateBookingInput): Promise<BookingRequest>;
+  /**
+   * Accept, decline, or cancel. Returns null-safe before/after copies.
+   * Throws BookingStatusError when the actor or the current status does not allow it.
+   */
+  setStatus(
+    bookingId: string,
+    actorUserId: string,
+    status: BookingDecisionStatus,
+  ): Promise<{ before: BookingRequest; after: BookingRequest }>;
 }
 
 export interface Repositories {

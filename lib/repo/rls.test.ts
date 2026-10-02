@@ -7,10 +7,12 @@ import { PGlite } from "@electric-sql/pglite";
 const OWNER_A = "11111111-1111-4111-8111-111111111111";
 const OWNER_B = "22222222-2222-4222-8222-222222222222";
 const OWNER_C = "33333333-3333-4333-8333-333333333333";
+const FAN = "44444444-4444-4444-8444-444444444444";
+const STATUS_MIGRATION = "20261002130545_booking_request_status.sql";
 
 const migrationsDir = path.join(process.cwd(), "supabase/migrations");
 
-async function applyMigrations(db: PGlite) {
+async function applyMigrations(db: PGlite, skip: ReadonlySet<string> = new Set()) {
   await db.exec(`
     create role anon nologin noinherit;
     create role authenticated nologin noinherit;
@@ -51,6 +53,7 @@ async function applyMigrations(db: PGlite) {
     .filter((name) => name.endsWith(".sql"))
     .sort();
   for (const file of files) {
+    if (skip.has(file)) continue;
     const sql = readFileSync(path.join(migrationsDir, file), "utf8");
     await db.exec(sql);
   }
@@ -58,7 +61,7 @@ async function applyMigrations(db: PGlite) {
 
 async function seed(db: PGlite) {
   await db.exec(`
-    insert into auth.users (id) values ('${OWNER_A}'), ('${OWNER_B}'), ('${OWNER_C}');
+    insert into auth.users (id) values ('${OWNER_A}'), ('${OWNER_B}'), ('${OWNER_C}'), ('${FAN}');
     insert into public.performers (id, name, category, city, user_id) values
       ('owner-a', 'Owner A', 'band', 'Austin, TX', '${OWNER_A}'),
       ('owner-b', 'Owner B', 'dj', 'Austin, TX', '${OWNER_B}'),
@@ -72,12 +75,12 @@ async function seed(db: PGlite) {
       ('gig-a', 'owner-a', 'Show A', '', 'band', now(), 30.27, -97.74, 'Venue A', 'America/Chicago'),
       ('gig-demo', 'demo-act', 'Demo show', '', 'solo', now(), 30.27, -97.74, 'Venue D', 'America/Chicago');
     insert into public.booking_requests (
-      id, performer_id, contact_name, contact_email, event_details,
+      id, performer_id, requester_id, contact_name, contact_email, event_details,
       preferred_date, preferred_location, message
     ) values
-      ('book-a', 'owner-a', 'Fan', 'fan@example.com', 'Party', '2026-10-10', 'Home', ''),
-      ('book-b', 'owner-b', 'Other', 'other@example.com', 'Party', '2026-10-11', 'Hall', ''),
-      ('book-demo', 'demo-act', 'Fan', 'fan@example.com', 'Party', '2026-10-12', 'Park', '');
+      ('book-a', 'owner-a', '${FAN}', 'Fan', 'fan@example.com', 'Party', '2026-10-10', 'Home', ''),
+      ('book-b', 'owner-b', '${FAN}', 'Other', 'other@example.com', 'Party', '2026-10-11', 'Hall', ''),
+      ('book-demo', 'demo-act', '${FAN}', 'Fan', 'fan@example.com', 'Party', '2026-10-12', 'Park', '');
   `);
 }
 
@@ -108,8 +111,9 @@ async function expectDenied(
   await assert.rejects(
     () => asRole(db, role, uid, (tx) => tx.query(sql, params)),
     (error: unknown) => {
+      const code = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code ?? "") : "";
       const message = error instanceof Error ? error.message : String(error);
-      assert.match(message, /42501|row-level security|permission denied/i);
+      assert.match(`${code} ${message}`, /42501|row-level security|permission denied/i);
       return true;
     },
   );
@@ -140,7 +144,9 @@ test("RLS lets an owner edit their rows and blocks everyone else", { timeout: 60
     assert.equal(granted.has("anon:booking_requests:SELECT"), false);
     assert.equal(granted.has("anon:booking_requests:INSERT"), false);
     assert.equal(granted.has("authenticated:booking_requests:SELECT"), true);
-    assert.equal(granted.has("authenticated:booking_requests:INSERT"), false);
+    assert.equal(granted.has("authenticated:booking_requests:INSERT"), true);
+    assert.equal(granted.has("authenticated:booking_requests:UPDATE"), true);
+    assert.equal(granted.has("authenticated:booking_requests:DELETE"), false);
     assert.equal(granted.has("authenticated:performers:INSERT"), true);
     assert.equal(granted.has("authenticated:videos:DELETE"), true);
     assert.equal(granted.has("authenticated:gigs:UPDATE"), true);
@@ -298,7 +304,7 @@ test("RLS lets an owner edit their rows and blocks everyone else", { timeout: 60
       db,
       "authenticated",
       OWNER_A,
-      "insert into public.booking_requests (id, performer_id, contact_name, contact_email, event_details, preferred_date, preferred_location) values ('book-new', 'owner-a', 'Fan', 'fan@example.com', 'Party', '2026-10-13', 'Home')",
+      `insert into public.booking_requests (id, performer_id, requester_id, contact_name, contact_email, event_details, preferred_date, preferred_location) values ('book-new', 'owner-a', '${OWNER_B}', 'Fan', 'fan@example.com', 'Party', '2026-10-13', 'Home')`,
     );
 
     const serviceBookings = await asRole(db, "service_role", null, (tx) =>
@@ -341,6 +347,220 @@ test("RLS lets an owner edit their rows and blocks everyone else", { timeout: 60
         and pol.polname in ('clips_anon_insert', 'clips_public_insert')
     `);
     assert.equal(anonPolicies.rows.length, 0);
+  } finally {
+    await db.close();
+  }
+});
+
+test("booking status migration keeps existing rows and enforces transitions", { timeout: 60_000 }, async () => {
+  const db = new PGlite();
+  try {
+    await applyMigrations(db, new Set([STATUS_MIGRATION]));
+    await db.exec(`
+      insert into auth.users (id) values ('${OWNER_A}'), ('${OWNER_B}'), ('${FAN}');
+      insert into public.performers (id, name, category, city, user_id) values
+        ('owner-a', 'Owner A', 'band', 'Austin, TX', '${OWNER_A}'),
+        ('owner-b', 'Owner B', 'dj', 'Austin, TX', '${OWNER_B}'),
+        ('demo-act', 'Demo Act', 'solo', 'Austin, TX', null);
+      insert into public.booking_requests (
+        id, performer_id, contact_name, contact_email, event_details,
+        preferred_date, preferred_location, message
+      ) values
+        ('book-a', 'owner-a', 'Fan', 'fan@example.com', 'Party', '2026-10-10', 'Home', 'Hello'),
+        ('book-b', 'owner-b', 'Other', 'other@example.com', 'Party', '2026-10-11', 'Hall', ''),
+        ('book-demo', 'demo-act', 'Fan', 'fan@example.com', 'Party', '2026-10-12', 'Park', '');
+    `);
+
+    const migration = readFileSync(path.join(migrationsDir, STATUS_MIGRATION), "utf8");
+    await db.exec(migration);
+
+    const kept = await db.query<{
+      id: string;
+      status: string;
+      requester_id: string | null;
+      same_clock: boolean;
+    }>(`
+      select id, status, requester_id, status_changed_at = created_at as same_clock
+      from public.booking_requests
+      order by id
+    `);
+    assert.deepEqual(
+      kept.rows.map((row) => row.id),
+      ["book-a", "book-b", "book-demo"],
+    );
+    assert.ok(kept.rows.every((row) => row.status === "pending" && row.requester_id === null && row.same_clock));
+
+    const fanSeesLegacy = await asRole(db, "authenticated", FAN, (tx) =>
+      tx.query<{ id: string }>("select id from public.booking_requests order by id"),
+    );
+    assert.deepEqual(fanSeesLegacy.rows, []);
+
+    const accepted = await asRole(db, "authenticated", OWNER_A, (tx) =>
+      tx.query<{ status: string; moved: boolean }>(
+        "update public.booking_requests set status = 'accepted' where id = 'book-a' returning status, status_changed_at is distinct from created_at as moved",
+      ),
+    );
+    assert.equal(accepted.rows[0]?.status, "accepted");
+    assert.equal(accepted.rows[0]?.moved, true);
+
+    const secondAccept = await asRole(db, "authenticated", OWNER_A, (tx) =>
+      tx.query("update public.booking_requests set status = 'declined' where id = 'book-a'"),
+    );
+    assert.equal(secondAccept.rowCount, 0);
+    const stillAccepted = await db.query<{ status: string }>(
+      "select status from public.booking_requests where id = 'book-a'",
+    );
+    assert.equal(stillAccepted.rows[0]?.status, "accepted");
+
+    const fanMiss = await asRole(db, "authenticated", FAN, (tx) =>
+      tx.query("update public.booking_requests set status = 'cancelled' where id = 'book-b'"),
+    );
+    assert.equal(fanMiss.rowCount, 0);
+    await assert.rejects(
+      () =>
+        asRole(db, "authenticated", OWNER_B, (tx) =>
+          tx.query("update public.booking_requests set status = 'cancelled' where id = 'book-b'"),
+        ),
+      /requester/i,
+    );
+    await assert.rejects(
+      () => db.query("update public.booking_requests set status = 'accepted' where id = 'book-demo'"),
+      /performer/i,
+    );
+    await assert.rejects(
+      () =>
+        asRole(db, "service_role", null, (tx) =>
+          tx.query("update public.booking_requests set status = 'declined' where id = 'book-b'"),
+        ),
+      /performer/i,
+    );
+
+    const declined = await asRole(db, "authenticated", OWNER_B, (tx) =>
+      tx.query<{ status: string }>(
+        "update public.booking_requests set status = 'declined' where id = 'book-b' returning status",
+      ),
+    );
+    assert.equal(declined.rows[0]?.status, "declined");
+
+    await expectDenied(
+      db,
+      "authenticated",
+      FAN,
+      "insert into public.booking_requests (id, performer_id, requester_id, contact_name, contact_email, event_details, preferred_date, preferred_location) values ('book-demo-new', 'demo-act', $1, 'Fan', 'fan@example.com', 'Party', '2026-12-01', 'Park')",
+      [FAN],
+    );
+    await assert.rejects(
+      () =>
+        asRole(db, "authenticated", FAN, (tx) =>
+          tx.query(
+            "insert into public.booking_requests (id, performer_id, requester_id, contact_name, contact_email, event_details, preferred_date, preferred_location, status) values ('book-accepted', 'owner-a', $1, 'Fan', 'fan@example.com', 'Party', '2026-12-02', 'Home', 'accepted')",
+            [FAN],
+          ),
+        ),
+      /pending/i,
+    );
+    await assert.rejects(
+      () =>
+        asRole(db, "authenticated", FAN, (tx) =>
+          tx.query(
+            "insert into public.booking_requests (id, performer_id, requester_id, contact_name, contact_email, event_details, preferred_date, preferred_location) values ('book-other', 'owner-a', $1, 'Fan', 'fan@example.com', 'Party', '2026-12-03', 'Home')",
+            [OWNER_A],
+          ),
+        ),
+      /yourself/i,
+    );
+
+    const inserted = await asRole(db, "authenticated", FAN, (tx) =>
+      tx.query<{ status: string; requester_id: string }>(
+        "insert into public.booking_requests (id, performer_id, requester_id, contact_name, contact_email, event_details, preferred_date, preferred_location, message) values ('book-fan', 'owner-a', $1, 'Jordan', 'jordan@example.com', 'Backyard', '2026-11-02', 'Mystic', 'Forty people') returning status, requester_id",
+        [FAN],
+      ),
+    );
+    assert.equal(inserted.rows[0]?.status, "pending");
+    assert.equal(inserted.rows[0]?.requester_id, FAN);
+
+    await assert.rejects(
+      () =>
+        asRole(db, "authenticated", FAN, (tx) =>
+          tx.query("update public.booking_requests set status = 'accepted' where id = 'book-fan'"),
+        ),
+      /row-level security|performer/i,
+    );
+    await assert.rejects(
+      () =>
+        asRole(db, "authenticated", OWNER_A, (tx) =>
+          tx.query("update public.booking_requests set status = 'cancelled' where id = 'book-fan'"),
+        ),
+      /row-level security|requester/i,
+    );
+    await assert.rejects(
+      () =>
+        asRole(db, "authenticated", OWNER_A, (tx) =>
+          tx.query("update public.booking_requests set status = 'accepted', message = 'changed' where id = 'book-fan'"),
+        ),
+      /only the status/i,
+    );
+
+    const ownerAccepted = await asRole(db, "authenticated", OWNER_A, (tx) =>
+      tx.query<{ status: string; message: string }>(
+        "update public.booking_requests set status = 'accepted' where id = 'book-fan' returning status, message",
+      ),
+    );
+    assert.equal(ownerAccepted.rows[0]?.status, "accepted");
+    assert.equal(ownerAccepted.rows[0]?.message, "Forty people");
+
+    const fanRows = await asRole(db, "authenticated", FAN, (tx) =>
+      tx.query<{ id: string }>("select id from public.booking_requests order by id"),
+    );
+    assert.deepEqual(
+      fanRows.rows.map((row) => row.id),
+      ["book-fan"],
+    );
+    const ownerRows = await asRole(db, "authenticated", OWNER_A, (tx) =>
+      tx.query<{ id: string }>("select id from public.booking_requests order by id"),
+    );
+    assert.deepEqual(
+      ownerRows.rows.map((row) => row.id),
+      ["book-a", "book-fan"],
+    );
+    await expectDenied(db, "anon", null, "select id from public.booking_requests");
+    await expectDenied(
+      db,
+      "authenticated",
+      OWNER_A,
+      "delete from public.booking_requests where id = 'book-fan'",
+    );
+
+    const pending = await asRole(db, "authenticated", FAN, (tx) =>
+      tx.query(
+        "insert into public.booking_requests (id, performer_id, requester_id, contact_name, contact_email, event_details, preferred_date, preferred_location) values ('book-cancel', 'owner-a', $1, 'Jordan', 'jordan@example.com', 'Backyard', '2026-11-03', 'Mystic') returning id",
+        [FAN],
+      ),
+    );
+    assert.equal(pending.rows[0]?.id, "book-cancel");
+    const cancelled = await asRole(db, "authenticated", FAN, (tx) =>
+      tx.query<{ status: string }>(
+        "update public.booking_requests set status = 'cancelled' where id = 'book-cancel' returning status",
+      ),
+    );
+    assert.equal(cancelled.rows[0]?.status, "cancelled");
+    const revive = await asRole(db, "authenticated", OWNER_A, (tx) =>
+      tx.query("update public.booking_requests set status = 'accepted' where id = 'book-cancel'"),
+    );
+    assert.equal(revive.rowCount, 0);
+
+    await db.exec(migration);
+    const afterReplay = await db.query<{ status: string }>(
+      "select status from public.booking_requests where id = 'book-fan'",
+    );
+    assert.equal(afterReplay.rows[0]?.status, "accepted");
+
+    await db.exec(`delete from auth.users where id = '${FAN}'`);
+    const cleared = await db.query<{ requester_id: string | null; status: string }>(
+      "select requester_id, status from public.booking_requests where id = 'book-fan'",
+    );
+    assert.equal(cleared.rows[0]?.requester_id, null);
+    assert.equal(cleared.rows[0]?.status, "accepted");
   } finally {
     await db.close();
   }

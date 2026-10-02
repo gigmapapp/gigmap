@@ -23,7 +23,13 @@ const FIELD_ORDER: BookingField[] = [
   "preferredLocation",
 ];
 
-export default function BookingForm({ performer }: { performer: BookingTarget }) {
+export default function BookingForm({
+  performer,
+  defaultEmail = "",
+}: {
+  performer: BookingTarget;
+  defaultEmail?: string;
+}) {
   const formId = useId();
   const [fieldErrors, setFieldErrors] = useState<BookingFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -129,6 +135,7 @@ export default function BookingForm({ performer }: { performer: BookingTarget })
         required
         autoComplete="email"
         placeholder="you@email.com"
+        defaultValue={defaultEmail}
         error={fieldErrors.contactEmail}
         inputRef={(node) => setFieldRef(fieldRefs.current, "contactEmail", node)}
         onChange={() => clearFieldError("contactEmail")}
@@ -222,6 +229,7 @@ function Field({
   error,
   inputRef,
   onChange,
+  defaultValue,
 }: {
   formId: string;
   label: string;
@@ -235,6 +243,7 @@ function Field({
   error?: string;
   inputRef?: (node: HTMLElement | null) => void;
   onChange?: () => void;
+  defaultValue?: string;
 }) {
   const id = `${formId}-${name}`;
   const errorId = `${id}-error`;
@@ -258,7 +267,13 @@ function Field({
         {multiline ? (
           <textarea {...shared} ref={inputRef} rows={rows} />
         ) : (
-          <input {...shared} ref={inputRef} type={type} autoComplete={autoComplete} />
+          <input
+            {...shared}
+            ref={inputRef}
+            type={type}
+            autoComplete={autoComplete}
+            defaultValue={defaultValue}
+          />
         )}
       </label>
       {invalid ? (
