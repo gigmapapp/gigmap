@@ -8,6 +8,7 @@ import GigSource from "@/components/GigSource";
 import VideoEmbed from "@/components/VideoEmbed";
 import { getSessionPerformer } from "@/lib/auth/session";
 import { formatGigWhen, isUpcoming, zoneForGig } from "@/lib/format";
+import { gigDisplayTitle } from "@/lib/gig-display";
 import { clipUploadMode, gigs, performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -83,7 +84,9 @@ export default async function PerformerPage({
                 className="min-w-0 rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 py-3 hover:border-accent/40"
               >
                 <Link href={`/gigs/${gig.id}`} className="block min-h-11 rounded-lg py-1">
-                  <div className="font-medium break-words text-white">{gig.title}</div>
+                  <div className="font-medium break-words text-white">
+                    {gigDisplayTitle(gig.title, performer.name).primary || "Unknown"}
+                  </div>
                   <div className="mt-1 text-sm break-words text-zinc-400">
                     {formatGigWhen(gig.datetime, zoneForGig(gig))} · {gig.location.label}
                   </div>

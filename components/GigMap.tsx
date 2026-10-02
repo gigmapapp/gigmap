@@ -17,6 +17,7 @@ import {
   MYSTIC_CENTER,
 } from "@/lib/map-style";
 import { categoryLabel, formatGigWhen, zoneForGig } from "@/lib/format";
+import { gigClusterItemLabel, gigDisplayTitle, gigMarkerLabel } from "@/lib/gig-display";
 import { gigsWithinRadius } from "@/lib/nearby";
 import {
   CLUSTER_MAX_ZOOM,
@@ -618,7 +619,7 @@ function createPinMarker(
   el.className = "gig-marker";
   el.style.setProperty("--gig-marker", CATEGORY_MARKER[gig.category] ?? "var(--accent)");
   el.dataset.gigId = gig.id;
-  el.setAttribute("aria-label", `${gig.title}, ${gig.performer?.name ?? "Unknown"}`);
+  el.setAttribute("aria-label", gigMarkerLabel(gig.title, gig.performer?.name));
   el.setAttribute("aria-expanded", "false");
 
   const popup = new Popup(popupOptions(map, false)).setDOMContent(popupContent(gig));
@@ -734,7 +735,7 @@ function openClusterList(
     const button = document.createElement("button");
     button.type = "button";
     button.className = "gig-cluster-item";
-    button.textContent = `${gig.performer?.name ?? "Unknown"} — ${gig.title}`;
+    button.textContent = gigClusterItemLabel(gig.title, gig.performer?.name);
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       refs.onSelectRef.current(gig.id);
@@ -804,13 +805,10 @@ function popupContent(gig: MappedGig) {
   kicker.className = "gig-popup-kicker";
   kicker.textContent = categoryLabel(gig.category);
 
+  const display = gigDisplayTitle(gig.title, gig.performer?.name);
   const title = document.createElement("p");
   title.className = "gig-popup-title";
-  title.textContent = gig.title;
-
-  const performer = document.createElement("p");
-  performer.className = "gig-popup-performer";
-  performer.textContent = gig.performer?.name ?? "Unknown";
+  title.textContent = display.primary || "Unknown";
 
   const when = document.createElement("p");
   when.className = "gig-popup-when";
@@ -821,7 +819,14 @@ function popupContent(gig: MappedGig) {
   link.href = `/gigs/${gig.id}`;
   link.textContent = "View gig";
 
-  root.append(kicker, title, performer, when, link);
+  root.append(kicker, title);
+  if (display.secondary !== null) {
+    const performer = document.createElement("p");
+    performer.className = "gig-popup-performer";
+    performer.textContent = gig.performer?.name ?? "Unknown";
+    root.append(performer);
+  }
+  root.append(when, link);
   return root;
 }
 
