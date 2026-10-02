@@ -7,6 +7,7 @@ import BookingRequestCard from "@/components/BookingRequestCard";
 import CategoryBadge from "@/components/CategoryBadge";
 import { safeNextPath } from "@/lib/auth/access";
 import { requireUser } from "@/lib/auth/session";
+import { formatCalendarDate } from "@/lib/calendar-date";
 import { bookings, performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -108,7 +109,7 @@ export default async function AccountPage({
                 status={booking.status}
                 mode="owner"
                 title={booking.contactName}
-                meta={`${booking.preferredDate} · ${booking.preferredLocation}`}
+                meta={`${formatCalendarDate(booking.preferredDate)} · ${booking.preferredLocation}`}
                 body={booking.eventDetails}
                 note={booking.message || undefined}
                 contact={booking.contactEmail}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import BookingRequestCard from "@/components/BookingRequestCard";
 import { getSessionUser } from "@/lib/auth/session";
+import { formatCalendarDate } from "@/lib/calendar-date";
 import { bookings, performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +49,7 @@ export default async function BookingsPage({
               status={booking.status}
               mode="requester"
               title={names.get(booking.performerId) ?? "Unknown performer"}
-              meta={`${booking.preferredDate} · ${booking.preferredLocation}`}
+              meta={`${formatCalendarDate(booking.preferredDate)} · ${booking.preferredLocation}`}
               body={booking.eventDetails}
               note={booking.message || undefined}
             />
