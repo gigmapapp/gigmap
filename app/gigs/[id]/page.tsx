@@ -5,6 +5,7 @@ import CategoryBadge from "@/components/CategoryBadge";
 import DemoBadge from "@/components/DemoBadge";
 import GigSource from "@/components/GigSource";
 import { formatGigDay, formatGigWhen, zoneForGig } from "@/lib/format";
+import { gigDisplayTitle } from "@/lib/gig-display";
 import { gigs, performers } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -15,11 +16,12 @@ export default async function GigPage({ params }: PageProps<"/gigs/[id]">) {
   if (!gig) notFound();
   const performer = await performers.get(gig.performerId);
   const description = gig.description.trim();
+  const display = gigDisplayTitle(gig.title, performer?.name);
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-10">
       <CategoryBadge category={gig.category} />
-      <h1 className="mt-3 font-display text-4xl break-words text-white">{gig.title}</h1>
+      <h1 className="mt-3 font-display text-4xl break-words text-white">{display.primary || "Unknown"}</h1>
       <p className="mt-3 text-zinc-300">{formatGigDay(gig.datetime, zoneForGig(gig))}</p>
       <p className="text-zinc-400">{formatGigWhen(gig.datetime, zoneForGig(gig))}</p>
       <p className="mt-4 break-words text-lg text-white">{gig.location.label}</p>
@@ -32,12 +34,14 @@ export default async function GigPage({ params }: PageProps<"/gigs/[id]">) {
       {performer ? (
         <section className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5">
           <p className="text-xs uppercase tracking-wide text-zinc-500">Performer</p>
-          <Link
-            href={`/performers/${performer.id}`}
-            className="mt-1 block font-display text-2xl text-white hover:text-accent"
-          >
-            {performer.name}
-          </Link>
+          {display.secondary !== null ? (
+            <Link
+              href={`/performers/${performer.id}`}
+              className="mt-1 block font-display text-2xl text-white hover:text-accent"
+            >
+              {performer.name}
+            </Link>
+          ) : null}
           {performer.claimed ? null : (
             <div className="mt-2">
               <DemoBadge />

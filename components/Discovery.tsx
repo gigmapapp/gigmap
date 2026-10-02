@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import CategoryBadge from "@/components/CategoryBadge";
 import { formatGigWhen, gigMatchesVenueDate, localDateKey, zoneForGig } from "@/lib/format";
+import { gigDisplayTitle } from "@/lib/gig-display";
 import type { Category, Gig, Performer } from "@/lib/types";
 
 const GigMap = dynamic(() => import("@/components/GigMap"), { ssr: false });
@@ -137,38 +138,43 @@ export default function Discovery({
               No gigs match this date. Clear the filter to see everything coming up.
             </p>
           ) : (
-            visible.map((gig) => (
-              <article
-                key={gig.id}
-                className={`w-full rounded-xl border p-4 text-left transition ${
-                  selectedId === gig.id
-                    ? "border-accent/70 bg-accent/10"
-                    : "border-zinc-800 bg-zinc-900/70 hover:border-zinc-600"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(gig.id)}
-                  className="w-full text-left"
+            visible.map((gig) => {
+              const display = gigDisplayTitle(gig.title, gig.performer?.name);
+              return (
+                <article
+                  key={gig.id}
+                  className={`w-full rounded-xl border p-4 text-left transition ${
+                    selectedId === gig.id
+                      ? "border-accent/70 bg-accent/10"
+                      : "border-zinc-800 bg-zinc-900/70 hover:border-zinc-600"
+                  }`}
                 >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <CategoryBadge category={gig.category} />
-                    <span className="text-xs text-zinc-400">{formatGigWhen(gig.datetime, zoneForGig(gig))}</span>
-                  </div>
-                  <div className="font-medium text-white">{gig.title}</div>
-                  <div className="mt-1 text-sm text-zinc-400">{gig.location.label}</div>
-                </button>
-                <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-accent">{gig.performer?.name ?? "Unknown"}</span>
-                  <Link
-                    href={`/gigs/${gig.id}`}
-                    className="text-zinc-300 underline-offset-2 hover:underline"
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(gig.id)}
+                    className="w-full text-left"
                   >
-                    Details
-                  </Link>
-                </div>
-              </article>
-            ))
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <CategoryBadge category={gig.category} />
+                      <span className="text-xs text-zinc-400">{formatGigWhen(gig.datetime, zoneForGig(gig))}</span>
+                    </div>
+                    <div className="font-medium text-white">{display.primary || "Unknown"}</div>
+                    <div className="mt-1 text-sm text-zinc-400">{gig.location.label}</div>
+                  </button>
+                  <div className="mt-2 flex items-center justify-between text-sm">
+                    {display.secondary !== null ? (
+                      <span className="text-accent">{gig.performer?.name ?? "Unknown"}</span>
+                    ) : null}
+                    <Link
+                      href={`/gigs/${gig.id}`}
+                      className="ml-auto text-zinc-300 underline-offset-2 hover:underline"
+                    >
+                      Details
+                    </Link>
+                  </div>
+                </article>
+              );
+            })
           )}
         </div>
       </aside>
