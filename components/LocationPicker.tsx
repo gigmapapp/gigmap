@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { Map, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
 import { ACCENT } from "@/lib/accent";
 import { maplibreWorkerUrl } from "@/lib/map-pins";
-import { MYSTIC_CENTER, loadVoyagerStyle, noteMapError, voyagerRasterStyle } from "@/lib/map-style";
+import { MYSTIC_CENTER, loadVoyagerStyle, noteMapError, osmRasterStyle } from "@/lib/map-style";
 
 if (typeof window !== "undefined") {
   setWorkerUrl(maplibreWorkerUrl(window.location.origin));
@@ -34,7 +34,7 @@ export default function LocationPicker({
     let cancelled = false;
     let map: Map | null = null;
     void loadVoyagerStyle()
-      .catch(() => voyagerRasterStyle())
+      .catch(() => osmRasterStyle())
       .then((style) => {
       if (cancelled || mapRef.current || !container.isConnected) return;
       const view = new Map({

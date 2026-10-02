@@ -22,9 +22,14 @@ export const VOYAGER_STYLE_URL = "https://basemaps.cartocdn.com/gl/voyager-gl-st
 /**
  * Visible text: © CARTO, © OpenStreetMap contributors.
  * CARTO's TileJSON links elsewhere; this replaces that attribution.
+ * Only the loaded Voyager vector style uses this. The raster fallback is OSM-only.
  */
 export const MAP_ATTRIBUTION =
   '&copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>, &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';
+
+/** Visible text: © OpenStreetMap contributors, with the name linked to the copyright page. */
+export const OSM_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>';
 
 export function attributeVoyagerStyle(
   _previous: StyleSpecification | undefined,
@@ -51,39 +56,26 @@ function stampAttribution(source: SourceSpecification): SourceSpecification {
   return source;
 }
 
-/** Abort a hung Voyager stylesheet request and use the raster fallback. */
+/** Abort a hung Voyager stylesheet request and use the OSM raster fallback. */
 export const VOYAGER_STYLE_TIMEOUT_MS = 5_000;
 
-const VOYAGER_RASTER_TILES = [0, 1, 2, 3].map(
-  (index) => `https://${"abcd"[index]}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png`,
-);
-
-const OSM_RASTER_TILES = ["a", "b", "c"].map(
-  (host) => `https://${host}.tile.openstreetmap.org/{z}/{x}/{y}.png`,
-);
-
-/** CARTO Voyager raster. Used when the vector stylesheet cannot be loaded. */
-export function voyagerRasterStyle(): StyleSpecification {
-  return rasterStyle("voyager", VOYAGER_RASTER_TILES);
-}
-
-/** OSM raster. Used when the CARTO raster tiles themselves fail. */
+/**
+ * OSM standard raster. CARTO's keyless raster endpoint answers 200 with
+ * "API KEY REQUIRED" watermark tiles, so it is not a usable fallback.
+ */
 export function osmRasterStyle(): StyleSpecification {
-  return rasterStyle("osm", OSM_RASTER_TILES);
-}
-
-function rasterStyle(id: string, tiles: string[]): StyleSpecification {
   return {
     version: 8,
     sources: {
-      [id]: {
+      osm: {
         type: "raster",
-        tiles,
+        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
         tileSize: 256,
-        attribution: MAP_ATTRIBUTION,
+        maxzoom: 19,
+        attribution: OSM_ATTRIBUTION,
       },
     },
-    layers: [{ id, type: "raster", source: id }],
+    layers: [{ id: "osm", type: "raster", source: "osm" }],
   };
 }
 
@@ -95,7 +87,6 @@ export type VoyagerStyleLoader = {
 let voyagerStylePromise: Promise<StyleSpecification> | null = null;
 let styleWarned = false;
 let tileWarned = false;
-let osmFallbackUsed = false;
 
 function warnOnce(kind: "style" | "tile", message: string, detail: unknown) {
   if (kind === "style") {
@@ -106,13 +97,6 @@ function warnOnce(kind: "style" | "tile", message: string, detail: unknown) {
     tileWarned = true;
   }
   console.warn(message, detail);
-}
-
-function errorText(error: unknown): string {
-  if (!error || typeof error !== "object") return String(error ?? "");
-  const url = "url" in error && typeof error.url === "string" ? error.url : "";
-  const message = "message" in error && typeof error.message === "string" ? error.message : "";
-  return `${message} ${url}`.trim();
 }
 
 async function fetchVoyagerStyle(options?: VoyagerStyleLoader): Promise<StyleSpecification> {
@@ -133,40 +117,26 @@ async function fetchVoyagerStyle(options?: VoyagerStyleLoader): Promise<StyleSpe
 
 /**
  * Fetches Voyager and stamps the required CARTO and OSM attribution.
- * A network error, non-2xx response, bad JSON, or timeout resolves to CARTO raster tiles
- * instead of rejecting, so the map can still draw pins.
+ * A network error, non-2xx response, bad JSON, or timeout resolves to OSM raster
+ * tiles instead of rejecting, so the map can still draw pins.
  */
 export function loadVoyagerStyle(options?: VoyagerStyleLoader): Promise<StyleSpecification> {
   const load = () =>
     fetchVoyagerStyle(options).catch((error: unknown) => {
-      warnOnce("style", "[gigmap] Voyager style unavailable; using CARTO raster tiles", error);
-      return voyagerRasterStyle();
+      warnOnce("style", "[gigmap] Voyager style unavailable; using OpenStreetMap tiles", error);
+      return osmRasterStyle();
     });
   if (options) return load();
   voyagerStylePromise ??= load();
   return voyagerStylePromise;
 }
 
-type MapStyleHost = {
-  getStyle(): StyleSpecification | undefined;
-  setStyle(style: StyleSpecification): void;
-  once(type: "style.load", listener: () => void): void;
-};
-
 /**
- * Swallow a map error so it is not an unhandled rejection. If CARTO raster tiles fail,
- * switch to OSM once and call `onRasterReplaced` after the new style loads.
+ * Swallow a map error so it is not an unhandled rejection.
+ * The stylesheet fallback is already OSM, so a later tile error is logged once.
  */
-export function noteMapError(map: MapStyleHost, error: unknown, onRasterReplaced?: () => void) {
+export function noteMapError(_map: object, error: unknown) {
   warnOnce("tile", "[gigmap] map error", error);
-  if (osmFallbackUsed) return;
-  const source = map.getStyle()?.sources?.voyager;
-  if (!source || source.type !== "raster") return;
-  const text = errorText(error);
-  if (!text.includes("rastertiles/voyager")) return;
-  osmFallbackUsed = true;
-  if (onRasterReplaced) map.once("style.load", onRasterReplaced);
-  map.setStyle(osmRasterStyle());
 }
 
 export const CATEGORY_MARKER: Record<string, string> = {

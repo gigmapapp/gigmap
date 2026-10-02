@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   MAP_ATTRIBUTION,
+  OSM_ATTRIBUTION,
   loadVoyagerStyle,
   noteMapError,
   osmRasterStyle,
-  voyagerRasterStyle,
   type VoyagerStyleLoader,
 } from "./map-style";
 import type { StyleSpecification } from "maplibre-gl";
@@ -29,15 +29,18 @@ function warningsDuring<T>(run: () => Promise<T>) {
   }).then((value) => ({ value, warnings }));
 }
 
-function assertVoyagerRaster(style: StyleSpecification) {
-  const source = style.sources.voyager;
+function assertOsmRaster(style: StyleSpecification) {
+  const source = style.sources.osm;
   assert.ok(source);
   assert.equal(source.type, "raster");
   if (source.type !== "raster") return;
-  assert.ok(source.tiles?.some((tile) => tile.includes("rastertiles/voyager")));
-  assert.equal(source.attribution, MAP_ATTRIBUTION);
-  assert.match(source.attribution ?? "", /carto\.com\/attributions/);
+  assert.deepEqual(source.tiles, ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"]);
+  assert.equal(source.tileSize, 256);
+  assert.equal(source.maxzoom, 19);
+  assert.equal(source.attribution, OSM_ATTRIBUTION);
   assert.match(source.attribution ?? "", /openstreetmap\.org\/copyright/);
+  assert.doesNotMatch(source.attribution ?? "", /carto/i);
+  assert.equal(style.sources.voyager, undefined);
 }
 
 test("a valid Voyager stylesheet keeps its sources and the required attribution", async () => {
@@ -47,9 +50,10 @@ test("a valid Voyager stylesheet keeps its sources and the required attribution"
   const source = style.sources.carto;
   assert.equal(source?.type, "vector");
   if (source?.type === "vector") assert.equal(source.attribution, MAP_ATTRIBUTION);
+  assert.match(MAP_ATTRIBUTION, /carto\.com\/attributions/);
 });
 
-test("reject, non-ok, bad JSON, and timeout fall back to CARTO raster tiles", async () => {
+test("reject, non-ok, bad JSON, and timeout fall back to OSM raster tiles", async () => {
   const hang: VoyagerStyleLoader["fetchImpl"] = (_url, init) =>
     new Promise((_resolve, reject) => {
       const abort = () => reject(Object.assign(new Error("The operation was aborted"), { name: "AbortError" }));
@@ -58,58 +62,33 @@ test("reject, non-ok, bad JSON, and timeout fall back to CARTO raster tiles", as
     });
 
   const { warnings } = await warningsDuring(async () => {
-    assertVoyagerRaster(await loadVoyagerStyle({ fetchImpl: async () => Promise.reject(new Error("offline")) }));
-    assertVoyagerRaster(
+    assertOsmRaster(await loadVoyagerStyle({ fetchImpl: async () => Promise.reject(new Error("offline")) }));
+    assertOsmRaster(
       await loadVoyagerStyle({ fetchImpl: async () => new Response("nope", { status: 503 }) }),
     );
-    assertVoyagerRaster(await loadVoyagerStyle({ fetchImpl: async () => new Response("{", { status: 200 }) }));
-    assertVoyagerRaster(await loadVoyagerStyle({ fetchImpl: hang, timeoutMs: 20 }));
+    assertOsmRaster(await loadVoyagerStyle({ fetchImpl: async () => new Response("{", { status: 200 }) }));
+    assertOsmRaster(await loadVoyagerStyle({ fetchImpl: hang, timeoutMs: 20 }));
   });
   assert.equal(warnings.length, 1);
-  assert.match(String(warnings[0]?.[0]), /CARTO raster tiles/);
+  assert.match(String(warnings[0]?.[0]), /OpenStreetMap tiles/);
+  assertOsmRaster(osmRasterStyle());
 });
 
-test("CARTO raster tile errors switch to OSM once, and other errors do not", () => {
-  const osm = osmRasterStyle();
-  const osmSource = osm.sources.osm;
-  assert.equal(osmSource?.type, "raster");
-  if (osmSource?.type === "raster") {
-    assert.ok(osmSource.tiles?.some((tile) => tile.includes("tile.openstreetmap.org")));
-    assert.equal(osmSource.attribution, MAP_ATTRIBUTION);
-  }
-
-  const vector = vectorStyle;
-  let vectorSets = 0;
-  noteMapError(
-    {
-      getStyle: () => vector,
-      setStyle: () => {
-        vectorSets += 1;
-      },
-      once: () => {},
-    },
-    new Error("glyph failed"),
-  );
-  assert.equal(vectorSets, 0);
-
-  let current = voyagerRasterStyle();
-  let replacements = 0;
+test("map errors are logged once and do not replace the loaded style", () => {
+  let sets = 0;
   const host = {
-    getStyle: () => current,
-    setStyle: (style: StyleSpecification) => {
-      current = style;
+    getStyle: () => vectorStyle,
+    setStyle: () => {
+      sets += 1;
     },
-    once: (_type: "style.load", listener: () => void) => {
-      replacements += 1;
-      listener();
-    },
+    once: () => {},
   };
-  const tileError = Object.assign(new Error("Failed to fetch"), {
-    url: "https://a.basemaps.cartocdn.com/rastertiles/voyager/12/123/456.png",
-  });
-  noteMapError(host, tileError, () => {});
-  assert.equal(replacements, 1);
-  assert.equal(current.sources.osm?.type, "raster");
-  noteMapError(host, tileError, () => {});
-  assert.equal(replacements, 1);
+  noteMapError(host, new Error("glyph failed"));
+  noteMapError(
+    host,
+    Object.assign(new Error("Failed to fetch"), {
+      url: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
+    }),
+  );
+  assert.equal(sets, 0);
 });

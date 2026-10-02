@@ -16,7 +16,7 @@ import {
   MYSTIC_CENTER,
   loadVoyagerStyle,
   noteMapError,
-  voyagerRasterStyle,
+  osmRasterStyle,
 } from "@/lib/map-style";
 import { categoryLabel, formatGigWhen, zoneForGig } from "@/lib/format";
 import { gigClusterItemLabel, gigDisplayTitle, gigMarkerLabel } from "@/lib/gig-display";
@@ -98,7 +98,7 @@ export default function GigMap({
     const markers = markersRef.current;
     const clusters = clustersRef.current;
     void loadVoyagerStyle()
-      .catch(() => voyagerRasterStyle())
+      .catch(() => osmRasterStyle())
       .then((style) => {
       if (cancelled || mapRef.current || !container.isConnected) return;
       const initialPad = mapViewPadding(container.clientWidth || 390, container.clientHeight || 320);
@@ -146,10 +146,7 @@ export default function GigMap({
         render();
       };
       view.on("error", (event) => {
-        noteMapError(view, event.error, () => {
-          if (cancelled) return;
-          publish();
-        });
+        noteMapError(view, event.error);
       });
       view.on("idle", render);
       view.on("moveend", render);
