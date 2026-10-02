@@ -17,6 +17,7 @@ const migrationFiles = [
   "20260930181000_gigs_timezone_not_null.sql",
   "20260930182000_gigs_public_listing.sql",
   "20260930183000_replace_austin_seed_with_mystic.sql",
+  "20261002130545_booking_request_status.sql",
 ];
 
 function readMigration(name: string): string {
@@ -182,6 +183,31 @@ test("public listing columns are nullable and require a source url", () => {
   assert.match(raw, /not "performers\.user_id is null"/i);
   assert.doesNotMatch(sql, /alter column source_kind set not null|alter column source_url set not null/i);
   assert.doesNotMatch(sql, /storage\.objects|alter table storage|user_id/i);
+});
+
+test("booking status migration widens status, records the requester, and guards transitions", () => {
+  const raw = readMigration("20261002130545_booking_request_status.sql");
+  const sql = statements(raw);
+  assert.match(raw, /20260929160000_revoke_anon_table_writes/);
+  assert.match(raw, /Nothing was altered/);
+  assert.match(sql, /add column if not exists requester_id uuid/i);
+  assert.match(sql, /add column if not exists status_changed_at timestamptz/i);
+  assert.match(sql, /status in \('pending', 'accepted', 'declined', 'cancelled'\)/);
+  assert.match(sql, /references auth\.users \(id\) on delete set null/i);
+  assert.match(sql, /booking_requests_requester_select/);
+  assert.match(sql, /booking_requests_requester_insert/);
+  assert.match(sql, /booking_requests_owner_update/);
+  assert.match(sql, /booking_requests_requester_cancel/);
+  assert.match(sql, /create trigger booking_requests_guard/i);
+  assert.match(sql, /security invoker/i);
+  assert.match(sql, /\(select auth\.uid\(\)\)/);
+  assert.match(sql, /grant select, insert, update on table public\.booking_requests to authenticated/i);
+  assert.doesNotMatch(sql, /security definer/i);
+  assert.doesNotMatch(sql, /user_metadata/);
+  assert.doesNotMatch(sql, /grant [^;]*booking_requests[^;]*to anon/i);
+  assert.doesNotMatch(sql, /storage\.objects|alter table storage/i);
+  assert.doesNotMatch(sql, /delete from public\.booking_requests/i);
+  assert.doesNotMatch(sql, /alter column requester_id set not null/i);
 });
 
 test("clip bucket migration is idempotent and does not alter storage.objects", () => {

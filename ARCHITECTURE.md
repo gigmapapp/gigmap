@@ -42,7 +42,7 @@ See `lib/repo/interface.ts`:
 
 - `PerformerRepository` — `list`, `get`, `create`, `addVideo`
 - `GigRepository` — `list`, `get`, `create`
-- `BookingRepository` — `list`, `create`
+- `BookingRepository` — `list`, `listByRequester`, `create`, `setStatus`
 
 `lib/repo/index.ts` binds those interfaces to the JSON adapters. Changing backends is a new adapter plus a one-line swap.
 
@@ -50,7 +50,7 @@ See `lib/repo/interface.ts`:
 
 Email and password through Supabase Auth, with confirmation and password reset. Sessions are cookies via `@supabase/ssr`. There is no magic link and no `gigmap_performer` cookie. `proxy.ts` refreshes the session with `getClaims()` and expires any leftover stub cookie. Server code authorizes with `getClaims()` (`lib/auth/session.ts`). It does not trust `getSession()`.
 
-`getSessionPerformer()` / `requirePerformer()` load the signed-in user's profile (`performers.user_id`). No user redirects to `/sign-in`. A user with no profile redirects to `/account`. Posting a gig, adding clips, and reading `/bookings` all require that profile and act only on it.
+`getSessionPerformer()` / `requirePerformer()` load the signed-in user's profile (`performers.user_id`). No user redirects to `/sign-in`. A user with no profile redirects to `/account`. Posting a gig and adding clips require that profile and act only on it. `/account` shows booking requests for that profile. `/bookings` shows requests the signed-in user sent and does not require a profile.
 
 Sign-in, sign-up, password reset, and the account screen are functional placeholders. Presentation lives under `components/auth/`. Actions live in `app/actions/auth.ts` and `app/actions/account.ts`.
 
@@ -69,7 +69,7 @@ Schema and RLS live in `supabase/migrations/`. The `clips` bucket is its own fil
 1. `20260929140000_drop_legacy_empty_tables.sql` drops empty legacy `profiles`, `gigs`, and `bookings` (different columns from v1). It aborts if any of those legacy tables has a row, and it is a no-op when they are absent. It does not use `CASCADE` and does not modify `auth.users`. Already applied on the hosted project.
 2. `20260929150000_create_gigmap_tables.sql` creates the v1 tables, including a new `public.gigs`. It does not reference `storage`.
 3. `20260929155000_create_clips_bucket.sql` inserts the public `clips` bucket (10 MB, MP4 / WebM / MOV) and `clips_public_read` on `storage.objects`.
-4. `20260929160000_revoke_anon_table_writes.sql` leaves public read on performers, videos, and gigs, and removes anon, authenticated, and public insert/update/delete privileges and policies on those tables and on `booking_requests`. **Never re-run this file after `20260930120600_performer_auth_ownership.sql` (draft PR #10) is applied.** That later migration adds owner write policies, and this revoke drops them.
+4. `20260929160000_revoke_anon_table_writes.sql` leaves public read on performers, videos, and gigs, and removes anon, authenticated, and public insert/update/delete privileges and policies on those tables and on `booking_requests`. **Never re-run this file after `20260930120600_performer_auth_ownership.sql` (draft PR #10) or `20261002130545_booking_request_status.sql` is applied.** That revoke drops the owner write policies and the booking status policies.
 5. `20260929170000_revoke_rls_auto_enable.sql` revokes `EXECUTE` on `public.rls_auto_enable()` when that function already exists. It does not create, drop, or edit the function.
 6. `20260930120600_performer_auth_ownership.sql` adds nullable unique `performers.user_id` referencing `auth.users`, owner write policies for authenticated users, and owner select on `booking_requests`. Anon stays read-only on the public tables and cannot read bookings. It does not alter `storage.objects`. Do not re-run file 4 after this one: that file drops every write policy, including these owner policies. If you do, apply file 6 again.
 7. `20260930180000_gigs_add_timezone.sql` adds nullable `gigs.timezone` (IANA name) plus a format check and a trigger that rejects names Postgres does not recognize. It does not set `NOT NULL`.
@@ -77,6 +77,7 @@ Schema and RLS live in `supabase/migrations/`. The `clips` bucket is its own fil
 9. `20260930181000_gigs_timezone_not_null.sql` sets `NOT NULL`. The previous file already asserted that no nulls remain. On an empty database it only sets the constraint.
 10. `20260930182000_gigs_public_listing.sql` adds nullable `gigs.source_url` and `gigs.source_kind`. `public_info` requires an https `source_url`. Null `source_kind` means a legacy owner row. This is not derived from `performers.user_id`.
 11. `20260930183000_replace_austin_seed_with_mystic.sql` deletes the Austin sample by explicit id (and the live Milestone gig `1139b90f-1953-4ace-bc83-5296df2a2f5d`), then upserts the 8 Mystic listings. It aborts if one of those performers has a non-null `user_id`, has a booking request, or has a video or gig outside the id list. It does not delete booking requests and does not touch `storage.objects`. The upsert does not set `user_id`, so the listings stay unclaimed.
+12. `20261002130545_booking_request_status.sql` adds nullable `booking_requests.requester_id` (on delete set null) and `status_changed_at`, widens `status` to pending, accepted, declined, or cancelled, and adds requester select plus insert and update policies. A trigger only allows pending → accepted or declined by the performer owner, and pending → cancelled by the requester. It does not delete rows and does not set `requester_id` not null, so an existing row survives. Do not re-run file 4 after this one.
 
 `supabase start` then `supabase db reset` applies that filename order and then `supabase/seed.sql`. Local Storage already has RLS on `storage.objects`, and this repo never alters that table.
 
@@ -87,7 +88,7 @@ If the clips migration fails on the hosted project, leave it failed and create t
 - Public read of `performers`, `videos`, and `gigs` for `anon` and `authenticated`.
 - `performers.user_id` null means an unclaimed demo profile. The ten seed rows stay null. They are public, labeled Demo, and not editable. The Book button is hidden, and the booking action refuses them. `claimed` on the app type is `user_id is not null`. There is no extra column. Claiming a seed profile is out of scope.
 - Authenticated users may insert, update, and delete only their own performer, and gigs or videos whose performer they own. Policies compare `(select auth.uid())`.
-- `booking_requests`: authenticated may select rows for a performer they own. Nobody else can read them. Fans still create requests through the server action, which uses the service role after it rejects unclaimed performers. Anon has no insert.
+- `booking_requests`: the performer owner and the requester may select a row. Nobody else can. Creating a request requires a signed-in user. The user-scoped client inserts it, and RLS plus a trigger require `requester_id` to be that user and `status` to start at pending. The owner may accept or decline a pending row. The requester may cancel a pending row. A final status does not change. Demo profiles stay closed. Anon has no privileges. `notifyBookingStatusChanged` logs the create and each status change and does not send email.
 - Owner writes (profile, gigs, clips, the booking inbox) use the user-scoped server client so RLS applies. The service role is limited to public reads, booking inserts, signed upload URLs, and seeding. A signed upload URL is minted only after a service-role read shows `user_id` matches the signed-in user. Object keys are `{performerId}/{uuid}.{ext}`. There is still no anon insert policy on `storage.objects`.
 
 Seed data is `lib/seed/fixtures/mystic-seed-final.csv` (8 performers, 8 gigs, no videos). `lib/seed/mystic-csv.ts` reads it. `start_time_et` is venue wall time; the zone still comes from lat/lng (these pins are `America/New_York`, including Westerly, RI). `source_kind` is `public_info` and `source_url` is stored. CSV `notes` are not stored. `supabase/seed.sql` and the swap migration are rendered from that loader (`npx tsx scripts/render-seed-sql.ts`). `npm run seed:supabase` upserts the same rows with the service role, writes no videos, and does not delete Austin rows or booking requests. The swap migration is what removes the Austin sample from an existing database. Delete `.data/db.json` to reseed the local JSON store.

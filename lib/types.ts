@@ -59,17 +59,24 @@ export interface Gig {
   createdAt: string;
 }
 
+export const BOOKING_STATUSES = ["pending", "accepted", "declined", "cancelled"] as const;
+export type BookingStatus = (typeof BOOKING_STATUSES)[number];
+export type BookingDecisionStatus = Exclude<BookingStatus, "pending">;
+
 export interface BookingRequest {
   id: string;
   performerId: string;
+  /** Auth user id. Null on a row saved before accounts were required, or after that account was deleted. */
+  requesterId: string | null;
   contactName: string;
   contactEmail: string;
   eventDetails: string;
   preferredDate: string;
   preferredLocation: string;
   message: string;
-  status: "pending";
+  status: BookingStatus;
   createdAt: string;
+  statusChangedAt: string;
 }
 
 export interface Database {
@@ -99,6 +106,8 @@ export interface CreateGigInput {
 
 export interface CreateBookingInput {
   performerId: string;
+  /** Signed-in auth user. Required for every new request. */
+  requesterId: string;
   contactName: string;
   contactEmail: string;
   eventDetails: string;

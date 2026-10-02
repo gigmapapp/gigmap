@@ -43,7 +43,10 @@ export const gigs: GigRepository = {
 
 export const bookings: BookingRepository = {
   list: (filter) => repositories().bookings.list(filter),
+  listByRequester: (requesterId) => repositories().bookings.listByRequester(requesterId),
   create: (input) => repositories().bookings.create(input),
+  setStatus: (bookingId, actorUserId, status) =>
+    repositories().bookings.setStatus(bookingId, actorUserId, status),
 };
 
 export { clipUploadMode, isSupabaseConfigured };
