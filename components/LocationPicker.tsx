@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Map, Marker, NavigationControl } from "maplibre-gl";
+import { Map, Marker, NavigationControl, setWorkerUrl } from "maplibre-gl";
 import { ACCENT } from "@/lib/accent";
-import { MYSTIC_CENTER, loadVoyagerStyle } from "@/lib/map-style";
+import { maplibreWorkerUrl } from "@/lib/map-pins";
+import { MYSTIC_CENTER, loadVoyagerStyle, noteMapError, osmRasterStyle } from "@/lib/map-style";
+
+if (typeof window !== "undefined") {
+  setWorkerUrl(maplibreWorkerUrl(window.location.origin));
+}
 
 export default function LocationPicker({
   lat,
@@ -28,7 +33,9 @@ export default function LocationPicker({
     const container = containerRef.current;
     let cancelled = false;
     let map: Map | null = null;
-    void loadVoyagerStyle().then((style) => {
+    void loadVoyagerStyle()
+      .catch(() => osmRasterStyle())
+      .then((style) => {
       if (cancelled || mapRef.current || !container.isConnected) return;
       const view = new Map({
         container,
@@ -38,6 +45,9 @@ export default function LocationPicker({
         zoom: 12.2,
       });
       map = view;
+      view.on("error", (event) => {
+        noteMapError(view, event.error);
+      });
       view.addControl(new NavigationControl({ showCompass: false }), "top-right");
       view.on("click", (event) => {
         onChangeRef.current({ lat: event.lngLat.lat, lng: event.lngLat.lng });

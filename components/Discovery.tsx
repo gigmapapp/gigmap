@@ -67,7 +67,10 @@ export default function Discovery({
         />
         <div className="relative h-[40vh] min-h-[220px] w-full min-w-0 md:absolute md:inset-0 md:h-auto md:min-h-0">
           <GigMap gigs={visible} selectedId={selectedId} onSelect={setSelectedId} />
-          <div className="pointer-events-none absolute inset-x-0 top-0 hidden p-3 sm:p-4 md:block">
+          <div
+            data-map-overlay
+            className="pointer-events-none absolute inset-x-0 top-0 hidden p-3 sm:p-4 md:block"
+          >
             <div className="pointer-events-none mx-auto w-full min-w-0 max-w-xl rounded-2xl border border-line bg-canvas/85 p-3 shadow-xl backdrop-blur">
               <p className="font-display text-lg tracking-tight text-foreground">
                 Find live music near you.

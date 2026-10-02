@@ -16,6 +16,20 @@ export const MARKER_EDGE_CLEARANCE_PX = MARKER_TAP_PX / 2 + 12;
 /** Gap kept between an open popup and the map edges. Bottom is larger so the card clears the attribution. */
 export const POPUP_FIT_PADDING = { top: 8, right: 8, bottom: 24, left: 8 };
 
+/** Extra space between a popup and the desktop filter card. */
+export const MAP_OVERLAY_GAP_PX = 8;
+
+/**
+ * Top inset for popup auto-pan. When the filter card overlaps the map, the
+ * padding is the overlap plus {@link MAP_OVERLAY_GAP_PX}.
+ */
+export function overlayTopPadding(mapTop: number, overlayBottom: number | null, base = POPUP_FIT_PADDING.top): number {
+  if (overlayBottom == null) return base;
+  const overlap = overlayBottom - mapTop;
+  if (overlap <= 0) return base;
+  return Math.max(base, Math.ceil(overlap) + MAP_OVERLAY_GAP_PX);
+}
+
 /**
  * MapLibre clusters points closer than this many screen pixels.
  * Slightly above the tap target so overlapping pins become one cluster.
