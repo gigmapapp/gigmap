@@ -4,24 +4,31 @@ import {
   CLUSTER_RADIUS_PX,
   MAP_ATTRIBUTION_CLEARANCE_PX,
   MAP_CONTROL_CLEARANCE_PX,
+  MARKER_EDGE_CLEARANCE_PX,
   MARKER_TAP_PX,
+  POPUP_FIT_PADDING,
   mapViewPadding,
   maplibreWorkerUrl,
   pinsShareCoordinates,
+  popupContentMaxHeight,
+  popupPanBy,
   venuePinOffsets,
 } from "./map-pins";
 
 test("view padding clears the right-side controls and the attribution", () => {
   assert.equal(MAP_CONTROL_CLEARANCE_PX, 60);
+  assert.equal(MARKER_EDGE_CLEARANCE_PX, MARKER_TAP_PX / 2 + 12);
   assert.ok(MAP_ATTRIBUTION_CLEARANCE_PX >= 28);
   assert.ok(CLUSTER_RADIUS_PX >= MARKER_TAP_PX);
+  assert.ok(POPUP_FIT_PADDING.bottom > POPUP_FIT_PADDING.top);
 
   for (const width of [320, 375, 390, 414, 1280]) {
     for (const height of [220, 320, 568, 664, 800]) {
       const pad = mapViewPadding(width, height);
       assert.ok(pad.right >= Math.min(MAP_CONTROL_CLEARANCE_PX, height * 0.4), `${width}x${height} right`);
       assert.ok(pad.bottom >= Math.min(MAP_ATTRIBUTION_CLEARANCE_PX, height * 0.4), `${width}x${height} bottom`);
-      assert.ok(pad.top >= 0 && pad.left >= 0);
+      assert.ok(pad.left >= Math.min(MARKER_EDGE_CLEARANCE_PX, height * 0.4), `${width}x${height} left`);
+      assert.ok(pad.top >= Math.min(MARKER_EDGE_CLEARANCE_PX, height * 0.4), `${width}x${height} top`);
       assert.ok(pad.top + pad.bottom < height, `${width}x${height} vertical`);
       assert.ok(pad.left + pad.right < width, `${width}x${height} horizontal`);
     }
@@ -29,8 +36,46 @@ test("view padding clears the right-side controls and the attribution", () => {
 
   const phone = mapViewPadding(375, 664);
   assert.equal(phone.right, 60);
+  assert.equal(phone.left, MARKER_EDGE_CLEARANCE_PX);
+  assert.equal(phone.top, MARKER_EDGE_CLEARANCE_PX);
   assert.ok(phone.bottom >= MAP_ATTRIBUTION_CLEARANCE_PX);
   assert.ok(phone.top < mapViewPadding(1280, 800).top);
+
+  for (const width of [320, 375, 414]) {
+    const pad = mapViewPadding(width, 227);
+    assert.ok(pad.left >= MARKER_EDGE_CLEARANCE_PX);
+    assert.ok(pad.top >= MARKER_EDGE_CLEARANCE_PX);
+    assert.ok(pad.bottom >= MARKER_EDGE_CLEARANCE_PX);
+    assert.ok(pad.right >= MAP_CONTROL_CLEARANCE_PX);
+  }
+});
+
+test("popup pan keeps the card inside the map and prefers the popup over a pin that will not fit", () => {
+  const map = { left: 0, top: 0, right: 320, bottom: 220 };
+  const above = popupPanBy(map, { left: 40, top: -30, right: 200, bottom: 80 }, null);
+  assert.deepEqual(above, [0, -(POPUP_FIT_PADDING.top - -30)]);
+
+  const below = popupPanBy(map, { left: 40, top: 160, right: 200, bottom: 250 }, null);
+  assert.ok(below);
+  assert.equal(below[0], 0);
+  assert.equal(below[1], 250 - (220 - POPUP_FIT_PADDING.bottom));
+
+  const inside = popupPanBy(map, { left: 40, top: 40, right: 200, bottom: 120 }, null);
+  assert.equal(inside, null);
+
+  const pinTooTall = popupPanBy(
+    map,
+    { left: 40, top: 20, right: 200, bottom: 140 },
+    { left: 80, top: 150, right: 124, bottom: 240 },
+  );
+  assert.equal(pinTooTall, null);
+});
+
+test("narrow maps cap popup content so the card can scroll", () => {
+  const phone = popupContentMaxHeight(320, 227);
+  assert.ok(phone != null && phone >= MARKER_TAP_PX);
+  assert.ok(phone < 227);
+  assert.equal(popupContentMaxHeight(1280, 800), null);
 });
 
 test("same-venue pins are offset by at least a tap target", () => {
