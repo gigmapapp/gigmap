@@ -15,6 +15,8 @@ import {
   CATEGORY_MARKER,
   MYSTIC_CENTER,
   loadVoyagerStyle,
+  noteMapError,
+  voyagerRasterStyle,
 } from "@/lib/map-style";
 import { categoryLabel, formatGigWhen, zoneForGig } from "@/lib/format";
 import { gigClusterItemLabel, gigDisplayTitle, gigMarkerLabel } from "@/lib/gig-display";
@@ -25,6 +27,7 @@ import {
   POPUP_FIT_PADDING,
   maplibreWorkerUrl,
   mapViewPadding,
+  overlayTopPadding,
   pinsShareCoordinates,
   popupContentMaxHeight,
   popupPanBy,
@@ -94,7 +97,9 @@ export default function GigMap({
     let nearMeObserver: { disconnect: () => void } | null = null;
     const markers = markersRef.current;
     const clusters = clustersRef.current;
-    void loadVoyagerStyle().then((style) => {
+    void loadVoyagerStyle()
+      .catch(() => voyagerRasterStyle())
+      .then((style) => {
       if (cancelled || mapRef.current || !container.isConnected) return;
       const initialPad = mapViewPadding(container.clientWidth || 390, container.clientHeight || 320);
       const view = new MapLibreMap({
@@ -140,6 +145,12 @@ export default function GigMap({
         publishGigSource(view, gigsRef.current, sourceKeyRef);
         render();
       };
+      view.on("error", (event) => {
+        noteMapError(view, event.error, () => {
+          if (cancelled) return;
+          publish();
+        });
+      });
       view.on("idle", render);
       view.on("moveend", render);
       view.on("sourcedata", (event) => {
@@ -430,13 +441,25 @@ function anchorPin(map: MapLibreMap): HTMLElement | null {
   return cluster instanceof HTMLElement ? cluster : null;
 }
 
+function mapOverlayBottom(mapEl: HTMLElement): number | null {
+  const host = mapEl.parentElement?.parentElement;
+  const overlay = host?.querySelector("[data-map-overlay]");
+  if (!(overlay instanceof HTMLElement)) return null;
+  const rect = overlay.getBoundingClientRect();
+  if (rect.width < 1 || rect.height < 1) return null;
+  return rect.bottom;
+}
+
 function popupShift(map: MapLibreMap): [number, number] | null {
   const popup = map.getContainer().querySelector(".maplibregl-popup");
   if (!(popup instanceof HTMLElement)) return null;
   const mapRect = map.getContainer().getBoundingClientRect();
   const pop = popup.getBoundingClientRect();
   const pin = anchorPin(map)?.getBoundingClientRect() ?? null;
-  return popupPanBy(mapRect, pop, pin);
+  return popupPanBy(mapRect, pop, pin, {
+    ...POPUP_FIT_PADDING,
+    top: overlayTopPadding(mapRect.top, mapOverlayBottom(map.getContainer())),
+  });
 }
 
 type GigFeatureCollection = {

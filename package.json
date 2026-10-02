@@ -10,7 +10,7 @@
     "postinstall": "node scripts/copy-maplibre-worker.mjs",
     "predev": "node scripts/copy-maplibre-worker.mjs",
     "prebuild": "node scripts/copy-maplibre-worker.mjs",
-    "test": "tsx --test lib/seed/*.test.ts lib/repo/*.test.ts lib/auth/*.test.ts lib/bookings/*.test.ts lib/clips.test.ts lib/booking-validation.test.ts lib/calendar-date.test.ts lib/venue-time.test.ts lib/venue-zone.test.ts lib/nearby.test.ts lib/visitor-location.test.ts lib/tz-at.test.ts lib/gig-zone.test.ts lib/http-url.test.ts lib/map-pins.test.ts lib/gig-display.test.ts components/auth/messages.test.ts",
+    "test": "tsx --test lib/seed/*.test.ts lib/repo/*.test.ts lib/auth/*.test.ts lib/bookings/*.test.ts lib/clips.test.ts lib/booking-validation.test.ts lib/calendar-date.test.ts lib/venue-time.test.ts lib/venue-zone.test.ts lib/nearby.test.ts lib/visitor-location.test.ts lib/tz-at.test.ts lib/gig-zone.test.ts lib/http-url.test.ts lib/map-pins.test.ts lib/map-style.test.ts lib/gig-display.test.ts components/auth/messages.test.ts",
     "seed:supabase": "tsx scripts/seed-supabase.ts",
     "backfill:timezones": "tsx scripts/backfill-gig-timezones.ts",
     "clips:remove-austin": "tsx scripts/remove-austin-clips.ts"

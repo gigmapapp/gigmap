@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Map, Marker, NavigationControl } from "maplibre-gl";
 import { ACCENT } from "@/lib/accent";
-import { MYSTIC_CENTER, loadVoyagerStyle } from "@/lib/map-style";
+import { MYSTIC_CENTER, loadVoyagerStyle, noteMapError, voyagerRasterStyle } from "@/lib/map-style";
 
 export default function LocationPicker({
   lat,
@@ -28,7 +28,9 @@ export default function LocationPicker({
     const container = containerRef.current;
     let cancelled = false;
     let map: Map | null = null;
-    void loadVoyagerStyle().then((style) => {
+    void loadVoyagerStyle()
+      .catch(() => voyagerRasterStyle())
+      .then((style) => {
       if (cancelled || mapRef.current || !container.isConnected) return;
       const view = new Map({
         container,
@@ -38,6 +40,9 @@ export default function LocationPicker({
         zoom: 12.2,
       });
       map = view;
+      view.on("error", (event) => {
+        noteMapError(view, event.error);
+      });
       view.addControl(new NavigationControl({ showCompass: false }), "top-right");
       view.on("click", (event) => {
         onChangeRef.current({ lat: event.lngLat.lat, lng: event.lngLat.lng });

@@ -9,6 +9,8 @@
   --secondary: #e2e8f0;
   --muted: #cbd5e1;
   --line: #64748b;
+  /* Field edges. #94a3b8 is 4.04:1 on #334155 and 5.71:1 on #1e293b. */
+  --field-line: #94a3b8;
   --on-accent: #09090b;
   /* #FC5A05 on #334155 is about 3.3:1. Small orange text uses this lighter orange (about 5.3:1). */
   --accent-text: #fda373;
@@ -274,9 +276,19 @@ select {
   color: var(--accent-text);
 }
 
-/* Unlayered so these beat the global `* { border-color }` rule. */
+/* Unlayered so these beat the global `* { border-color }` rule and border-line utilities.
+   #94a3b8 stays above 3:1 on both the page and raised surfaces. */
+input,
+textarea,
+select,
+.auth-field,
+.booking-field,
+.filter-date-input {
+  border-color: var(--field-line);
+}
+
 .booking-field {
-  border-color: var(--line);
+  border-color: var(--field-line);
 }
 
 .booking-field:focus,
@@ -292,11 +304,21 @@ select {
 }
 
 .auth-field {
-  border-color: var(--line);
+  border-color: var(--field-line);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 
 .auth-field:focus,
-.auth-field[aria-invalid="true"] {
+.auth-field[aria-invalid="true"],
+input:focus,
+textarea:focus,
+select:focus,
+.filter-date-input:focus {
   border-color: var(--accent);
 }
 

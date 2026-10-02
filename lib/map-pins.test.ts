@@ -7,8 +7,10 @@ import {
   MARKER_EDGE_CLEARANCE_PX,
   MARKER_TAP_PX,
   POPUP_FIT_PADDING,
+  MAP_OVERLAY_GAP_PX,
   mapViewPadding,
   maplibreWorkerUrl,
+  overlayTopPadding,
   pinsShareCoordinates,
   popupContentMaxHeight,
   popupPanBy,
@@ -62,6 +64,18 @@ test("popup pan keeps the card inside the map and prefers the popup over a pin t
 
   const inside = popupPanBy(map, { left: 40, top: 40, right: 200, bottom: 120 }, null);
   assert.equal(inside, null);
+
+  const underOverlay = popupPanBy(
+    { left: 0, top: 100, right: 1280, bottom: 800 },
+    { left: 400, top: 120, right: 640, bottom: 280 },
+    null,
+    { ...POPUP_FIT_PADDING, top: overlayTopPadding(100, 280) },
+  );
+  assert.ok(underOverlay);
+  assert.equal(underOverlay[0], 0);
+  assert.equal(underOverlay[1], -(280 + MAP_OVERLAY_GAP_PX - 120));
+  assert.equal(overlayTopPadding(100, null), POPUP_FIT_PADDING.top);
+  assert.equal(overlayTopPadding(100, 90), POPUP_FIT_PADDING.top);
 
   const pinTooTall = popupPanBy(
     map,
