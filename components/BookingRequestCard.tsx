@@ -20,15 +20,15 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
 function statusClass(status: BookingStatus): string {
   if (status === "accepted") return "text-emerald-300";
   if (status === "declined") return "text-rose-300";
-  if (status === "cancelled") return "text-zinc-500";
+  if (status === "cancelled") return "text-muted";
   return "text-accent";
 }
 
 const primaryButtonClass =
-  "inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 text-sm font-medium text-zinc-950 hover:bg-accent-hover disabled:cursor-wait disabled:opacity-70";
+  "inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 text-sm font-medium text-on-accent hover:bg-accent-hover disabled:cursor-wait disabled:opacity-70";
 
 const secondaryButtonClass =
-  "inline-flex min-h-11 items-center justify-center rounded-lg bg-zinc-800 px-4 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-wait disabled:opacity-70";
+  "inline-flex min-h-11 items-center justify-center rounded-lg border border-line bg-surface px-4 text-sm font-medium text-foreground hover:bg-surface-hover disabled:cursor-wait disabled:opacity-70";
 
 type StatusAction = (formData: FormData) => Promise<AuthActionResult>;
 
@@ -85,19 +85,19 @@ export default function BookingRequestCard({
     pending === "accepted" ? "Accepting..." : pending === "declined" ? "Declining..." : pending === "cancelled" ? "Cancelling..." : null;
 
   return (
-    <article className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5" aria-busy={pending !== null}>
+    <article className="rounded-2xl border border-line bg-surface p-5" aria-busy={pending !== null}>
       <div className="flex items-center justify-between gap-2 text-xs">
         <span className={`uppercase tracking-wide ${statusClass(shown)}`}>
           {STATUS_LABEL[shown]}
-          {saving ? <span className="ml-2 normal-case tracking-normal text-zinc-400">{saving}</span> : null}
+          {saving ? <span className="ml-2 normal-case tracking-normal text-muted">{saving}</span> : null}
         </span>
-        <span className="text-zinc-500">{mode === "owner" ? "For you" : "Your request"}</span>
+        <span className="text-muted">{mode === "owner" ? "For you" : "Your request"}</span>
       </div>
-      <h2 className="mt-2 font-medium break-words text-white">{title}</h2>
-      <p className="mt-1 text-sm break-words text-zinc-400">{meta}</p>
-      <p className="mt-3 text-sm break-words text-zinc-200">{body}</p>
-      {note ? <p className="mt-2 text-sm break-words text-zinc-400">{note}</p> : null}
-      {contact ? <p className="mt-3 text-xs break-words text-zinc-500">{contact}</p> : null}
+      <h2 className="mt-2 font-medium break-words text-foreground">{title}</h2>
+      <p className="mt-1 text-sm break-words text-muted">{meta}</p>
+      <p className="mt-3 text-sm break-words text-secondary">{body}</p>
+      {note ? <p className="mt-2 text-sm break-words text-muted">{note}</p> : null}
+      {contact ? <p className="mt-3 text-xs break-words text-muted">{contact}</p> : null}
       {mode === "owner" && status === "pending" && (shown === "pending" || pending !== null) ? (
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <button

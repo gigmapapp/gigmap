@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Map, Marker, NavigationControl } from "maplibre-gl";
 import { ACCENT } from "@/lib/accent";
-import { DARK_MAP_STYLE, MYSTIC_CENTER } from "@/lib/map-style";
+import { MYSTIC_CENTER, loadVoyagerStyle } from "@/lib/map-style";
 
 export default function LocationPicker({
   lat,
@@ -25,19 +25,28 @@ export default function LocationPicker({
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-    const map = new Map({
-      container: containerRef.current,
-      style: DARK_MAP_STYLE,
-      center: [MYSTIC_CENTER.lng, MYSTIC_CENTER.lat],
-      zoom: 12.2,
+    const container = containerRef.current;
+    let cancelled = false;
+    let map: Map | null = null;
+    void loadVoyagerStyle().then((style) => {
+      if (cancelled || mapRef.current || !container.isConnected) return;
+      const view = new Map({
+        container,
+        style,
+        attributionControl: { compact: false },
+        center: [MYSTIC_CENTER.lng, MYSTIC_CENTER.lat],
+        zoom: 12.2,
+      });
+      map = view;
+      view.addControl(new NavigationControl({ showCompass: false }), "top-right");
+      view.on("click", (event) => {
+        onChangeRef.current({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+      });
+      mapRef.current = view;
     });
-    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
-    map.on("click", (event) => {
-      onChangeRef.current({ lat: event.lngLat.lat, lng: event.lngLat.lng });
-    });
-    mapRef.current = map;
     return () => {
-      map.remove();
+      cancelled = true;
+      map?.remove();
       mapRef.current = null;
       markerRef.current = null;
     };
@@ -56,9 +65,9 @@ export default function LocationPicker({
   }, [lat, lng]);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-800">
+    <div className="overflow-hidden rounded-xl border border-line">
       <div ref={containerRef} className="h-64 w-full" />
-      <p className="bg-zinc-900 px-3 py-2 text-xs text-zinc-400">
+      <p className="bg-surface px-3 py-2 text-xs text-muted">
         Tap the map to set lat/lng. Add a venue label below.
       </p>
     </div>

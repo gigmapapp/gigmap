@@ -50,7 +50,7 @@ export default function SignUpForm({
       <div
         role="status"
         aria-live="polite"
-        className="rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-4 text-sm leading-relaxed break-words text-zinc-100"
+        className="rounded-xl border border-line bg-canvas px-4 py-4 text-sm leading-relaxed break-words text-secondary"
       >
         <p>{ALREADY_REGISTERED_MESSAGE}</p>
         <div className="mt-2 flex flex-col items-start">
@@ -69,7 +69,7 @@ export default function SignUpForm({
     return (
       <div>
         <AuthInbox title="Check your email" email={sentTo} body={state.message} />
-        <p className="mt-3 text-sm leading-relaxed break-words text-zinc-400">{SIGN_UP_CHECK_EMAIL_HINT}</p>
+        <p className="mt-3 text-sm leading-relaxed break-words text-muted">{SIGN_UP_CHECK_EMAIL_HINT}</p>
         <div className="mt-1 flex flex-wrap items-center gap-x-4">
           <Link href="/sign-in" className={authTextLinkClass}>
             Sign in

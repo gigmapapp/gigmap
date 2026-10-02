@@ -40,35 +40,35 @@ export default function PostGigForm({
         }
       }}
     >
-      <p className="text-sm text-zinc-400">
+      <p className="text-sm text-muted">
         Posting as <span className="text-accent">{performer.name}</span>
       </p>
       <Field label="Title" name="title" required placeholder="Late set downtown" />
-      <label className="block text-sm text-zinc-300">
+      <label className="block text-sm text-secondary">
         Description
         <textarea
           name="description"
           rows={4}
-          className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+          className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-foreground"
           placeholder="Who's playing, what to expect, door time..."
         />
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm text-zinc-300">
+        <label className="block text-sm text-secondary">
           Category
           <select
             name="category"
             defaultValue={performer.category}
-            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+            className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-foreground"
           >
             <option value="solo">Solo</option>
             <option value="band">Band</option>
             <option value="dj">DJ</option>
           </select>
         </label>
-        <label className="block text-sm text-zinc-300">
+        <label className="block text-sm text-secondary">
           Date and time
-          <span id="gig-time-zone" className="mt-0.5 block text-xs text-zinc-500">
+          <span id="gig-time-zone" className="mt-0.5 block text-xs text-muted">
             {zoneHint}
           </span>
           <input
@@ -77,7 +77,7 @@ export default function PostGigForm({
             required
             aria-describedby="gig-time-zone"
             defaultValue={initialDateTime ? toVenueDateTimeLocal(initialDateTime) : undefined}
-            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+            className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-foreground"
           />
         </label>
       </div>
@@ -90,7 +90,7 @@ export default function PostGigForm({
         }}
       />
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm text-zinc-300">
+        <label className="block text-sm text-secondary">
           Latitude
           <input
             name="lat"
@@ -102,10 +102,10 @@ export default function PostGigForm({
               setLat(event.target.value === "" ? null : Number(event.target.value))
             }
             placeholder="41.3543"
-            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+            className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-foreground"
           />
         </label>
-        <label className="block text-sm text-zinc-300">
+        <label className="block text-sm text-secondary">
           Longitude
           <input
             name="lng"
@@ -117,7 +117,7 @@ export default function PostGigForm({
               setLng(event.target.value === "" ? null : Number(event.target.value))
             }
             placeholder="-71.9665"
-            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+            className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-foreground"
           />
         </label>
       </div>
@@ -130,7 +130,7 @@ export default function PostGigForm({
       {error ? <p className="text-sm text-accent">{error}</p> : null}
       <button
         type="submit"
-        className="w-full rounded-lg bg-accent py-3 font-medium text-zinc-950 hover:bg-accent-hover"
+        className="w-full rounded-lg bg-accent py-3 font-medium text-on-accent hover:bg-accent-hover"
       >
         Publish gig
       </button>
@@ -150,13 +150,13 @@ function Field({
   placeholder?: string;
 }) {
   return (
-    <label className="block text-sm text-zinc-300">
+    <label className="block text-sm text-secondary">
       {label}
       <input
         name={name}
         required={required}
         placeholder={placeholder}
-        className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+        className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-foreground"
       />
     </label>
   );

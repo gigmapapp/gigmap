@@ -35,23 +35,23 @@ export default async function PerformerPage({
             <CategoryBadge category={performer.category} />
             {performer.claimed ? null : <DemoBadge />}
           </div>
-          <h1 className="mt-3 font-display text-4xl break-words text-white">{performer.name}</h1>
+          <h1 className="mt-3 font-display text-4xl break-words text-foreground">{performer.name}</h1>
           {place.length > 0 ? (
-            <p className="mt-2 text-sm break-words text-zinc-400">{place.join(" · ")}</p>
+            <p className="mt-2 text-sm break-words text-muted">{place.join(" · ")}</p>
           ) : null}
         </div>
         <BookPerformerLink performer={performer} />
       </div>
       {performer.bio.trim() ? (
-        <p className="mt-6 max-w-2xl text-zinc-300">{performer.bio}</p>
+        <p className="mt-6 max-w-2xl text-secondary">{performer.bio}</p>
       ) : null}
 
       <section className="mt-10">
-        <h2 className="font-display text-2xl text-white">Clips</h2>
+        <h2 className="font-display text-2xl text-foreground">Clips</h2>
         {performer.videos.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/40 px-4 py-8 text-center">
-            <p className="text-sm font-medium text-zinc-200">No clips yet</p>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-zinc-500">
+          <div className="mt-4 rounded-2xl border border-dashed border-line bg-surface px-4 py-8 text-center">
+            <p className="text-sm font-medium text-secondary">No clips yet</p>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
               Videos will show up here when this performer adds them.
             </p>
           </div>
@@ -60,7 +60,7 @@ export default async function PerformerPage({
             {performer.videos.map((video) => (
               <figure key={video.id} className="space-y-2">
                 <VideoEmbed url={video.url} title={video.title} />
-                <figcaption className="text-sm text-zinc-400">{video.title}</figcaption>
+                <figcaption className="text-sm text-muted">{video.title}</figcaption>
               </figure>
             ))}
           </div>
@@ -73,21 +73,21 @@ export default async function PerformerPage({
       </section>
 
       <section className="mt-10">
-        <h2 className="font-display text-2xl text-white">Upcoming gigs</h2>
+        <h2 className="font-display text-2xl text-foreground">Upcoming gigs</h2>
         <div className="mt-4 space-y-3">
           {upcoming.length === 0 ? (
-            <p className="text-sm text-zinc-500">Nothing on the calendar yet.</p>
+            <p className="text-sm text-muted">Nothing on the calendar yet.</p>
           ) : (
             upcoming.map((gig) => (
               <article
                 key={gig.id}
-                className="min-w-0 rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 py-3 hover:border-accent/40"
+                className="min-w-0 rounded-xl border border-line bg-surface px-4 py-3 hover:border-accent/40"
               >
                 <Link href={`/gigs/${gig.id}`} className="block min-h-11 rounded-lg py-1">
-                  <div className="font-medium break-words text-white">
+                  <div className="font-medium break-words text-foreground">
                     {gigDisplayTitle(gig.title, performer.name).primary || "Unknown"}
                   </div>
-                  <div className="mt-1 text-sm break-words text-zinc-400">
+                  <div className="mt-1 text-sm break-words text-muted">
                     {formatGigWhen(gig.datetime, zoneForGig(gig))} · {gig.location.label}
                   </div>
                 </Link>

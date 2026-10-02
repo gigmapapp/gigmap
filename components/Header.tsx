@@ -17,10 +17,10 @@ const links = [
 ];
 
 const navLinkClass =
-  "inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white";
+  "inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-secondary hover:bg-surface-hover hover:text-foreground";
 
 const menuLinkClass =
-  "flex min-h-11 items-center rounded-lg px-3 text-zinc-200 hover:bg-zinc-800";
+  "flex min-h-11 items-center rounded-lg px-3 text-secondary hover:bg-surface-hover";
 
 export default function Header({ account }: { account: HeaderAccount }) {
   const [open, setOpen] = useState(false);
@@ -38,7 +38,7 @@ export default function Header({ account }: { account: HeaderAccount }) {
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
+    <header className="sticky top-0 z-30 shrink-0 border-b border-line bg-canvas/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2">
         <Logo />
         <nav className="hidden items-center gap-1 text-sm md:flex">
@@ -49,7 +49,7 @@ export default function Header({ account }: { account: HeaderAccount }) {
           ))}
           <Link
             href="/gigs/new"
-            className="ml-1 inline-flex min-h-11 items-center rounded-lg bg-accent px-3 text-sm font-medium text-zinc-950 hover:bg-accent-hover"
+            className="ml-1 inline-flex min-h-11 items-center rounded-lg bg-accent px-3 text-sm font-medium text-on-accent hover:bg-accent-hover"
           >
             Post a gig
           </Link>
@@ -67,7 +67,7 @@ export default function Header({ account }: { account: HeaderAccount }) {
         </div>
         <button
           type="button"
-          className="inline-flex size-11 items-center justify-center rounded-lg text-zinc-200 hover:bg-zinc-800 md:hidden"
+          className="inline-flex size-11 items-center justify-center rounded-lg text-secondary hover:bg-surface-hover md:hidden"
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
           aria-controls="site-menu"
@@ -77,7 +77,7 @@ export default function Header({ account }: { account: HeaderAccount }) {
         </button>
       </div>
       {open ? (
-        <div id="site-menu" className="space-y-1 border-t border-zinc-800 px-4 py-3 md:hidden">
+        <div id="site-menu" className="space-y-1 border-t border-line px-4 py-3 md:hidden">
           {links.map((link) => (
             <Link
               key={link.href}
@@ -91,11 +91,11 @@ export default function Header({ account }: { account: HeaderAccount }) {
           <Link
             href="/gigs/new"
             onClick={() => setOpen(false)}
-            className="flex min-h-11 items-center rounded-lg bg-accent px-3 font-medium text-zinc-950 hover:bg-accent-hover"
+            className="flex min-h-11 items-center rounded-lg bg-accent px-3 font-medium text-on-accent hover:bg-accent-hover"
           >
             Post a gig
           </Link>
-          <div className="my-2 border-t border-zinc-800" />
+          <div className="my-2 border-t border-line" />
           {account ? (
             <SignedInLinks
               href={accountHref}
@@ -129,7 +129,7 @@ function SignedOutLinks({
         <Link
           href="/sign-up"
           onClick={onNavigate}
-          className="flex min-h-11 items-center rounded-lg bg-zinc-800 px-3 font-medium text-white hover:bg-zinc-700"
+          className="flex min-h-11 items-center rounded-lg bg-surface px-3 font-medium text-foreground hover:bg-surface-hover"
         >
           Sign up
         </Link>
@@ -144,7 +144,7 @@ function SignedOutLinks({
       </Link>
       <Link
         href="/sign-up"
-        className="inline-flex min-h-11 items-center rounded-lg bg-zinc-800 px-3 text-sm font-medium text-white hover:bg-zinc-700"
+        className="inline-flex min-h-11 items-center rounded-lg bg-surface px-3 text-sm font-medium text-foreground hover:bg-surface-hover"
       >
         Sign up
       </Link>
@@ -166,14 +166,14 @@ function SignedInLinks({
   onNavigate?: () => void;
 }) {
   const linkClass = stacked
-    ? "flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-3 text-zinc-200 hover:bg-zinc-800"
-    : "inline-flex min-h-11 max-w-48 items-center gap-2 rounded-lg px-3 text-sm text-zinc-200 hover:bg-zinc-800 hover:text-white";
+    ? "flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-3 text-secondary hover:bg-surface-hover"
+    : "inline-flex min-h-11 max-w-48 items-center gap-2 rounded-lg px-3 text-sm text-secondary hover:bg-surface-hover hover:text-foreground";
   const editClass = stacked
-    ? "flex min-h-11 items-center rounded-lg px-3 text-zinc-200 hover:bg-zinc-800"
-    : "inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white";
+    ? "flex min-h-11 items-center rounded-lg px-3 text-secondary hover:bg-surface-hover"
+    : "inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-secondary hover:bg-surface-hover hover:text-foreground";
   const signOutClass = stacked
-    ? "flex min-h-11 w-full items-center rounded-lg px-3 text-left text-zinc-300 hover:bg-zinc-800 disabled:opacity-70"
-    : "inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white disabled:opacity-70";
+    ? "flex min-h-11 w-full items-center rounded-lg px-3 text-left text-secondary hover:bg-surface-hover disabled:opacity-70"
+    : "inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-muted hover:bg-surface-hover hover:text-foreground disabled:opacity-70";
 
   return (
     <>

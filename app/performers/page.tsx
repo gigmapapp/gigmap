@@ -23,14 +23,14 @@ export default async function PerformersPage() {
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-accent">Roster</p>
-          <h1 className="mt-2 font-display text-3xl text-white">Performers</h1>
-          <p className="mt-2 text-sm text-zinc-400">
+          <h1 className="mt-2 font-display text-3xl text-foreground">Performers</h1>
+          <p className="mt-2 text-sm text-muted">
             Solo artists, bands, and DJs posting gigs.
           </p>
         </div>
         <Link
           href="/account"
-          className="rounded-lg bg-zinc-800 px-4 py-2 text-sm text-white hover:bg-zinc-700"
+          className="rounded-lg bg-surface px-4 py-2 text-sm text-foreground hover:bg-surface-hover"
         >
           Your profile
         </Link>
@@ -42,19 +42,19 @@ export default async function PerformersPage() {
             <Link
               key={performer.id}
               href={`/performers/${performer.id}`}
-              className="min-w-0 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5 hover:border-accent/40"
+              className="min-w-0 rounded-2xl border border-line bg-surface p-5 hover:border-accent/40"
             >
               <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-                <h2 className="min-w-0 font-display text-xl break-words text-white">{performer.name}</h2>
+                <h2 className="min-w-0 font-display text-xl break-words text-foreground">{performer.name}</h2>
                 <span className="flex flex-wrap items-center gap-2">
                   {performer.claimed ? null : <DemoBadge />}
                   <CategoryBadge category={performer.category} />
                 </span>
               </div>
               {performer.bio.trim() ? (
-                <p className="mt-2 line-clamp-2 break-words text-sm text-zinc-400">{performer.bio}</p>
+                <p className="mt-2 line-clamp-2 break-words text-sm text-muted">{performer.bio}</p>
               ) : null}
-              {meta ? <p className="mt-3 text-xs break-words text-zinc-500">{meta}</p> : null}
+              {meta ? <p className="mt-3 text-xs break-words text-muted">{meta}</p> : null}
             </Link>
           );
         })}

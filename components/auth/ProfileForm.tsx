@@ -128,7 +128,7 @@ export default function ProfileForm({
           {formError === PROFILE_ALREADY_EXISTS_MESSAGE ? (
             <>
               {" "}
-              <Link href="/account" className="font-medium text-accent underline-offset-4 hover:underline">
+              <Link href="/account" className="inline-flex min-h-11 items-center font-medium text-accent underline-offset-4 hover:underline">
                 Go to your account
               </Link>
             </>

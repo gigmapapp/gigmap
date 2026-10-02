@@ -192,7 +192,7 @@ export function ResendConfirmation({
           aria-live={phase.kind === "sent" ? "polite" : "assertive"}
           className={
             phase.kind === "sent"
-              ? "mt-3 text-sm text-zinc-300"
+              ? "mt-3 text-sm text-secondary"
               : "auth-form-error mt-3 rounded-lg border px-3 py-3 text-sm"
           }
         >
@@ -327,7 +327,7 @@ export function AuthField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-zinc-200">
+      <label htmlFor={id} className="block text-sm font-medium text-secondary">
         {label}
       </label>
       <div className="relative mt-1.5">
@@ -335,7 +335,7 @@ export function AuthField({
         {password ? (
           <button
             type="button"
-            className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-zinc-400 hover:text-white"
+            className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-muted hover:text-foreground"
             aria-pressed={visible}
             aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
             onClick={() => setVisible((current) => !current)}
@@ -345,7 +345,7 @@ export function AuthField({
         ) : null}
       </div>
       {hint && !invalid ? (
-        <p id={hintId} className="mt-1.5 text-sm text-zinc-500">
+        <p id={hintId} className="mt-1.5 text-sm text-muted">
           {hint}
         </p>
       ) : null}
@@ -361,7 +361,7 @@ export function AuthField({
 function Spinner() {
   return (
     <span
-      className="size-4 animate-spin rounded-full border-2 border-zinc-950/25 border-t-zinc-950"
+      className="size-4 animate-spin rounded-full border-2 border-on-accent/25 border-t-on-accent"
       aria-hidden="true"
     />
   );
@@ -370,7 +370,7 @@ function Spinner() {
 function LightSpinner() {
   return (
     <span
-      className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+      className="size-4 animate-spin rounded-full border-2 border-foreground/30 border-t-foreground"
       aria-hidden="true"
     />
   );

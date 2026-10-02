@@ -23,14 +23,14 @@ export default async function AuthErrorPage({
     <AuthFrame eyebrow="Account" title={presented.title} description={presented.message}>
       <AuthErrorHash />
       <div className="space-y-4">
-        <div className="flex items-start gap-3 rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-4">
+        <div className="flex items-start gap-3 rounded-xl border border-line bg-canvas/70 px-4 py-4">
           <span
             className="grid size-11 shrink-0 place-items-center rounded-full bg-accent/15 text-accent ring-1 ring-accent/40"
             aria-hidden="true"
           >
             <ExpiredIcon />
           </span>
-          <p className="pt-1 text-sm leading-relaxed text-zinc-300">
+          <p className="pt-1 text-sm leading-relaxed text-secondary">
             Confirmation and password-reset links are one-time. A new email replaces the old link.
           </p>
         </div>

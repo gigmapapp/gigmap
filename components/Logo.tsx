@@ -6,7 +6,7 @@ export default function Logo({
   className?: string;
 }) {
   return (
-    <Link href="/" className="inline-flex shrink-0 items-center">
+    <Link href="/" className="inline-flex min-h-11 shrink-0 items-center">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="828"

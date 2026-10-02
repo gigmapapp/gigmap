@@ -68,12 +68,12 @@ export default function Discovery({
         <div className="relative h-[40vh] min-h-[220px] w-full min-w-0 md:absolute md:inset-0 md:h-auto md:min-h-0">
           <GigMap gigs={visible} selectedId={selectedId} onSelect={setSelectedId} />
           <div className="pointer-events-none absolute inset-x-0 top-0 hidden p-3 sm:p-4 md:block">
-            <div className="pointer-events-none mx-auto w-full min-w-0 max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950/85 p-3 shadow-xl backdrop-blur">
-              <p className="font-display text-lg tracking-tight text-white">
+            <div className="pointer-events-none mx-auto w-full min-w-0 max-w-xl rounded-2xl border border-line bg-canvas/85 p-3 shadow-xl backdrop-blur">
+              <p className="font-display text-lg tracking-tight text-foreground">
                 Find live music near you.
               </p>
-              <p className="mb-3 text-xs text-zinc-400">
-                Mystic · times in each gig&apos;s zone · OpenStreetMap tiles
+              <p className="mb-3 text-xs text-muted">
+                Mystic · times in each gig&apos;s zone · CARTO Voyager
               </p>
               <div className="pointer-events-auto flex flex-wrap gap-1.5">
                 {FILTERS.map((filter) => (
@@ -83,8 +83,8 @@ export default function Discovery({
                     onClick={() => setCategory(filter.id)}
                     className={`rounded-full px-3 py-1 text-xs ${
                       category === filter.id
-                        ? "bg-accent text-zinc-950"
-                        : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                        ? "bg-accent text-on-accent"
+                        : "bg-surface text-secondary hover:bg-surface-hover"
                     }`}
                   >
                     {filter.label}
@@ -92,14 +92,14 @@ export default function Discovery({
                 ))}
               </div>
               <div className="pointer-events-auto mt-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
-                <label className="block min-w-0 text-xs text-zinc-400">
+                <label className="block min-w-0 text-xs text-muted">
                   Date
                   <FilterDateInput date={date} onDate={setDate} className="mt-1" />
                 </label>
                 <button
                   type="button"
                   onClick={() => setDate("")}
-                  className="h-11 min-h-11 shrink-0 rounded-lg border border-zinc-700 px-3 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
+                  className="h-11 min-h-11 shrink-0 rounded-lg border border-line px-3 text-sm whitespace-nowrap text-secondary hover:bg-surface-hover"
                 >
                   Upcoming
                 </button>
@@ -112,8 +112,8 @@ export default function Discovery({
                     onClick={() => setDate(chip)}
                     className={`rounded-full px-2.5 py-1 text-xs ${
                       date === chip
-                        ? "bg-white text-zinc-950"
-                        : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                        ? "bg-white text-on-accent"
+                        : "bg-surface text-secondary hover:bg-surface-hover"
                     }`}
                   >
                     {chip}
@@ -125,16 +125,16 @@ export default function Discovery({
         </div>
       </section>
 
-      <aside className="flex max-h-[48vh] w-full min-w-0 flex-col border-t border-zinc-800 bg-zinc-950 md:h-full md:max-h-none md:min-h-0 md:w-[390px] md:overflow-hidden md:border-l md:border-t-0">
+      <aside className="flex max-h-[48vh] w-full min-w-0 flex-col border-t border-line bg-canvas md:h-full md:max-h-none md:min-h-0 md:w-[390px] md:overflow-hidden md:border-l md:border-t-0">
         <div className="flex items-center justify-between px-4 py-3">
-          <h2 className="font-display text-lg text-white">
+          <h2 className="font-display text-lg text-foreground">
             {date ? `Gigs on ${date}` : "Upcoming gigs"}
           </h2>
-          <span className="text-xs text-zinc-500">{visible.length}</span>
+          <span className="text-xs text-muted">{visible.length}</span>
         </div>
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 pb-6">
           {visible.length === 0 ? (
-            <p className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-sm text-zinc-400">
+            <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">
               No gigs match this date. Clear the filter to see everything coming up.
             </p>
           ) : (
@@ -146,20 +146,20 @@ export default function Discovery({
                   className={`w-full rounded-xl border p-4 text-left transition ${
                     selectedId === gig.id
                       ? "border-accent/70 bg-accent/10"
-                      : "border-zinc-800 bg-zinc-900/70 hover:border-zinc-600"
+                      : "border-line bg-surface hover:border-line"
                   }`}
                 >
-                  <button
+                    <button
                     type="button"
                     onClick={() => setSelectedId(gig.id)}
-                    className="w-full text-left"
+                    className="min-h-11 w-full text-left"
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <CategoryBadge category={gig.category} />
-                      <span className="text-xs text-zinc-400">{formatGigWhen(gig.datetime, zoneForGig(gig))}</span>
+                      <span className="text-xs text-muted">{formatGigWhen(gig.datetime, zoneForGig(gig))}</span>
                     </div>
-                    <div className="font-medium text-white">{display.primary || "Unknown"}</div>
-                    <div className="mt-1 text-sm text-zinc-400">{gig.location.label}</div>
+                    <div className="font-medium text-foreground">{display.primary || "Unknown"}</div>
+                    <div className="mt-1 text-sm text-muted">{gig.location.label}</div>
                   </button>
                   <div className="mt-2 flex items-center justify-between text-sm">
                     {display.secondary !== null ? (
@@ -167,7 +167,7 @@ export default function Discovery({
                     ) : null}
                     <Link
                       href={`/gigs/${gig.id}`}
-                      className="ml-auto text-zinc-300 underline-offset-2 hover:underline"
+                      className="ml-auto inline-flex min-h-11 items-center text-secondary underline-offset-2 hover:underline"
                     >
                       Details
                     </Link>
@@ -213,12 +213,12 @@ function FilterDateInput({
         aria-label="Filter by date"
         data-empty={empty ? "true" : undefined}
         onChange={(event) => onDate(event.target.value)}
-        className="filter-date-input box-border h-11 min-h-11 w-full min-w-0 appearance-none rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm [-webkit-appearance:none]"
+        className="filter-date-input box-border h-11 min-h-11 w-full min-w-0 appearance-none rounded-lg border border-line bg-surface px-3 text-sm [-webkit-appearance:none]"
       />
       {empty ? (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 flex min-w-0 items-center gap-2 overflow-hidden px-3 text-sm text-zinc-500"
+          className="pointer-events-none absolute inset-0 flex min-w-0 items-center gap-2 overflow-hidden px-3 text-sm text-muted"
         >
           <CalendarIcon />
           Any date
@@ -251,8 +251,8 @@ function MobileFilterBar({
   onCategory: (category: "all" | Category) => void;
 }) {
   return (
-    <div className="w-full min-w-0 shrink-0 overflow-hidden border-b border-zinc-800 bg-zinc-950 md:hidden">
-      <p className="truncate px-3 pt-2 text-sm text-zinc-300">Find live music near you</p>
+    <div className="w-full min-w-0 shrink-0 overflow-hidden border-b border-line bg-canvas md:hidden">
+      <p className="truncate px-3 pt-2 text-sm text-secondary">Find live music near you</p>
       <div className="flex gap-2 px-3 pt-2">
         {FILTERS.map((filter) => (
           <button
@@ -261,8 +261,8 @@ function MobileFilterBar({
             onClick={() => onCategory(filter.id)}
             className={`h-11 min-w-11 flex-1 rounded-full px-2 text-sm whitespace-nowrap ${
               category === filter.id
-                ? "bg-accent text-zinc-950"
-                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                ? "bg-accent text-on-accent"
+                : "bg-surface text-secondary hover:bg-surface-hover"
             }`}
           >
             {filter.label}
@@ -276,7 +276,7 @@ function MobileFilterBar({
         <button
           type="button"
           onClick={() => onDate("")}
-          className="h-11 min-h-11 shrink-0 rounded-lg border border-zinc-700 px-3 text-sm whitespace-nowrap text-zinc-200 hover:bg-zinc-800"
+          className="h-11 min-h-11 shrink-0 rounded-lg border border-line px-3 text-sm whitespace-nowrap text-secondary hover:bg-surface-hover"
         >
           Upcoming
         </button>
@@ -292,8 +292,8 @@ function MobileFilterBar({
                 aria-label={chip}
                 className={`h-11 min-w-11 shrink-0 rounded-full px-3 text-sm ${
                   date === chip
-                    ? "bg-white text-zinc-950"
-                    : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                    ? "bg-white text-on-accent"
+                    : "bg-surface text-secondary hover:bg-surface-hover"
                 }`}
               >
                 {shortDateChip(chip)}

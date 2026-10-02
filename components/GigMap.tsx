@@ -13,8 +13,8 @@ import {
 } from "maplibre-gl";
 import {
   CATEGORY_MARKER,
-  DARK_MAP_STYLE,
   MYSTIC_CENTER,
+  loadVoyagerStyle,
 } from "@/lib/map-style";
 import { categoryLabel, formatGigWhen, zoneForGig } from "@/lib/format";
 import { gigClusterItemLabel, gigDisplayTitle, gigMarkerLabel } from "@/lib/gig-display";
@@ -89,99 +89,106 @@ export default function GigMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const container = containerRef.current;
-    const initialPad = mapViewPadding(container.clientWidth || 390, container.clientHeight || 320);
-    const map = new MapLibreMap({
-      container,
-      style: DARK_MAP_STYLE,
-      center: [MYSTIC.lng, MYSTIC.lat],
-      zoom: MYSTIC_CENTER.zoom,
-    });
-    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
-    map.addControl(
-      new GeolocateControl({
-        positionOptions: { enableHighAccuracy: false, timeout: 5_000, maximumAge: 0 },
-        fitBoundsOptions: { maxZoom: MYSTIC_CENTER.zoom, duration: 800, padding: initialPad },
-        trackUserLocation: false,
-        showAccuracyCircle: false,
-        showUserLocation: true,
-      }),
-      "top-right",
-    );
-    const nearMeObserver = labelNearMe(map);
-    map.on("moveend", () => revealPopup(map));
-    map.on("resize", () => {
-      const maxWidth = popupMaxWidth(map);
-      for (const marker of markersRef.current.values()) {
-        marker.getPopup()?.setMaxWidth(maxWidth);
-      }
-      revealPopup(map);
-    });
-    const render = () => {
-      void renderGigMarkers(map, {
-        gigs: gigsRef.current,
-        selectedId: selectedRef.current,
-        onSelectRef,
-        markersRef,
-        clustersRef,
-        renderGenRef,
-        overlayRef,
-      });
-    };
-    const publish = () => {
-      publishGigSource(map, gigsRef.current, sourceKeyRef);
-      render();
-    };
-    map.on("idle", render);
-    map.on("moveend", render);
-    map.on("sourcedata", (event) => {
-      if (event.sourceId === GIG_SOURCE_ID && event.isSourceLoaded) render();
-    });
-    mapRef.current = map;
+    let cancelled = false;
+    let map: MapLibreMap | null = null;
+    let nearMeObserver: { disconnect: () => void } | null = null;
     const markers = markersRef.current;
     const clusters = clustersRef.current;
-    let cancelled = false;
-    const applyVisitor = () => {
-      const outcome = visitorRef.current;
-      if (!outcome || outcome.showFarHint) return;
-      const next = { lat: outcome.camera.lat, lng: outcome.camera.lng };
-      if (sameCenter(next, MYSTIC)) return;
-      centerRef.current = next;
-      fitAroundCenter(map, gigsRef.current, centerRef.current, fittedRef, true);
-    };
-    void automaticVisitOnce({
-      permissions: typeof navigator === "undefined" ? null : navigator.permissions,
-      geolocation: typeof navigator === "undefined" ? null : navigator.geolocation,
-      storage: sessionStore(),
-      memory: visitorSessionMemory(),
-      gigs: () => gigsRef.current,
-    }).then((outcome) => {
-      if (cancelled) return;
-      visitorRef.current = outcome;
-      if (outcome.showFarHint) setFarHint(true);
-      if (loadedRef.current) applyVisitor();
-    });
-    map.on("load", () => {
-      loadedRef.current = true;
-      // The container can change size while the style is loading (the desktop
-      // column is flex-sized). Resize before placing markers so the camera
-      // and pin positions share the final canvas. The first frame stays on
-      // Mystic; a granted fix flies on the next frame.
-      map.resize();
-      publish();
-      fitAroundCenter(map, gigsRef.current, centerRef.current, fittedRef, false);
-      if (visitorRef.current) {
-        requestAnimationFrame(() => {
-          if (!cancelled) applyVisitor();
+    void loadVoyagerStyle().then((style) => {
+      if (cancelled || mapRef.current || !container.isConnected) return;
+      const initialPad = mapViewPadding(container.clientWidth || 390, container.clientHeight || 320);
+      const view = new MapLibreMap({
+        container,
+        style,
+        attributionControl: { compact: false },
+        center: [MYSTIC.lng, MYSTIC.lat],
+        zoom: MYSTIC_CENTER.zoom,
+      });
+      map = view;
+      view.addControl(new NavigationControl({ showCompass: false }), "top-right");
+      view.addControl(
+        new GeolocateControl({
+          positionOptions: { enableHighAccuracy: false, timeout: 5_000, maximumAge: 0 },
+          fitBoundsOptions: { maxZoom: MYSTIC_CENTER.zoom, duration: 800, padding: initialPad },
+          trackUserLocation: false,
+          showAccuracyCircle: false,
+          showUserLocation: true,
+        }),
+        "top-right",
+      );
+      nearMeObserver = labelNearMe(view);
+      view.on("moveend", () => revealPopup(view));
+      view.on("resize", () => {
+        const maxWidth = popupMaxWidth(view);
+        for (const marker of markersRef.current.values()) {
+          marker.getPopup()?.setMaxWidth(maxWidth);
+        }
+        revealPopup(view);
+      });
+      const render = () => {
+        void renderGigMarkers(view, {
+          gigs: gigsRef.current,
+          selectedId: selectedRef.current,
+          onSelectRef,
+          markersRef,
+          clustersRef,
+          renderGenRef,
+          overlayRef,
         });
-      }
+      };
+      const publish = () => {
+        publishGigSource(view, gigsRef.current, sourceKeyRef);
+        render();
+      };
+      view.on("idle", render);
+      view.on("moveend", render);
+      view.on("sourcedata", (event) => {
+        if (event.sourceId === GIG_SOURCE_ID && event.isSourceLoaded) render();
+      });
+      mapRef.current = view;
+      const applyVisitor = () => {
+        const outcome = visitorRef.current;
+        if (!outcome || outcome.showFarHint) return;
+        const next = { lat: outcome.camera.lat, lng: outcome.camera.lng };
+        if (sameCenter(next, MYSTIC)) return;
+        centerRef.current = next;
+        fitAroundCenter(view, gigsRef.current, centerRef.current, fittedRef, true);
+      };
+      void automaticVisitOnce({
+        permissions: typeof navigator === "undefined" ? null : navigator.permissions,
+        geolocation: typeof navigator === "undefined" ? null : navigator.geolocation,
+        storage: sessionStore(),
+        memory: visitorSessionMemory(),
+        gigs: () => gigsRef.current,
+      }).then((outcome) => {
+        if (cancelled) return;
+        visitorRef.current = outcome;
+        if (outcome.showFarHint) setFarHint(true);
+        if (loadedRef.current) applyVisitor();
+      });
+      view.on("load", () => {
+        loadedRef.current = true;
+        // The container can change size while the style is loading (the desktop
+        // column is flex-sized). Resize before placing markers so the camera
+        // and pin positions share the final canvas. The first frame stays on
+        // Mystic; a granted fix flies on the next frame.
+        view.resize();
+        publish();
+        fitAroundCenter(view, gigsRef.current, centerRef.current, fittedRef, false);
+        if (visitorRef.current) {
+          requestAnimationFrame(() => {
+            if (!cancelled) applyVisitor();
+          });
+        }
+      });
     });
     return () => {
       cancelled = true;
       renderGenRef.current += 1;
-      nearMeObserver.disconnect();
+      nearMeObserver?.disconnect();
       overlayRef.current?.remove();
       overlayRef.current = null;
-      map.remove();
+      map?.remove();
       mapRef.current = null;
       markers.clear();
       clusters.clear();
@@ -255,13 +262,13 @@ export default function GigMap({
           <p
             role="status"
             aria-live="polite"
-            className="min-w-0 flex-1 break-words rounded-lg border border-zinc-700 bg-zinc-950/95 px-3 py-2 text-xs leading-snug text-zinc-100 shadow-lg"
+            className="min-w-0 flex-1 break-words rounded-lg border border-line bg-canvas/95 px-3 py-2 text-xs leading-snug text-secondary shadow-lg"
           >
             {FAR_FROM_GIGS_HINT}
           </p>
           <button
             type="button"
-            className="pointer-events-auto inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-950 text-lg text-zinc-200 hover:bg-zinc-800"
+            className="pointer-events-auto inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-line bg-canvas text-lg text-secondary hover:bg-surface-hover"
             aria-label="Dismiss"
             onClick={() => setFarHint(false)}
           >

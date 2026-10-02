@@ -70,36 +70,36 @@ export default async function AccountPage({
     <AuthFrame eyebrow="Account" title={performer.name} description={user.email ?? "Signed in"}>
       <dl className="space-y-4">
         <div>
-          <dt className="text-sm text-zinc-500">Category</dt>
+          <dt className="text-sm text-muted">Category</dt>
           <dd className="mt-1.5">
             <CategoryBadge category={performer.category} />
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-zinc-500">City</dt>
-          <dd className="mt-1 text-base break-words text-white">{performer.city}</dd>
+          <dt className="text-sm text-muted">City</dt>
+          <dd className="mt-1 text-base break-words text-foreground">{performer.city}</dd>
         </div>
         <div>
-          <dt className="text-sm text-zinc-500">Genres</dt>
-          <dd className="mt-1 text-base break-words text-white">{genres}</dd>
+          <dt className="text-sm text-muted">Genres</dt>
+          <dd className="mt-1 text-base break-words text-foreground">{genres}</dd>
         </div>
         <div>
-          <dt className="text-sm text-zinc-500">Bio</dt>
-          <dd className="mt-1 text-base leading-relaxed break-words text-zinc-200">
+          <dt className="text-sm text-muted">Bio</dt>
+          <dd className="mt-1 text-base leading-relaxed break-words text-secondary">
             {performer.bio || "No bio yet."}
           </dd>
         </div>
       </dl>
-      <section className="mt-8 border-t border-zinc-800 pt-6" aria-labelledby="booking-inbox-heading">
-        <h2 id="booking-inbox-heading" className="font-display text-2xl text-white">
+      <section className="mt-8 border-t border-line pt-6" aria-labelledby="booking-inbox-heading">
+        <h2 id="booking-inbox-heading" className="font-display text-2xl text-foreground">
           Requests for you
         </h2>
-        <p className="mt-2 text-sm text-zinc-400">
+        <p className="mt-2 text-sm text-muted">
           Accept or decline a request while it is pending. A final answer stays final.
         </p>
         <div className="mt-4 space-y-3">
           {incoming.length === 0 ? (
-            <p className="text-sm text-zinc-500">No requests yet.</p>
+            <p className="text-sm text-muted">No requests yet.</p>
           ) : (
             incoming.map((booking) => (
               <BookingRequestCard
@@ -129,14 +129,14 @@ export default async function AccountPage({
         </Link>
         <Link
           href="/bookings"
-          className="inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-base text-zinc-300 hover:bg-zinc-800 hover:text-white"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-base text-secondary hover:bg-surface-hover hover:text-foreground"
         >
           Your requests
         </Link>
         <form action={signOutAction}>
           <button
             type="submit"
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 text-base text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 text-base text-muted hover:bg-surface-hover hover:text-foreground"
           >
             Sign out
           </button>
