@@ -34,7 +34,7 @@ export default async function ResetPasswordPage() {
         <ResetPasswordForm action={updatePasswordAction} />
       ) : (
         <div className="space-y-4">
-          <p className="text-sm leading-relaxed text-zinc-300">
+          <p className="text-sm leading-relaxed text-secondary">
             This page stays blank until that link is opened. An expired or used link will not sign you in.
           </p>
           <Link href="/forgot-password" className={authButtonClass}>

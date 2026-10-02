@@ -9,8 +9,8 @@ export default async function NewGigPage() {
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-10">
       <p className="text-xs uppercase tracking-[0.2em] text-accent">Post a gig</p>
-      <h1 className="mt-2 font-display text-3xl text-white">Where are you playing?</h1>
-      <p className="mt-2 text-sm text-zinc-400">
+      <h1 className="mt-2 font-display text-3xl text-foreground">Where are you playing?</h1>
+      <p className="mt-2 text-sm text-muted">
         Drop a pin, add a time, and it shows up on the discovery map.
       </p>
       <div className="mt-8">

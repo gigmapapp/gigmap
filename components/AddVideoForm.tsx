@@ -18,7 +18,7 @@ export default function AddVideoForm({
 
   return (
     <form
-      className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4"
+      className="space-y-3 rounded-2xl border border-line bg-surface p-4"
       action={async (formData) => {
         setError(null);
         setPending(true);
@@ -50,8 +50,8 @@ export default function AddVideoForm({
         }
       }}
     >
-      <h2 className="font-display text-lg text-white">Add a short clip</h2>
-      <p className="text-xs text-zinc-500">
+      <h2 className="font-display text-lg text-foreground">Add a short clip</h2>
+      <p className="text-xs text-muted">
         {uploadMode === "signed"
           ? "Paste a YouTube/Vimeo/MP4 URL, or upload up to 10 MB straight to storage."
           : "Paste a YouTube/Vimeo/MP4 URL or upload up to 10 MB."}
@@ -60,24 +60,24 @@ export default function AddVideoForm({
       <input
         name="title"
         placeholder="Clip title"
-        className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white"
+        className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-foreground"
       />
       <input
         name="url"
         placeholder="https://youtube.com/watch?v=… or a direct MP4"
-        className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white"
+        className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm text-foreground"
       />
       <input
         type="file"
         name="file"
         accept="video/mp4,video/webm,video/quicktime"
-        className="w-full text-sm text-zinc-400 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-800 file:px-3 file:py-2 file:text-white"
+        className="w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface file:px-3 file:py-2 file:text-foreground"
       />
       {error ? <p className="text-sm text-accent">{error}</p> : null}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-accent-hover disabled:opacity-60"
+        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover disabled:opacity-60"
       >
         {pending ? "Saving…" : "Add clip"}
       </button>

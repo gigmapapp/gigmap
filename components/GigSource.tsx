@@ -39,7 +39,7 @@ export default function GigSource({
         </svg>
       </a>
       {sourceKind === "public_info" ? (
-        <span className="text-xs text-zinc-500">Listed from public info</span>
+        <span className="text-xs text-muted">Listed from public info</span>
       ) : null}
     </div>
   );

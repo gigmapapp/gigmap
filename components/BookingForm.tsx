@@ -195,7 +195,7 @@ export default function BookingForm({
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-accent py-3 font-medium text-zinc-950 hover:bg-accent-hover disabled:cursor-wait disabled:opacity-70"
+        className="w-full rounded-lg bg-accent py-3 font-medium text-on-accent hover:bg-accent-hover disabled:cursor-wait disabled:opacity-70"
       >
         {pending ? "Sending..." : "Send request"}
       </button>
@@ -213,7 +213,7 @@ function setFieldRef(
 }
 
 function controlClass() {
-  return "booking-field mt-1 w-full rounded-lg border bg-zinc-900 px-3 py-2 text-white outline-none";
+  return "booking-field mt-1 w-full rounded-lg border bg-surface px-3 py-2 text-foreground outline-none";
 }
 
 function Field({
@@ -262,7 +262,7 @@ function Field({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm text-zinc-300">
+      <label htmlFor={id} className="block text-sm text-secondary">
         {label}
         {multiline ? (
           <textarea {...shared} ref={inputRef} rows={rows} />

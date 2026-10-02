@@ -20,8 +20,8 @@ export default async function BookingsPage({
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-10">
-      <h1 className="font-display text-3xl text-white">Your requests</h1>
-      <p className="mt-2 text-sm text-zinc-400">
+      <h1 className="font-display text-3xl text-foreground">Your requests</h1>
+      <p className="mt-2 text-sm text-muted">
         Requests you sent, and where each one stands. You can cancel while it is still pending.
         No payments in v1.
       </p>
@@ -32,14 +32,14 @@ export default async function BookingsPage({
       ) : null}
       <div className="mt-8 space-y-3">
         {!user ? (
-          <p className="text-sm text-zinc-500">
-            <Link href="/sign-in?next=/bookings" className="text-accent hover:text-white">
+          <p className="text-sm text-muted">
+            <Link href="/sign-in?next=/bookings" className="inline-flex min-h-11 items-center text-accent hover:text-foreground">
               Sign in
             </Link>{" "}
             to see requests you have sent.
           </p>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-zinc-500">You have not sent a request yet.</p>
+          <p className="text-sm text-muted">You have not sent a request yet.</p>
         ) : (
           rows.map((booking) => (
             <BookingRequestCard
@@ -56,8 +56,8 @@ export default async function BookingsPage({
         )}
       </div>
       {owned ? (
-        <p className="mt-8 text-sm text-zinc-400">
-          <Link href="/account" className="text-accent hover:text-white">
+        <p className="mt-8 text-sm text-muted">
+          <Link href="/account" className="inline-flex min-h-11 items-center text-accent hover:text-foreground">
             Requests for {owned.name}
           </Link>{" "}
           are on your account.

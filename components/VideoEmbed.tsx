@@ -12,7 +12,7 @@ export default function VideoEmbed({
   if (parsed.kind === "file") {
     return (
       <video
-        className="aspect-video w-full rounded-xl bg-black object-cover"
+        className="aspect-video w-full rounded-xl bg-canvas object-cover"
         controls
         preload="metadata"
         playsInline
@@ -25,7 +25,7 @@ export default function VideoEmbed({
 
   return (
     <iframe
-      className="aspect-video w-full rounded-xl bg-black"
+      className="aspect-video w-full rounded-xl bg-canvas"
       src={parsed.src}
       title={title}
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

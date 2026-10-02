@@ -33,6 +33,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${manrope.variable} ${syne.variable} h-full antialiased`}
     >
       <body className="flex h-dvh min-h-0 w-full min-w-0 flex-col overflow-hidden bg-canvas text-foreground">
+        <svg width="0" height="0" aria-hidden="true" className="pointer-events-none absolute">
+          <filter id="map-dusk" colorInterpolationFilters="sRGB">
+            <feColorMatrix
+              type="matrix"
+              values="0.82 0.08 0.02 0 0  0.02 0.84 0.04 0 0  0.02 0.10 0.92 0 0.05  0 0 0 1 0"
+            />
+          </filter>
+        </svg>
         <Header
           account={
             user
