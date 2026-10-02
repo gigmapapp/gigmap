@@ -220,11 +220,15 @@ select {
 .gig-cluster-list {
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
   min-width: 0;
+  padding-bottom: 8px;
+  overscroll-behavior: contain;
 }
 
 .gig-cluster-item {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   width: 100%;
   min-height: 44px;
@@ -272,6 +276,14 @@ select {
 }
 
 @media (max-width: 767px) {
+  .gig-cluster-list,
+  .gig-popup {
+    box-sizing: border-box;
+    max-height: calc(40vh - 88px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   body {
     overflow-wrap: break-word;
   }

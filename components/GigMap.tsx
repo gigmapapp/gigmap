@@ -21,9 +21,12 @@ import { gigsWithinRadius } from "@/lib/nearby";
 import {
   CLUSTER_MAX_ZOOM,
   CLUSTER_RADIUS_PX,
+  POPUP_FIT_PADDING,
   maplibreWorkerUrl,
   mapViewPadding,
   pinsShareCoordinates,
+  popupContentMaxHeight,
+  popupPanBy,
   venuePinOffsets,
 } from "@/lib/map-pins";
 import {
@@ -360,35 +363,63 @@ function popupMaxWidth(map: MapLibreMap) {
   return `${Math.max(160, Math.min(260, available))}px`;
 }
 
+function popupOptions(map: MapLibreMap, closeOnClick: boolean) {
+  return {
+    anchor: "bottom" as const,
+    offset: 28,
+    closeButton: true,
+    closeOnClick,
+    focusAfterOpen: false,
+    maxWidth: popupMaxWidth(map),
+    padding: POPUP_FIT_PADDING,
+  };
+}
+
 /** True while a corrective pan is in flight, so moveend does not pan again. */
 let fittingPopup = false;
 
-/**
- * On a phone-width map, pan just enough that an open popup is inside the
- * canvas. Dynamic anchors cover a pin near the edge; this covers a pin that
- * has been panned past the edge, where anchoring alone still clips the card.
- * Wider maps keep the existing camera behavior.
- */
+/** Keep popup bodies scrollable on a short map, then pan the open card fully inside. */
 function revealPopup(map: MapLibreMap) {
-  if (fittingPopup || map.getContainer().clientWidth >= 768) return;
+  applyPopupScrollLimit(map);
+  if (fittingPopup) return;
   const shift = popupShift(map);
   if (!shift) return;
   fittingPopup = true;
-  const release = () => {
-    fittingPopup = false;
-  };
-  map.once("moveend", () => {
-    const again = popupShift(map);
-    if (!again) {
-      release();
-      return;
+  try {
+    map.panBy(shift, { duration: 0 });
+  } finally {
+    if (!map.isMoving()) fittingPopup = false;
+    else map.once("moveend", () => {
+      fittingPopup = false;
+    });
+  }
+}
+
+function schedulePopupFit(map: MapLibreMap) {
+  revealPopup(map);
+  requestAnimationFrame(() => revealPopup(map));
+}
+
+function applyPopupScrollLimit(map: MapLibreMap) {
+  const max = popupContentMaxHeight(map.getContainer().clientWidth, map.getContainer().clientHeight);
+  for (const node of map.getContainer().querySelectorAll(".gig-cluster-list, .gig-popup")) {
+    if (!(node instanceof HTMLElement)) continue;
+    if (max == null) {
+      node.style.maxHeight = "";
+      node.style.overflowY = "";
+      continue;
     }
-    map.once("moveend", release);
-    map.panBy(again, { duration: 0 });
-    if (!map.isMoving()) release();
-  });
-  map.panBy(shift, { duration: 220 });
-  if (!map.isMoving()) release();
+    node.style.maxHeight = `${max}px`;
+    node.style.overflowY = "auto";
+  }
+}
+
+function anchorPin(map: MapLibreMap): HTMLElement | null {
+  const root = map.getContainer();
+  const selected = root.querySelector('.gig-marker[data-selected="true"]');
+  if (selected instanceof HTMLElement) return selected;
+  const cluster = root.querySelector('.gig-cluster[aria-expanded="true"]');
+  return cluster instanceof HTMLElement ? cluster : null;
 }
 
 function popupShift(map: MapLibreMap): [number, number] | null {
@@ -396,28 +427,8 @@ function popupShift(map: MapLibreMap): [number, number] | null {
   if (!(popup instanceof HTMLElement)) return null;
   const mapRect = map.getContainer().getBoundingClientRect();
   const pop = popup.getBoundingClientRect();
-  if (pop.width < 1 || pop.height < 1) return null;
-  const marker = map.getContainer().querySelector('.gig-marker[data-selected="true"]');
-  const pin = marker?.getBoundingClientRect();
-  const left = pin ? Math.min(pop.left, pin.left) : pop.left;
-  const right = pin ? Math.max(pop.right, pin.right) : pop.right;
-  const top = pin ? Math.min(pop.top, pin.top) : pop.top;
-  const bottom = pin ? Math.max(pop.bottom, pin.bottom) : pop.bottom;
-  const margin = 8;
-  const overflowLeft = mapRect.left + margin - left;
-  const overflowRight = right - (mapRect.right - margin);
-  const overflowTop = mapRect.top + margin - top;
-  const overflowBottom = bottom - (mapRect.bottom - margin);
-  const tooWide = right - left > mapRect.width - margin * 2;
-  const tooTall = bottom - top > mapRect.height - margin * 2;
-  let x = 0;
-  let y = 0;
-  if (overflowLeft > 1) x = -overflowLeft;
-  else if (!tooWide && overflowRight > 1) x = overflowRight;
-  if (overflowTop > 1) y = -overflowTop;
-  else if (!tooTall && overflowBottom > 1) y = overflowBottom;
-  if (Math.abs(x) < 1 && Math.abs(y) < 1) return null;
-  return [x, y];
+  const pin = anchorPin(map)?.getBoundingClientRect() ?? null;
+  return popupPanBy(mapRect, pop, pin);
 }
 
 type GigFeatureCollection = {
@@ -610,14 +621,8 @@ function createPinMarker(
   el.setAttribute("aria-label", `${gig.title}, ${gig.performer?.name ?? "Unknown"}`);
   el.setAttribute("aria-expanded", "false");
 
-  const popup = new Popup({
-    offset: 22,
-    closeButton: true,
-    closeOnClick: false,
-    focusAfterOpen: false,
-    maxWidth: popupMaxWidth(map),
-    padding: { top: 12, right: 12, bottom: 12, left: 12 },
-  }).setDOMContent(popupContent(gig));
+  const popup = new Popup(popupOptions(map, false)).setDOMContent(popupContent(gig));
+  popup.on("open", () => schedulePopupFit(map));
 
   const activate = (event: Event) => {
     event.stopPropagation();
@@ -626,6 +631,7 @@ function createPinMarker(
     refs.onSelectRef.current(gig.id);
     popup.setLngLat([position.lng, position.lat]);
     if (!popup.isOpen()) popup.addTo(map);
+    else schedulePopupFit(map);
   };
   bindMapTap(el, activate);
 
@@ -745,14 +751,7 @@ function openOverlay(
   lngLat: [number, number],
 ) {
   overlayRef.current?.remove();
-  const popup = new Popup({
-    offset: 24,
-    closeButton: true,
-    closeOnClick: true,
-    focusAfterOpen: false,
-    maxWidth: popupMaxWidth(map),
-    padding: { top: 12, right: 12, bottom: 12, left: 12 },
-  })
+  const popup = new Popup(popupOptions(map, true))
     .setDOMContent(content)
     .setLngLat(lngLat)
     .addTo(map);
@@ -760,6 +759,7 @@ function openOverlay(
   popup.on("close", () => {
     if (overlayRef.current === popup) overlayRef.current = null;
   });
+  schedulePopupFit(map);
 }
 
 function applyPinSelection(map: MapLibreMap, markers: Map<string, Marker>, selectedId: string | null) {
@@ -778,6 +778,7 @@ function applyPinSelection(map: MapLibreMap, markers: Map<string, Marker>, selec
       popup.remove();
     }
   }
+  if (selectedId) schedulePopupFit(map);
 }
 
 function bindMapTap(el: HTMLElement, activate: (event: Event) => void) {

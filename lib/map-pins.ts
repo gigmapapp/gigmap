@@ -8,6 +8,15 @@ export const MAP_ATTRIBUTION_CLEARANCE_PX = 36;
 export const MARKER_TAP_PX = 44;
 
 /**
+ * Inset so a centered marker's box stays inside the canvas.
+ * Half the tap target, plus 12px of slack.
+ */
+export const MARKER_EDGE_CLEARANCE_PX = MARKER_TAP_PX / 2 + 12;
+
+/** Gap kept between an open popup and the map edges. Bottom is larger so the card clears the attribution. */
+export const POPUP_FIT_PADDING = { top: 8, right: 8, bottom: 24, left: 8 };
+
+/**
  * MapLibre clusters points closer than this many screen pixels.
  * Slightly above the tap target so overlapping pins become one cluster.
  */
@@ -23,20 +32,88 @@ export type ViewPadding = { top: number; right: number; bottom: number; left: nu
 
 /**
  * Padding for `fitBounds` and the fallback camera.
- * Wide maps keep the floating filter card clear of the pins.
- * The right inset stays at least {@link MAP_CONTROL_CLEARANCE_PX} until the
- * canvas is too short to spare it (`height * 0.4`).
+ * Every side clears at least {@link MARKER_EDGE_CLEARANCE_PX} so a marker
+ * centered on the bounds stays inside the canvas. Wide maps add room for the
+ * floating filter card. The right inset stays at least
+ * {@link MAP_CONTROL_CLEARANCE_PX} until the canvas is too short to spare it.
  */
 export function mapViewPadding(width: number, height: number): ViewPadding {
   const wide = width >= 768;
-  const maxPad = Math.max(16, height * 0.4);
+  const edge = MARKER_EDGE_CLEARANCE_PX;
+  const maxPad = Math.max(edge, height * 0.4);
   const limit = (value: number) => Math.min(Math.max(0, value), maxPad);
   return {
-    top: limit(wide ? Math.round(height * 0.3) : 16),
-    right: limit(MAP_CONTROL_CLEARANCE_PX),
-    bottom: limit(Math.max(MAP_ATTRIBUTION_CLEARANCE_PX, wide ? 48 : MAP_ATTRIBUTION_CLEARANCE_PX)),
-    left: limit(wide ? 48 : 16),
+    top: limit(wide ? Math.max(edge, Math.round(height * 0.3)) : edge),
+    right: limit(Math.max(MAP_CONTROL_CLEARANCE_PX, edge)),
+    bottom: limit(Math.max(MAP_ATTRIBUTION_CLEARANCE_PX, edge, wide ? 48 : edge)),
+    left: limit(wide ? Math.max(48, edge) : edge),
   };
+}
+
+export type PopupBox = { left: number; top: number; right: number; bottom: number };
+
+/**
+ * Pixel pan that brings a popup inside the map. The anchor pin is included
+ * when the pair still fits; otherwise the popup wins. Positive x pans east
+ * (content moves left). Positive y pans south (content moves up).
+ */
+export function popupPanBy(
+  mapBox: PopupBox,
+  popupBox: PopupBox,
+  pinBox: PopupBox | null,
+  padding = POPUP_FIT_PADDING,
+): [number, number] | null {
+  if (popupBox.right - popupBox.left < 1 || popupBox.bottom - popupBox.top < 1) return null;
+  const inner = {
+    left: mapBox.left + padding.left,
+    top: mapBox.top + padding.top,
+    right: mapBox.right - padding.right,
+    bottom: mapBox.bottom - padding.bottom,
+  };
+  const innerWidth = inner.right - inner.left;
+  const innerHeight = inner.bottom - inner.top;
+  if (innerWidth < 1 || innerHeight < 1) return null;
+
+  let bounds = popupBox;
+  if (pinBox && pinBox.right - pinBox.left >= 1 && pinBox.bottom - pinBox.top >= 1) {
+    const union = {
+      left: Math.min(popupBox.left, pinBox.left),
+      top: Math.min(popupBox.top, pinBox.top),
+      right: Math.max(popupBox.right, pinBox.right),
+      bottom: Math.max(popupBox.bottom, pinBox.bottom),
+    };
+    if (union.right - union.left <= innerWidth && union.bottom - union.top <= innerHeight) {
+      bounds = union;
+    }
+  }
+
+  const popupTooWide = popupBox.right - popupBox.left > innerWidth;
+  const popupTooTall = popupBox.bottom - popupBox.top > innerHeight;
+  const overflowLeft = inner.left - bounds.left;
+  const overflowRight = bounds.right - inner.right;
+  const overflowTop = inner.top - bounds.top;
+  const overflowBottom = bounds.bottom - inner.bottom;
+  let x = 0;
+  let y = 0;
+  if (overflowLeft > 1) x = -overflowLeft;
+  else if (!popupTooWide && overflowRight > 1) x = overflowRight;
+  if (overflowTop > 1) y = -overflowTop;
+  else if (!popupTooTall && overflowBottom > 1) y = overflowBottom;
+  if (Math.abs(x) < 1 && Math.abs(y) < 1) return null;
+  return [x, y];
+}
+
+/**
+ * Max height of popup content on a narrow map so the card can scroll instead
+ * of spilling out of the canvas. Wide maps keep the natural height.
+ */
+export function popupContentMaxHeight(mapWidth: number, mapHeight: number): number | null {
+  if (mapWidth >= 768 || mapHeight < 2) return null;
+  const contentPadding = 24;
+  const tip = 12;
+  const available =
+    mapHeight - POPUP_FIT_PADDING.top - POPUP_FIT_PADDING.bottom - contentPadding - tip;
+  return Math.max(MARKER_TAP_PX, Math.floor(available));
 }
 
 export type PinPoint = { id: string; lng: number; lat: number };
